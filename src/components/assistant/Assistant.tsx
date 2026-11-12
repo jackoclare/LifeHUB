@@ -270,6 +270,27 @@ export function Assistant() {
             });
             break;
           }
+          case "tv": {
+            const t = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
+            const names: Record<string, string> = { "BBCOneWestMidlands.uk": "BBC One", "BBCTwoHD.uk": "BBC Two", "ITV1CentralW.uk": "ITV1", "Channel4Midlands.uk": "Channel 4", "5.uk": "Channel 5" };
+            const chName = (c: string) => names[c] ?? c.replace(/\.uk$/, "").replace(/HD$/, "").replace(/^UAnd/, "U&");
+            if (intent.q) {
+              const { data } = await supabase.from("tv_programmes").select("channel,start_at,title").ilike("title", `%${intent.q}%`).gte("start_at", new Date().toISOString()).order("start_at").limit(4);
+              if (!data?.length) return respond({ ok: false, text: `I can't see "${intent.q}" on the main channels in the next 7 days.`, link: { href: "/tv", label: "Open TV guide" } });
+              const first = data[0];
+              const day = new Date(first.start_at).toLocaleDateString("en-GB", { weekday: "long", timeZone: "Europe/London" });
+              return respond({ ok: true, text: `${first.title} is on ${chName(first.channel)} ${day} at ${t(first.start_at)}.`, lines: data.length > 1 ? data.slice(1).map((d) => `${new Date(d.start_at).toLocaleDateString("en-GB", { weekday: "short", timeZone: "Europe/London" })} ${t(d.start_at)} · ${chName(d.channel)}`) : undefined, link: { href: "/tv", label: "Open TV guide" } });
+            }
+            const now = new Date();
+            const off = (new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" })).getTime() - new Date(now.toLocaleString("en-US", { timeZone: "UTC" })).getTime()) / 60000;
+            const nine = new Date(Date.parse(`${new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(now)}T21:00:00Z`) - off * 60000);
+            const at = now > nine ? now : nine;
+            const { data } = await supabase.from("tv_programmes").select("channel,start_at,title").in("channel", Object.keys(names)).lte("start_at", at.toISOString()).gt("stop_at", at.toISOString());
+            const rows = Object.keys(names).map((c) => (data ?? []).find((d) => d.channel === c)).filter(Boolean) as { channel: string; start_at: string; title: string }[];
+            if (!rows.length) return respond({ ok: false, text: "The TV listings are still loading in. Try the guide in a moment.", link: { href: "/tv", label: "Open TV guide" } });
+            respond({ ok: true, text: now > nine ? "Here's what's on right now:" : "Here's what's on at 9pm tonight:", lines: rows.map((r) => `${chName(r.channel)}: ${r.title} (${t(r.start_at)})`), link: { href: "/tv", label: "Open TV guide" } });
+            break;
+          }
           case "fuel": {
             const place = readPlace();
             if (!place) return respond({ ok: false, text: "Set your location first, then ask me again.", link: { href: "/fuel", label: "Set location" } });

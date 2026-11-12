@@ -1,0 +1,1 @@
+-- See applied migration "tv_programmes": public TV listings (read-only to clients; written by the tv-sync Edge Function every 6 hours via pg_cron job lifehub-tv-sync) + tv_sync_log.

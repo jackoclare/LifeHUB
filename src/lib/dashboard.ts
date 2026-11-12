@@ -13,6 +13,7 @@ import {
   Store,
   Tag,
   Trophy,
+  Tv,
   type LucideIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -30,7 +31,8 @@ export type CardId =
   | "travel"
   | "shopping"
   | "local"
-  | "reminders";
+  | "reminders"
+  | "tv";
 
 export type CardDef = {
   id: CardId;
@@ -48,15 +50,16 @@ export const cards: CardDef[] = [
   { id: "calendar", title: "Coming up", icon: CalendarDays, color: "var(--c-travel)", href: "/calendar", phase: 1, promise: "Your next events, bills and matches.", wide: true },
   { id: "weather", title: "Weather", icon: CloudSun, color: "var(--c-travel)", href: "/weather", phase: 3, promise: "Today's forecast for your area." },
   { id: "bills", title: "Upcoming bills", icon: ReceiptPoundSterling, color: "var(--c-money)", href: "/bills", phase: 1, promise: "What's due in the next 7 days and anything overdue." },
-  { id: "football", title: "Aston Villa & England", icon: Trophy, color: "var(--c-sport)", href: "/sport", phase: 4, promise: "Next match and recent results." },
+  { id: "football", title: "Your teams", icon: Trophy, color: "var(--c-sport)", href: "/sport", phase: 4, promise: "Next match and recent results." },
   { id: "fuel", title: "Cheapest fuel near you", icon: Fuel, color: "var(--c-discover)", href: "/fuel", phase: 3, promise: "Cheapest unleaded and diesel nearby." },
   { id: "activity", title: "Steps & activity", icon: Dumbbell, color: "var(--c-health)", href: "/health", phase: 5, promise: "Steps, distance and active calories from your Apple Watch." },
   { id: "nutrition", title: "Calories & nutrition", icon: Salad, color: "var(--c-health)", href: "/health", phase: 5, promise: "Today's calories, protein, carbs and fat." },
   { id: "news", title: "Latest news", icon: Newspaper, color: "var(--c-news)", href: "/news", phase: 4, promise: "Top UK headlines." },
   { id: "sport-news", title: "Football headlines", icon: Trophy, color: "var(--c-sport)", href: "/news", phase: 4, promise: "The latest football news." },
-  { id: "travel", title: "Travel deals", icon: Plane, color: "var(--c-travel)", href: "/travel", phase: 3, promise: "Cheapest flights and holidays to your saved destinations." },
+  { id: "travel", title: "Your trips", icon: Plane, color: "var(--c-travel)", href: "/travel", phase: 3, promise: "Cheapest flights and holidays to your saved destinations." },
   { id: "shopping", title: "Hot deals", icon: Tag, color: "var(--c-shop)", href: "/deals", phase: 3, promise: "Verified deals and wish-list price drops." },
-  { id: "local", title: "Local offers", icon: Store, color: "var(--c-discover)", href: "/explore", phase: 3, promise: "Things to do and offers near you." },
+  { id: "local", title: "Places to eat nearby", icon: Store, color: "var(--c-discover)", href: "/explore", phase: 3, promise: "Restaurants, pubs and things to do near you." },
+  { id: "tv", title: "On TV tonight", icon: Tv, color: "var(--c-tv)", href: "/tv", phase: 4, promise: "What's on the main channels at 9pm." },
   { id: "reminders", title: "Reminders", icon: Bell, color: "var(--c-shop)", href: "/calendar", phase: 1, promise: "Reminders you've added to the calendar." },
 ];
 

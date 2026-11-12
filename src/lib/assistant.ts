@@ -17,6 +17,7 @@ export type Intent =
   | { kind: "carDue"; what: "mot" | "tax" | "insurance" | "service" | "all" }
   | { kind: "findDoc"; q: string }
   | { kind: "fuel"; fuel: "E10" | "E5" | "B7_Standard" }
+  | { kind: "tv"; q?: string }
   | { kind: "help" }
   | { kind: "unknown"; text: string };
 
@@ -194,6 +195,9 @@ export function parse(input: string, now = new Date()): Intent {
   }
 
   // Questions
+  const tvWhen = t.match(/^when(?:'s| is| does)\s+(.+?)\s+(?:on|start|airing)(?: tv| telly| tonight)?\??$/);
+  if (tvWhen && !/\b(villa|england|bins?)\b|\b(game|match|fixture)$/.test(tvWhen[1])) return { kind: "tv", q: tvWhen[1].replace(/^the /, "") };
+  if (/\b(on (the )?(tv|telly)|tv (tonight|guide|now)|what'?s on tonight)\b/.test(t)) return { kind: "tv" };
   if (/\bweather\b|\brain\b|\bcold\b|\bhot\b|\bumbrella\b|\bcoat\b/.test(t) && !/^(show|open|go)/.test(t)) return { kind: "weather" };
   if (/\b(next|when).*(game|match|playing|kick ?off)|\b(villa|england)\b.*(play|game|match)/.test(t)) {
     return { kind: "nextMatch", team: /villa/.test(t) ? "villa" : /england/.test(t) ? "england" : "any" };

@@ -1,5 +1,6 @@
 "use client";
 
+import { ActivitySummary, LocalSummary, NutritionSummary, TravelSummary, TvSummary } from "./MoreSummaries";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpRight, Bell, CalendarDays, Check, Eye, EyeOff, Mic, Plus, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -115,6 +116,16 @@ export function Dashboard() {
                       <FuelSummary />
                     ) : c.id === "shopping" ? (
                       <DealsSummary />
+                    ) : c.id === "tv" ? (
+                      <TvSummary />
+                    ) : c.id === "activity" ? (
+                      <ActivitySummary />
+                    ) : c.id === "nutrition" ? (
+                      <NutritionSummary />
+                    ) : c.id === "travel" ? (
+                      <TravelSummary />
+                    ) : c.id === "local" ? (
+                      <LocalSummary />
                     ) : (
                       <EventList items={upcoming(events, 30).filter((e) => e.kind === "reminder").slice(0, 4)} empty="No reminders set — add one from the calendar." />
                     )}
@@ -385,7 +396,7 @@ function FootballSummary() {
   );
 }
 
-const LIVE = new Set<CardDef["id"]>(["calendar", "weather", "bills", "football", "fuel", "shopping", "news", "sport-news", "reminders"]);
+const LIVE = new Set<CardDef["id"]>(["calendar", "weather", "bills", "football", "fuel", "shopping", "news", "sport-news", "reminders", "tv", "activity", "nutrition", "travel", "local"]);
 
 function SoonTile({ card, index }: { card: CardDef; index: number }) {
   const Icon = card.icon;

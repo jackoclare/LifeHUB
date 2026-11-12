@@ -155,6 +155,7 @@ export function ExploreView() {
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <MapView
+          live
           className="h-[45dvh] min-h-72 lg:h-[calc(100dvh-16rem)]"
           center={place}
           zoom={radius > 3000 ? 13 : 14}

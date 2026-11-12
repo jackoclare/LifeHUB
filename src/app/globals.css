@@ -696,3 +696,24 @@ h3,
     transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
   }
 }
+
+/* Sat-nav style live position: blue disc with a heading arrow */
+.map-nav {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgb(59 130 246 / 0.18);
+  display: grid;
+  place-items: center;
+  animation: me-pulse 2.2s infinite;
+}
+.map-nav span {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 24px solid #3b82f6;
+  filter: drop-shadow(0 0 0 #fff) drop-shadow(0 2px 4px rgb(0 0 0 / 0.45));
+  transform: rotate(var(--deg, 0deg));
+  transition: transform 0.6s ease;
+}

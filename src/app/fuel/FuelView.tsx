@@ -192,6 +192,7 @@ export function FuelView() {
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <MapView
+          live
           className="h-[42dvh] min-h-72 lg:h-[calc(100dvh-20rem)]"
           center={place}
           zoom={radius > 16 ? 11 : radius > 8 ? 12 : 13}
@@ -235,7 +236,8 @@ export function FuelView() {
         </div>
       </div>
       <p className="text-xs text-faint">
-        Official prices from the UK Government Fuel Finder scheme (Open Government Licence). Stations must report changes within 30 minutes, and this page refreshes hourly
+        Prices from retailers&apos; own open price feeds — Asda, Esso/Tesco Alliance, SGN, JET and Moto (about 1,150 stations). Full coverage of every UK station will switch on
+        automatically once the government Fuel Finder service accepts our connection. Refreshed hourly
         {synced ? ` — last refreshed ${ago(synced)}` : ""}. Always check the price at the pump.
       </p>
 

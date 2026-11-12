@@ -52,7 +52,18 @@ export async function GET(req: Request) {
     const day = await api<ApiFixture[]>(`/fixtures?date=${date}&timezone=Europe/London`, key, 3600);
     const errs = day.errors && (Array.isArray(day.errors) ? day.errors.length : Object.keys(day.errors as object).length);
     if (errs) return NextResponse.json({ configured: true, lineups: [], error: `API-Football: ${JSON.stringify(day.errors)}` });
-    const fx = (day.response ?? []).find((f) => same(f.teams.home.name, home) && same(f.teams.away.name, away));
+    // Pick the right game: youth/women's/reserve sides share names (England U21 v Croatia U21), so prefer exact
+    // senior names and the kick-off time closest to ours.
+    const youth = /\b(u-?\d{2}|under ?\d{2}|women|ladies|w|ii|b|reserves?|youth|academy)\b/i;
+    const ko = sp.get("ko") ? new Date(sp.get("ko")!).getTime() : null;
+    const cands = (day.response ?? []).filter((f) => same(f.teams.home.name, home) && same(f.teams.away.name, away));
+    const score = (f: ApiFixture) =>
+      (norm(f.teams.home.name) === norm(home) ? 0 : 5) +
+      (norm(f.teams.away.name) === norm(away) ? 0 : 5) +
+      (youth.test(f.teams.home.name) && !youth.test(home) ? 50 : 0) +
+      (youth.test(f.teams.away.name) && !youth.test(away) ? 50 : 0) +
+      (ko ? Math.abs(new Date(f.fixture.date).getTime() - ko) / 3600e3 : 0);
+    const fx = cands.sort((a, b) => score(a) - score(b))[0];
     if (!fx) return NextResponse.json({ configured: true, lineups: [], note: "Match not found in API-Football for that date" });
 
     // Lineups appear ~1h before kick-off; cache short before that, longer after
@@ -66,7 +77,14 @@ export async function GET(req: Request) {
       startXI: l.startXI.map((p) => ({ name: p.player.name, number: p.player.number, pos: p.player.pos })),
       subs: l.substitutes.map((p) => ({ name: p.player.name, number: p.player.number, pos: p.player.pos })),
     }));
-    return NextResponse.json({ configured: true, fixtureId: fx.fixture.id, status: fx.fixture.status.short, lineups });
+    return NextResponse.json({
+      configured: true,
+      fixtureId: fx.fixture.id,
+      status: fx.fixture.status.short,
+      matched: `${fx.teams.home.name} v ${fx.teams.away.name}`,
+      others: cands.filter((c) => c !== fx).map((c) => `${c.teams.home.name} v ${c.teams.away.name} (${c.fixture.status.short})`),
+      lineups,
+    });
   } catch (e) {
     return NextResponse.json({ configured: true, lineups: [], error: (e as Error).message });
   }

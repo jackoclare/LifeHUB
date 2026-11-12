@@ -83,7 +83,7 @@ export function MatchView({ id }: { id: string }) {
     if (!e0?.dateEvent || !e0.strHomeTeam || !e0.strAwayTeam) return;
     const k = sdbTime(e0);
     const ukDate = k ? k.toLocaleDateString("en-CA", { timeZone: "Europe/London" }) : e0.dateEvent;
-    fetch(`/api/match-lineups?date=${ukDate}&home=${encodeURIComponent(e0.strHomeTeam)}&away=${encodeURIComponent(e0.strAwayTeam)}`)
+    fetch(`/api/match-lineups?date=${ukDate}&home=${encodeURIComponent(e0.strHomeTeam)}&away=${encodeURIComponent(e0.strAwayTeam)}${e0.strTimestamp ? `&ko=${encodeURIComponent(/[zZ]|[+-]\d\d:?\d\d$/.test(e0.strTimestamp) ? e0.strTimestamp : `${e0.strTimestamp}Z`)}` : ""}`)
       .then((r) => r.json())
       .then(setFull)
       .catch(() => setFull(null));

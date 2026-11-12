@@ -6,6 +6,7 @@ import { useTheme } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
 import { SetPin } from "@/components/SetPin";
+import { NotificationSettings } from "@/components/NotificationSettings";
 
 export function SettingsView() {
   const [theme, setTheme] = useTheme();
@@ -30,7 +31,8 @@ export function SettingsView() {
           </div>
         ) : null}
         {!loading && user && (
-          <div className="mt-3">
+          <div className="mt-3 space-y-3">
+            <NotificationSettings />
             <SetPin />
           </div>
         )}

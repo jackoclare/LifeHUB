@@ -44,7 +44,7 @@ export type CardDef = {
 
 export const cards: CardDef[] = [
   { id: "calendar", title: "Coming up", icon: CalendarDays, color: "var(--c-travel)", href: "/calendar", phase: 1, promise: "Your next events, bills and matches.", wide: true },
-  { id: "weather", title: "Weather", icon: CloudSun, color: "var(--c-travel)", href: "/explore", phase: 3, promise: "Today's forecast for your area." },
+  { id: "weather", title: "Weather", icon: CloudSun, color: "var(--c-travel)", href: "/weather", phase: 3, promise: "Today's forecast for your area." },
   { id: "bills", title: "Upcoming bills", icon: ReceiptPoundSterling, color: "var(--c-money)", href: "/bills", phase: 1, promise: "What's due in the next 7 days and anything overdue." },
   { id: "football", title: "Football", icon: Trophy, color: "var(--c-sport)", href: "/sport", phase: 4, promise: "Live scores and Aston Villa / England fixtures." },
   { id: "activity", title: "Steps & activity", icon: Dumbbell, color: "var(--c-health)", href: "/health", phase: 5, promise: "Steps, distance and active calories from your Apple Watch." },

@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  CloudSun,
   Dumbbell,
   Fuel,
   Gift,
@@ -37,6 +38,7 @@ export const sections: Section[] = [
   { href: "/shopping", label: "Shopping list", short: "Shopping", icon: ShoppingBasket, color: "var(--c-shop)", phase: 2, group: "Money & lists", blurb: "Supermarket lists you can tick off as you go." },
   { href: "/wishlist", label: "Wish list", icon: Gift, color: "var(--c-shop)", phase: 2, group: "Money & lists", blurb: "Things you want, with target prices and price drops." },
 
+  { href: "/weather", label: "Weather", icon: CloudSun, color: "var(--c-travel)", phase: 3, group: "Discover", blurb: "Live forecast for where you are." },
   { href: "/deals", label: "Deals", icon: Tag, color: "var(--c-shop)", phase: 3, group: "Discover", blurb: "Verified deals from the retailers you care about." },
   { href: "/travel", label: "Travel", icon: Plane, color: "var(--c-travel)", phase: 3, group: "Discover", blurb: "Cheapest flights and holidays on a map." },
   { href: "/fuel", label: "Fuel", icon: Fuel, color: "var(--c-discover)", phase: 3, group: "Discover", blurb: "Cheapest and nearest UK fuel prices." },

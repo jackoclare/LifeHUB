@@ -1,12 +1,14 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { PageHeader } from "@/components/PageHeader";
+import { findSection } from "@/lib/nav";
+import { ExploreView } from "./ExploreView";
 
 export const metadata = { title: "Explore" };
 
-export default function Page() {
+export default function ExplorePage() {
   return (
-    <ComingSoon
-      href="/explore"
-      plans={["Restaurants, pubs, cafes and attractions", "Days out, activities and events", "Opening hours, price filters and directions", "Saved places"]}
-    />
+    <>
+      <PageHeader section={findSection("/explore")} />
+      <ExploreView />
+    </>
   );
 }

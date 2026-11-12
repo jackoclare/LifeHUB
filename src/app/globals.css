@@ -444,6 +444,96 @@ html.theme-ready .card {
   animation: progress 6s linear both;
 }
 
+/* ---------- Weather icon motion ---------- */
+@keyframes wx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes wx-bob {
+  50% {
+    transform: translateY(3px);
+  }
+}
+@keyframes wx-drift {
+  50% {
+    transform: translateX(3px);
+  }
+}
+@keyframes wx-flash {
+  0%, 88%, 100% {
+    opacity: 1;
+  }
+  90%, 94% {
+    opacity: 0.35;
+  }
+}
+.wx-spin {
+  animation: wx-spin 24s linear infinite;
+}
+.wx-bob {
+  animation: wx-bob 2.4s ease-in-out infinite;
+}
+.wx-drift {
+  animation: wx-drift 5s ease-in-out infinite;
+}
+.wx-flash {
+  animation: wx-flash 4s linear infinite;
+}
+
+/* ---------- Map ---------- */
+.map-root {
+  isolation: isolate;
+  z-index: 0;
+}
+.map-root .leaflet-container,
+.map-root.leaflet-container {
+  background: var(--surface-2);
+  font-family: var(--font-sans);
+}
+.map-pin {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pin);
+  border: 2.5px solid #fff;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.35);
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease;
+  animation: pop 0.35s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+.map-pin span {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.map-pin.is-selected {
+  transform: scale(1.35);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--pin) 35%, transparent), 0 6px 16px rgb(0 0 0 / 0.4);
+}
+.map-me {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #3b82f6;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 0 rgb(59 130 246 / 0.6);
+  animation: me-pulse 2s infinite;
+}
+@keyframes me-pulse {
+  70% {
+    box-shadow: 0 0 0 14px rgb(59 130 246 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(59 130 246 / 0);
+  }
+}
+.leaflet-control-attribution {
+  font-size: 9px !important;
+}
+
 /* iPhone safe areas (notch / home bar) */
 .pt-safe {
   padding-top: env(safe-area-inset-top);

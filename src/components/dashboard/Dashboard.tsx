@@ -7,6 +7,7 @@ import { cards, type CardDef, useDashboardPrefs } from "@/lib/dashboard";
 import { formatDay, fromISODate, kindInfo, upcoming, useCalendarEvents } from "@/lib/calendar";
 import { phaseNames } from "@/lib/nav";
 import { HeadlineRotator, LiveBadge, NewsTicker } from "@/components/news/NewsWidgets";
+import { WeatherSummary } from "@/components/weather/WeatherWidgets";
 import { useAuth } from "@/components/AuthProvider";
 import { BillLogo } from "@/components/BillLogo";
 import { money } from "@/components/ui";
@@ -88,8 +89,10 @@ export function Dashboard() {
               {visible
                 .filter((c) => LIVE.has(c.id))
                 .map((c, i) => (
-                  <DashCard key={c.id} card={c} index={i} wholeLink={c.id !== "news" && c.id !== "sport-news"}>
-                    {c.id === "news" ? (
+                  <DashCard key={c.id} card={c} index={i} wholeLink={c.id !== "news" && c.id !== "sport-news" && c.id !== "weather"}>
+                    {c.id === "weather" ? (
+                      <WeatherSummary />
+                    ) : c.id === "news" ? (
                       <HeadlineRotator feed="news" accent="var(--accent)" />
                     ) : c.id === "sport-news" ? (
                       <HeadlineRotator feed="football" accent="var(--c-sport)" />
@@ -240,7 +243,7 @@ function BillsSummary() {
   );
 }
 
-const LIVE = new Set<CardDef["id"]>(["calendar", "bills", "news", "sport-news", "reminders"]);
+const LIVE = new Set<CardDef["id"]>(["calendar", "weather", "bills", "news", "sport-news", "reminders"]);
 
 function SoonTile({ card, index }: { card: CardDef; index: number }) {
   const Icon = card.icon;

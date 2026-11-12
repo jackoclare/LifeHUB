@@ -1,0 +1,1 @@
+-- See applied migration "health_food": food_entries, nutrition_goals, health_daily, health_tokens (all RLS own-rows; health_daily written only by the health-ingest Edge Function).

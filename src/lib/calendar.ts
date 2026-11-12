@@ -18,7 +18,7 @@ export { formatDay, fromISODate, toISODate };
  * - Phase 4: favourite-team fixtures (Aston Villa, England) will be added automatically.
  */
 
-export type EventKind = "personal" | "reminder" | "bill" | "football" | "travel";
+export type EventKind = "personal" | "reminder" | "bill" | "football" | "travel" | "holiday";
 
 export type CalendarEvent = {
   id: string;
@@ -40,6 +40,7 @@ export const kindInfo: Record<EventKind, { label: string; color: string; auto?: 
   bill: { label: "Bill", color: "var(--c-money)", auto: "Added automatically from Bills" },
   football: { label: "Football", color: "var(--c-sport)", auto: "Aston Villa & England fixtures added automatically" },
   travel: { label: "Travel", color: "var(--c-travel)", auto: "Saved trips added automatically (Phase 3)" },
+  holiday: { label: "Bank holiday", color: "#14b8a6", auto: "UK bank holidays from GOV.UK" },
 };
 
 /** Kinds you can add by hand right now. */
@@ -86,6 +87,22 @@ export function useCalendarEvents() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [football, setFootball] = useState<CalendarEvent[]>([]);
+  const [holidays, setHolidays] = useState<CalendarEvent[]>([]);
+
+  // UK bank holidays (GOV.UK)
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/bank-holidays")
+      .then((r) => r.json())
+      .then((j: { holidays?: { title: string; date: string; notes: string | null }[] }) => {
+        if (!alive) return;
+        setHolidays((j.holidays ?? []).map((h) => ({ id: `bh-${h.date}`, title: `${h.title}${h.notes ? ` (${h.notes.toLowerCase()})` : ""}`, date: h.date, kind: "holiday" as const, readOnly: true })));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Favourite teams' fixtures (Aston Villa, England) — shown to everyone, no sign-in needed
   useEffect(() => {
@@ -169,7 +186,7 @@ export function useCalendarEvents() {
     );
   }, [bills]);
 
-  const events = useMemo(() => [...own, ...billEvents, ...football].sort(sortEvents), [own, billEvents, football]);
+  const events = useMemo(() => [...own, ...billEvents, ...football, ...holidays].sort(sortEvents), [own, billEvents, football, holidays]);
 
   const add = useCallback(
     async (e: Omit<CalendarEvent, "id">) => {

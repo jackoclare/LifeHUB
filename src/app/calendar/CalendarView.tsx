@@ -141,7 +141,7 @@ export function CalendarView() {
                 <li key={e.id} style={{ "--i": i } as React.CSSProperties}>
                   {e.readOnly ? (
                     <Link
-                      href={e.kind === "bill" ? "/bills" : e.id.startsWith("match-") ? `/sport/match/${e.id.slice(6)}` : "/sport"}
+                      href={e.kind === "bill" ? "/bills" : e.id.startsWith("match-") ? `/sport/match/${e.id.slice(6)}` : e.kind === "holiday" ? "https://www.gov.uk/bank-holidays" : "/sport"}
                       className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5 transition-colors hover:brightness-110 active:scale-[0.99]"
                       aria-label={`Open ${e.title}`}
                     >

@@ -87,8 +87,8 @@
 - [x] Bank statements (Pockit): no free open-banking AIS for personal use (GoCardless BAD closed to new signups; TrueLayer paid/business) → upload PDF/CSV in Money. Edge Function `statement-text` extracts PDF rows in memory (unpdf), client parser (lib/statement.ts) handles CSV column layouts + PDF rows with running balance, categorises, dedupes (transactions.dedupe_key). Spending by month/category, re-categorise, assistant "how much have I spent (on X) this month/week/last month"
 - [ ] Pockit PDF layout untested with a real statement — tune parser if signs/descriptions look wrong
 - [x] Travel restyle: map price tags (flights fn mode=cheapest, Aviasales get_latest_prices), budget/direct filters, Next weekend + Cheapest getaways cards
-- [x] Preferences (Profile): favourite teams via TheSportsDB search, home airport, supermarket, diet → user_settings.prefs (+ localStorage). Sport/Home/Calendar use them. TODO: notify + calendar feed functions still use Villa/England ids
-- [ ] TV guide: no good free UK listings source (TVmaze UK schedule is ~20 shows/day) — needs a listings provider
+- [x] Preferences (Profile): favourite teams via TheSportsDB search, home airport, supermarket, diet → user_settings.prefs (+ localStorage). Sport/Home/Calendar, push alerts and the iPhone calendar feed all use them
+- [x] TV guide: live from the open Freeview-EPG feed (see 12 Nov late below)
 - ⚠️ 12 Nov ~18:55: Vercel Hobby deployment limit hit ("rate limited — retry in 24 hours"). Commits after 28ea0d6 are pushed but not live until it resets: typed-From fix, Deals, deals card
 - [x] Calendar feed: Edge Function `calendar` serves an iCal (webcal) feed of events, bills and fixtures — subscribe on iPhone
 - [x] Voice assistant: floating button, speech in/out (en-GB), adds shopping/wish-list items and calendar events, opens pages, answers weather/next match/bills due (on-device parsing, no paid AI)

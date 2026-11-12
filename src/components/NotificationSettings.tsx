@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BellOff, BellRing, CloudLightning, Loader2, Receipt, Share, Trophy } from "lucide-react";
+import { Bell, BellOff, BellRing, CloudLightning, Loader2, Receipt, Sunrise, Share, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./AuthProvider";
@@ -28,7 +28,7 @@ export function NotificationSettings() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
-  const [prefs, setPrefs] = useState({ bills: true, matches: true, weather: true });
+  const [prefs, setPrefs] = useState({ bills: true, matches: true, weather: true, briefing: true });
 
   useEffect(() => {
     if (!user) return;
@@ -49,8 +49,8 @@ export function NotificationSettings() {
       const reg = await navigator.serviceWorker.getRegistration("/");
       const sub = await reg?.pushManager.getSubscription();
       setStatus(sub ? "on" : "off");
-      const { data } = await createClient().from("notification_prefs").select("bills,matches,weather").maybeSingle();
-      if (data) setPrefs({ bills: data.bills, matches: data.matches, weather: data.weather ?? true });
+      const { data } = await createClient().from("notification_prefs").select("bills,matches,weather,briefing").maybeSingle();
+      if (data) setPrefs({ bills: data.bills, matches: data.matches, weather: data.weather ?? true, briefing: data.briefing ?? true });
     })();
   }, [user]);
 
@@ -102,7 +102,7 @@ export function NotificationSettings() {
     setMsg(error ? "Test failed — try again in a moment." : data?.sent ? "Test notification sent 🎉" : "No devices registered yet.");
   };
 
-  const togglePref = async (k: "bills" | "matches" | "weather") => {
+  const togglePref = async (k: "bills" | "matches" | "weather" | "briefing") => {
     const next = { ...prefs, [k]: !prefs[k] };
     setPrefs(next);
     await createClient().from("notification_prefs").upsert({ user_id: user.id, ...next, weather_region: myRegion() });
@@ -158,8 +158,9 @@ export function NotificationSettings() {
         <div className="mt-4 space-y-1 border-t border-line pt-3">
           {(
             [
+              ["briefing", "Morning briefing", "Around 7am: your day, bills, meals and jobs", Sunrise],
               ["bills", "Bill reminders", "Day before, on the day, and if overdue", Receipt],
-              ["matches", "Kick-off alerts", "An hour before Aston Villa & England", Trophy],
+              ["matches", "Kick-off alerts", "An hour before your favourite teams play", Trophy],
               ["weather", "Weather warnings", "Met Office warnings for your area", CloudLightning],
             ] as const
           ).map(([k, label, sub, Icon]) => (

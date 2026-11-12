@@ -2,7 +2,7 @@
 //
 // GET            → { configured, publicKey }        (public key for the app to subscribe with)
 // POST {test}    → sends a test notification to the signed-in caller (needs their JWT)
-// POST (cron)    → sends anything that's due: bill reminders, kick-off alerts, Met Office warnings. Idempotent.
+// POST (cron)    → sends anything that's due: morning briefing, bill reminders, kick-off alerts, Met Office warnings, wish-list deals. Idempotent.
 //
 // Secrets (set in Supabase → Edge Functions → Secrets): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -78,12 +78,50 @@ async function runScheduled() {
   if (!subs?.length) return { users: 0, sent: 0 };
   const byUser = new Map<string, Sub[]>();
   for (const s of subs as Sub[]) byUser.set(s.user_id, [...(byUser.get(s.user_id) ?? []), s]);
-  const { data: prefRows } = await admin.from("notification_prefs").select("user_id,bills,matches,weather,weather_region").in("user_id", [...byUser.keys()]);
-  const prefs = new Map((prefRows ?? []).map((p) => [p.user_id as string, p as { bills: boolean; matches: boolean; weather: boolean; weather_region: string }]));
+  const { data: prefRows } = await admin.from("notification_prefs").select("user_id,bills,matches,weather,weather_region,briefing").in("user_id", [...byUser.keys()]);
+  const prefs = new Map((prefRows ?? []).map((p) => [p.user_id as string, p as { bills: boolean; matches: boolean; weather: boolean; weather_region: string; briefing: boolean }]));
 
   const { date: today, hour } = ukParts();
   const tomorrow = addDays(today, 1);
   let sent = 0;
+
+  // ---- Morning briefing: once a day, from 7am UK time
+  if (hour >= 7 && hour < 11) {
+    const ids = [...byUser.keys()].filter((u) => prefs.get(u)?.briefing !== false);
+    if (ids.length) {
+      const in7 = addDays(today, 7);
+      const [ev, bl, ml, ht, vh] = await Promise.all([
+        admin.from("calendar_events").select("user_id,title,event_time").in("user_id", ids).eq("event_date", today).order("event_time"),
+        admin.from("bills").select("user_id,name,amount,next_due_date").eq("is_active", true).in("user_id", ids).lte("next_due_date", tomorrow),
+        admin.from("meal_plan").select("user_id,slot,title").in("user_id", ids).eq("day", today),
+        admin.from("home_tasks").select("user_id,name").in("user_id", ids).lte("next_due", today),
+        admin.from("vehicles").select("user_id,nickname,make,mot_due,tax_due,insurance_due").in("user_id", ids),
+      ]);
+      for (const uid of ids) {
+        if (!(await once(uid, `brief-${today}`))) continue;
+        const parts: string[] = [];
+        const events = (ev.data ?? []).filter((x) => x.user_id === uid);
+        if (events.length) parts.push(`📅 ${events.slice(0, 2).map((e) => `${e.event_time ? String(e.event_time).slice(0, 5) + " " : ""}${e.title}`).join(", ")}${events.length > 2 ? ` +${events.length - 2}` : ""}`);
+        for (const b of (bl.data ?? []).filter((x) => x.user_id === uid).slice(0, 2))
+          parts.push(`💷 ${b.name} ${gbp(Number(b.amount))} ${b.next_due_date === tomorrow ? "tomorrow" : b.next_due_date === today ? "today" : "overdue"}`);
+        const dinner = (ml.data ?? []).find((x) => x.user_id === uid && x.slot === "dinner") ?? (ml.data ?? []).find((x) => x.user_id === uid);
+        if (dinner) parts.push(`🍽️ ${dinner.slot === "dinner" ? "Dinner" : dinner.slot}: ${dinner.title}`);
+        const jobs = (ht.data ?? []).filter((x) => x.user_id === uid);
+        if (jobs.length) parts.push(`🏠 ${jobs.slice(0, 2).map((j) => j.name).join(", ")}${jobs.length > 2 ? ` +${jobs.length - 2}` : ""}`);
+        for (const v of (vh.data ?? []).filter((x) => x.user_id === uid))
+          for (const [k, label] of [["mot_due", "MOT"], ["tax_due", "Tax"], ["insurance_due", "Insurance"]] as const) {
+            const d = v[k] as string | null;
+            if (d && d <= in7) parts.push(`🚗 ${v.nickname || v.make || "Car"} ${label} ${d < today ? "overdue" : d === today ? "due today" : `due ${d.slice(8)}/${d.slice(5, 7)}`}`);
+          }
+        sent += await sendTo(byUser.get(uid)!, {
+          title: "☀️ Good morning, here's your day",
+          body: parts.length ? parts.join(" · ").slice(0, 230) : "Nothing due today. Enjoy it.",
+          url: "/",
+          tag: `brief-${today}`,
+        });
+      }
+    }
+  }
 
   // ---- Bills: between 8am and 9pm UK time
   if (hour >= 8 && hour < 21) {

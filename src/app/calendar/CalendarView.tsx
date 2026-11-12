@@ -95,20 +95,20 @@ export function CalendarView() {
                 onClick={() => setSelected(iso)}
                 aria-label={`${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}, ${evs.length} events`}
                 aria-pressed={isSel}
-                className={`flex aspect-square flex-col items-center justify-start rounded-xl pt-1.5 text-sm transition-colors sm:aspect-[1.1] ${
+                className={`flex aspect-square flex-col items-center justify-start rounded-xl pt-1.5 text-sm transition-[background-color,transform] duration-200 active:scale-90 sm:aspect-[1.1] ${
                   isSel ? "bg-accent-soft" : "hover:bg-surface-2"
                 } ${inMonth ? "" : "opacity-35"}`}
               >
                 <span
-                  className={`grid size-7 place-items-center rounded-full font-semibold ${
-                    isToday ? "bg-accent text-white" : isSel ? "text-accent" : ""
-                  }`}
+                  className={`grid size-7 place-items-center rounded-full font-semibold transition-transform duration-300 ${
+                    isToday ? "bg-accent text-white shadow-[0_6px_16px_-6px_var(--accent)]" : isSel ? "text-accent" : ""
+                  } ${isSel ? "scale-110" : ""}`}
                 >
                   {d.getDate()}
                 </span>
                 <span className="mt-1 flex gap-0.5">
                   {evs.slice(0, 3).map((e) => (
-                    <span key={e.id} className="size-1.5 rounded-full" style={{ background: kindInfo[e.kind].color }} />
+                    <span key={e.id} className="animate-pop size-1.5 rounded-full" style={{ background: kindInfo[e.kind].color }} />
                   ))}
                 </span>
               </button>
@@ -132,9 +132,9 @@ export function CalendarView() {
           {dayEvents.length === 0 ? (
             <p className="mt-4 text-sm text-muted">Nothing on this day.</p>
           ) : (
-            <ul className="mt-4 space-y-2">
-              {dayEvents.map((e) => (
-                <li key={e.id} className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5">
+            <ul key={selected} className="stagger mt-4 space-y-2">
+              {dayEvents.map((e, i) => (
+                <li key={e.id} style={{ "--i": i } as React.CSSProperties} className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5">
                   <span className="h-8 w-1 rounded-full" style={{ background: kindInfo[e.kind].color }} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{e.title}</p>

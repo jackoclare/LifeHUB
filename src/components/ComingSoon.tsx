@@ -17,9 +17,9 @@ export function ComingSoon({ href, plans }: { href: string; plans: string[] }) {
         <p className="mt-1 max-w-prose text-sm text-muted">
           This section is planned and the space is ready. Nothing here is live yet, so no prices, scores or data are shown.
         </p>
-        <ul className="mt-5 grid gap-2 sm:grid-cols-2">
-          {plans.map((p) => (
-            <li key={p} className="flex items-start gap-2.5 rounded-xl bg-surface-2 px-3.5 py-3 text-sm">
+        <ul className="stagger mt-5 grid gap-2 sm:grid-cols-2">
+          {plans.map((p, i) => (
+            <li key={p} style={{ "--i": i } as React.CSSProperties} className="flex items-start gap-2.5 rounded-xl bg-surface-2 px-3.5 py-3 text-sm">
               <span className="mt-1.5 size-1.5 shrink-0 rounded-full" style={{ background: section.color }} />
               {p}
             </li>

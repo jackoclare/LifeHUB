@@ -11,11 +11,20 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const tabIndex = mobileTabs.findIndex((t) => isActive(pathname, t.href));
+  // Any section not on the bar (Travel, Fuel…) highlights "More"
+  const activeTab = tabIndex >= 0 ? tabIndex : mobileTabs.length - 1;
 
   return (
     <div className="min-h-dvh lg:flex">
+      <div className="aurora" aria-hidden>
+        <span />
+        <span />
+        <span />
+      </div>
+
       {/* ---------- Desktop sidebar ---------- */}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line bg-bg-elevated px-4 py-6 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line bg-bg-elevated/70 px-4 py-6 backdrop-blur-xl lg:flex">
         <Link href="/" className="mb-8 flex items-center gap-2.5 px-2">
           <Logo />
           <span className="font-display text-lg font-semibold tracking-tight">MyLife Hub</span>
@@ -80,20 +89,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           aria-label="Tabs"
           className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg-elevated/85 backdrop-blur-xl lg:hidden"
         >
-          <ul className="mx-auto grid max-w-md grid-cols-5">
-            {mobileTabs.map((t) => {
-              const active = isActive(pathname, t.href);
+          <ul className="relative mx-auto grid max-w-md grid-cols-5">
+            {/* sliding highlight behind the active tab */}
+            {activeTab >= 0 && (
+              <span
+                aria-hidden
+                className="absolute top-2 h-12 w-[20%] px-2 transition-transform duration-500 ease-[cubic-bezier(0.3,1.3,0.5,1)]"
+                style={{ transform: `translateX(${activeTab * 100}%)` }}
+              >
+                <span
+                  className="block h-full rounded-2xl transition-colors duration-500"
+                  style={{ background: `color-mix(in srgb, ${mobileTabs[activeTab].color} 14%, transparent)` }}
+                />
+              </span>
+            )}
+            {mobileTabs.map((t, i) => {
+              const active = i === activeTab;
               const Icon = t.icon;
               return (
-                <li key={t.href}>
+                <li key={t.href} className="relative">
                   <Link
                     href={t.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex h-16 flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold transition-colors ${
+                    className={`flex h-16 flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold transition-colors active:scale-95 ${
                       active ? "text-ink" : "text-faint"
                     }`}
                   >
-                    <Icon size={22} strokeWidth={active ? 2.3 : 1.8} style={{ color: active ? t.color : undefined }} />
+                    <Icon
+                      size={22}
+                      strokeWidth={active ? 2.3 : 1.8}
+                      className={`transition-transform duration-300 ${active ? "-translate-y-0.5 scale-110" : ""}`}
+                      style={{ color: active ? t.color : undefined }}
+                    />
                     {t.short ?? t.label}
                   </Link>
                 </li>

@@ -102,6 +102,15 @@
 - Note: unused function public.get_push_config() left in DB (harmless, service-role only)
 - Optional upgrades: football-data.org free key (league tables, more fixtures); THESPORTSDB_KEY premium ($9/mo) for full fixture lists
 
+### 12 Nov late — built without the AI key
+- [x] Kick-off alerts + iPhone Calendar feed follow favourite teams from Preferences (notify v8, calendar v3)
+- [x] Morning briefing push ~7am (events, bills, dinner plan, house jobs, car due dates) — notify v9; toggle in Settings → Notifications (notification_prefs.briefing)
+- [x] Explore restyle: search, round category tiles, "Open now" filter (src/lib/openingHours.ts, tested), Closest-to-you cards, open/closed badges
+- [x] TV guide live: tv-sync Edge Function pulls the open Freeview-EPG XMLTV (github.com/dp247/Freeview-EPG) every 6h (cron lifehub-tv-sync, :23) → public.tv_programmes (31 channels, Midlands region, 7 days, ~5.5k rows). /tv: On now (progress bars, favourites), Tonight (day strip), Search, Remind me → calendar
+- [x] Home: TV tonight, Steps & activity, Calories, Your trips, Places to eat nearby are now live cards
+- [x] Assistant: "what's on TV tonight", "when is Match of the Day on"
+- Frontend deploys waiting on Vercel's daily limit (commits fab654d, 73bc639)
+
 ## Later phases
 
 - **Phase 3:** deals, travel, fuel, explore, weather; automatic wish-list price tracking

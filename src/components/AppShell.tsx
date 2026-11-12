@@ -140,9 +140,10 @@ function Logo() {
   return (
     <span
       aria-hidden
-      className="grid size-8 place-items-center rounded-[0.65rem] bg-accent font-display text-sm font-bold text-white shadow-[0_6px_16px_-6px_var(--accent)]"
+      className="grid size-8 place-items-center rounded-[0.65rem] font-display text-[0.8rem] font-black italic tracking-tight text-[#fff4ea] shadow-[0_6px_16px_-6px_#7c3aed]"
+      style={{ background: "linear-gradient(135deg, #0a0c1c 0%, #4c1d95 60%, #ff5e3a 100%)" }}
     >
-      M
+      JC
     </span>
   );
 }

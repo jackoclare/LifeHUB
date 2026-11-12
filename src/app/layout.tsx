@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   applicationName: "MyLife Hub",
   appleWebApp: { capable: true, title: "MyLife", statusBarStyle: "black-translucent" },
   icons: {
-    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    icon: [{ url: "/icons/icon-192.png?v=jc", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png?v=jc", sizes: "180x180" }],
   },
   formatDetection: { telephone: false },
   robots: { index: false, follow: false }, // private app — keep out of Google

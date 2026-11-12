@@ -72,6 +72,16 @@
 - [x] Phase 6: wish-list deal push alerts (notify v7: HotUKDeals hot/new matched to wish list)
 - [x] Apple-style redesign, LifeHub rename, Google Maps directions, map tile fallbacks, location prompt/auto-locate, on-device caching
 - ⚠️ Vercel Hobby deploy limit hit repeatedly on 12 Nov — retries scheduled; Supabase functions deploy independently
+- [x] 12 Nov late: Vercel deploys working again. Lineups fixed (matched senior fixture; refresh every 3 min near kick-off). Finished events drop off Coming up / briefing / alerts
+- [x] Navigation per brief: bottom tabs Home / AI / Explore / Alerts / Profile
+- [x] Alerts centre (/alerts): bills ≤7d, reminders, matches, trips, MOT/tax/insurance/service ≤30d, expiring documents, household jobs, Met Office warnings
+- [x] Daily briefing card on Home (weather, today/tomorrow, bills, alerts, next match — built from own data, no AI cost)
+- [x] Car & Motoring (/car): vehicles, MOT/tax/insurance/service dates, fuel/service/cost log, mpg, 12-month cost
+- [x] Document wallet (/documents): private storage bucket, categories, search, expiry dates, short-lived signed links
+- [x] Money (/money): income vs bills, category split, subscriptions, savings goals, loan/mortgage calculator
+- [x] Meal planner (/meals): week grid, quick picks, ingredients → shopping list
+- [x] Household (/home): repeating cleaning/maintenance/garden jobs, starter set, alerts
+- [x] Assistant: MOT/tax/insurance questions, find documents, "next month/week/year" dates
 - [ ] TV guide: no good free UK listings source (TVmaze UK schedule is ~20 shows/day) — needs a listings provider
 - ⚠️ 12 Nov ~18:55: Vercel Hobby deployment limit hit ("rate limited — retry in 24 hours"). Commits after 28ea0d6 are pushed but not live until it resets: typed-From fix, Deals, deals card
 - [x] Calendar feed: Edge Function `calendar` serves an iCal (webcal) feed of events, bills and fixtures — subscribe on iPhone

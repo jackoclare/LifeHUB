@@ -2,7 +2,7 @@
 //
 // GET            → { configured, publicKey }        (public key for the app to subscribe with)
 // POST {test}    → sends a test notification to the signed-in caller (needs their JWT)
-// POST (cron)    → sends anything that's due: bill reminders, kick-off alerts. Idempotent.
+// POST (cron)    → sends anything that's due: bill reminders, kick-off alerts, Met Office warnings. Idempotent.
 //
 // Secrets (set in Supabase → Edge Functions → Secrets): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -78,8 +78,8 @@ async function runScheduled() {
   if (!subs?.length) return { users: 0, sent: 0 };
   const byUser = new Map<string, Sub[]>();
   for (const s of subs as Sub[]) byUser.set(s.user_id, [...(byUser.get(s.user_id) ?? []), s]);
-  const { data: prefRows } = await admin.from("notification_prefs").select("user_id,bills,matches").in("user_id", [...byUser.keys()]);
-  const prefs = new Map((prefRows ?? []).map((p) => [p.user_id as string, p as { bills: boolean; matches: boolean }]));
+  const { data: prefRows } = await admin.from("notification_prefs").select("user_id,bills,matches,weather,weather_region").in("user_id", [...byUser.keys()]);
+  const prefs = new Map((prefRows ?? []).map((p) => [p.user_id as string, p as { bills: boolean; matches: boolean; weather: boolean; weather_region: string }]));
 
   const { date: today, hour } = ukParts();
   const tomorrow = addDays(today, 1);
@@ -138,6 +138,35 @@ async function runScheduled() {
       console.error("fixtures failed", team, (err as Error).message);
     }
   }
+  // ---- Met Office weather warnings for each person's region (7am–10pm)
+  if (hour >= 7 && hour < 22) {
+    const feeds = new Map<string, { title: string; desc: string; link: string }[]>();
+    for (const [userId, userSubs] of byUser) {
+      const p = prefs.get(userId);
+      if (p?.weather === false) continue;
+      const region = p?.weather_region ?? "wm";
+      if (!feeds.has(region)) {
+        try {
+          const xml = await (await fetch(`https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/${region}`)).text();
+          const tag = (x: string, n: string) => x.match(new RegExp(`<${n}[^>]*>([\\s\\S]*?)</${n}>`))?.[1]?.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim() ?? "";
+          feeds.set(
+            region,
+            [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(([, it]) => ({ title: tag(it, "title"), desc: tag(it, "description").replace(/<[^>]+>/g, " ").replace(/\s+/g, " "), link: tag(it, "link") })),
+          );
+        } catch {
+          feeds.set(region, []);
+        }
+      }
+      for (const w of feeds.get(region) ?? []) {
+        if (!w.title) continue;
+        const key = `wx-${region}-${w.title}-${w.desc.slice(0, 80)}`.slice(0, 250);
+        if (!(await once(userId, key))) continue;
+        const emoji = /\bred\b/i.test(w.title) ? "🔴" : /\bamber\b/i.test(w.title) ? "🟠" : "🟡";
+        sent += await sendTo(userSubs, { title: `${emoji} ${w.title}`, body: w.desc.slice(0, 160) || "Tap for details.", url: "/weather", tag: "weather-warning" });
+      }
+    }
+  }
+
   return { users: byUser.size, sent };
 }
 

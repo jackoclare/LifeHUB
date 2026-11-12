@@ -1,9 +1,16 @@
 "use client";
 
-import { Bell, BellOff, BellRing, Loader2, Receipt, Share, Trophy } from "lucide-react";
+import { Bell, BellOff, BellRing, CloudLightning, Loader2, Receipt, Share, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./AuthProvider";
+import { metRegion } from "@/components/weather/WeatherWidgets";
+import { readPlace } from "@/lib/weather";
+
+const myRegion = () => {
+  const p = readPlace();
+  return p ? metRegion(p.lat, p.lon) : "wm";
+};
 
 const FN_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/notify`;
 
@@ -21,7 +28,7 @@ export function NotificationSettings() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
-  const [prefs, setPrefs] = useState({ bills: true, matches: true });
+  const [prefs, setPrefs] = useState({ bills: true, matches: true, weather: true });
 
   useEffect(() => {
     if (!user) return;
@@ -42,8 +49,8 @@ export function NotificationSettings() {
       const reg = await navigator.serviceWorker.getRegistration("/");
       const sub = await reg?.pushManager.getSubscription();
       setStatus(sub ? "on" : "off");
-      const { data } = await createClient().from("notification_prefs").select("bills,matches").maybeSingle();
-      if (data) setPrefs({ bills: data.bills, matches: data.matches });
+      const { data } = await createClient().from("notification_prefs").select("bills,matches,weather").maybeSingle();
+      if (data) setPrefs({ bills: data.bills, matches: data.matches, weather: data.weather ?? true });
     })();
   }, [user]);
 
@@ -69,7 +76,7 @@ export function NotificationSettings() {
         .from("push_subscriptions")
         .upsert({ endpoint: j.endpoint, p256dh: j.keys?.p256dh, auth: j.keys?.auth, device: navigator.userAgent.slice(0, 120) }, { onConflict: "endpoint" });
       if (error) throw new Error(error.message);
-      await supabase.from("notification_prefs").upsert({ user_id: user.id, ...prefs });
+      await supabase.from("notification_prefs").upsert({ user_id: user.id, ...prefs, weather_region: myRegion() });
       setStatus("on");
       await sendTest();
     } catch (e) {
@@ -95,10 +102,10 @@ export function NotificationSettings() {
     setMsg(error ? "Test failed — try again in a moment." : data?.sent ? "Test notification sent 🎉" : "No devices registered yet.");
   };
 
-  const togglePref = async (k: "bills" | "matches") => {
+  const togglePref = async (k: "bills" | "matches" | "weather") => {
     const next = { ...prefs, [k]: !prefs[k] };
     setPrefs(next);
-    await createClient().from("notification_prefs").upsert({ user_id: user.id, ...next });
+    await createClient().from("notification_prefs").upsert({ user_id: user.id, ...next, weather_region: myRegion() });
   };
 
   return (
@@ -153,6 +160,7 @@ export function NotificationSettings() {
             [
               ["bills", "Bill reminders", "Day before, on the day, and if overdue", Receipt],
               ["matches", "Kick-off alerts", "An hour before Aston Villa & England", Trophy],
+              ["weather", "Weather warnings", "Met Office warnings for your area", CloudLightning],
             ] as const
           ).map(([k, label, sub, Icon]) => (
             <label key={k} className="flex min-h-12 cursor-pointer items-center gap-3">

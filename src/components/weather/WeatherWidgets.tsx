@@ -1,7 +1,7 @@
 "use client";
 
-import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Droplets, Loader2, LocateFixed, MapPin, Moon, Sun, Wind } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Droplets, Loader2, LocateFixed, MapPin, Moon, Sun, Wind } from "lucide-react";
+import { useEffect, useState } from "react";
 import { describe, findPlace, locateMe, usePlace, useWeather } from "@/lib/weather";
 import { inputClass } from "@/components/ui";
 
@@ -66,6 +66,58 @@ export function PlacePicker({ compact = false }: { compact?: boolean }) {
 }
 
 /** Dashboard weather card body. */
+/** Rough Met Office warning region for a UK location */
+export function metRegion(lat: number, lon: number) {
+  if (lon < -5.4 && lat > 54) return "ni";
+  if (lat > 55.1) return "sc";
+  if (lon < -2.65 && lat > 51.35 && lat < 53.45) return "wl";
+  if (lat > 54.4) return lon > -2.3 ? "ne" : "nw";
+  if (lat > 53.3) return lon > -1.8 ? "yh" : "nw";
+  if (lat > 52.0) return lon > 0.2 ? "ee" : lon > -1.3 ? "em" : "wm";
+  if (lat > 51.75 && lon > 0) return "ee";
+  return lon > -0.9 ? "se" : "sw";
+}
+
+type Warning = { title: string; level: "yellow" | "amber" | "red"; description: string; link: string };
+const LEVEL = { yellow: "#facc15", amber: "#f59e0b", red: "#ef4444" } as const;
+
+/** Met Office severe-weather warnings for the chosen place (hidden when there are none) */
+export function WeatherWarnings({ lat, lon }: { lat: number; lon: number }) {
+  const [warnings, setWarnings] = useState<Warning[]>([]);
+  const region = metRegion(lat, lon);
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/weather-warnings?region=${region}`)
+      .then((r) => r.json())
+      .then((j) => alive && setWarnings(j.warnings ?? []))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [region]);
+  if (!warnings.length) return null;
+  return (
+    <div className="mb-3 space-y-2">
+      {warnings.map((w) => (
+        <a
+          key={w.title + w.description.slice(0, 20)}
+          href={w.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-start gap-2.5 rounded-xl px-3 py-2.5 text-sm"
+          style={{ background: `color-mix(in srgb, ${LEVEL[w.level]} 16%, transparent)`, color: LEVEL[w.level] }}
+        >
+          <AlertTriangle size={17} className="mt-0.5 shrink-0" />
+          <span className="min-w-0">
+            <span className="block font-semibold">{w.title}</span>
+            {w.description && <span className="mt-0.5 line-clamp-3 block text-xs text-ink/80">{w.description}</span>}
+          </span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export function WeatherSummary() {
   const { place, ready } = usePlace();
   const { data, error } = useWeather(place);
@@ -90,6 +142,7 @@ export function WeatherSummary() {
   const today = daily[0];
   return (
     <div>
+      <WeatherWarnings lat={place.lat} lon={place.lon} />
       <div className="flex items-center gap-4">
         <WeatherIcon code={current.code} isDay={current.isDay} size={52} />
         <div className="min-w-0 flex-1">

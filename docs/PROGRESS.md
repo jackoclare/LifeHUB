@@ -67,6 +67,11 @@
 - [x] Met Office warnings: banner on weather card (region from location), push alerts via `notify` (v6, 7am–10pm), Settings toggle; notification_prefs.weather + weather_region
 - Note: no device has push notifications switched on yet (notify run: users 0) — Jack to turn on in Settings → Notifications from the Home Screen app
 - Fuel Finder: support email drafted to fuel.finder@ve3.global (tel 020 3836 5818)
+- [x] Phase 5 Health (/health): food diary (Open Food Facts search + barcode number, grams, meals, macros, optional goals), activity rings + 7-day steps chart. Apple Health via iPhone Shortcut → Edge Function `health-ingest?token=…` (health_tokens) — no Mac needed. Tables: food_entries, nutrition_goals, health_daily, health_tokens
+- [x] Travel: in-app cheapest fares (Edge Function `flights`, Aviasales Data API). NEEDS Jack: free Travelpayouts sign-up → Supabase secret TRAVELPAYOUTS_TOKEN
+- [x] Phase 6: wish-list deal push alerts (notify v7: HotUKDeals hot/new matched to wish list)
+- [x] Apple-style redesign, LifeHub rename, Google Maps directions, map tile fallbacks, location prompt/auto-locate, on-device caching
+- ⚠️ Vercel Hobby deploy limit hit repeatedly on 12 Nov — retries scheduled; Supabase functions deploy independently
 - [ ] TV guide: no good free UK listings source (TVmaze UK schedule is ~20 shows/day) — needs a listings provider
 - ⚠️ 12 Nov ~18:55: Vercel Hobby deployment limit hit ("rate limited — retry in 24 hours"). Commits after 28ea0d6 are pushed but not live until it resets: typed-From fix, Deals, deals card
 - [x] Calendar feed: Edge Function `calendar` serves an iCal (webcal) feed of events, bills and fixtures — subscribe on iPhone

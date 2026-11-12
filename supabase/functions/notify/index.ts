@@ -167,6 +167,47 @@ async function runScheduled() {
     }
   }
 
+  // ---- Wish-list deal alerts (HotUKDeals hot + new feeds), 8am–10pm
+  if (hour >= 8 && hour < 22) {
+    const { data: wishes } = await admin.from("wishlist_items").select("id,user_id,name,target_price").eq("purchased", false).in("user_id", [...byUser.keys()]);
+    if (wishes?.length) {
+      const stop = new Set(["the", "and", "for", "with", "pack", "set", "new", "of", "in", "to"]);
+      const words = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2 && !stop.has(w));
+      const items: { title: string; link: string; price: string | null; merchant: string | null }[] = [];
+      for (const feed of ["hot", "new"]) {
+        try {
+          const xml = await (await fetch(`https://www.hotukdeals.com/rss/${feed}`, { headers: { "User-Agent": "LifeHub/1.0 (personal dashboard)" } })).text();
+          for (const [, it] of xml.matchAll(/<item>([\s\S]*?)<\/item>/g)) {
+            const title = (it.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1] ?? "").replace(/^-?\d+°\s*-\s*/, "").trim();
+            const link = it.match(/<link>([^<]+)<\/link>/)?.[1] ?? "";
+            const price = it.match(/<pepper:merchant[^>]*price="([^"]*)"/)?.[1] ?? null;
+            const merchant = it.match(/<pepper:merchant[^>]*name="([^"]*)"/)?.[1] ?? null;
+            if (title && link) items.push({ title, link, price, merchant });
+          }
+        } catch {
+          /* feed down — try next run */
+        }
+      }
+      for (const w of wishes) {
+        if (prefs.get(w.user_id)?.matches === false && prefs.get(w.user_id)?.bills === false) continue;
+        const ws = words(w.name);
+        if (!ws.length) continue;
+        for (const d of items) {
+          const t = d.title.toLowerCase();
+          if (ws.filter((x) => t.includes(x)).length < Math.max(1, Math.ceil(ws.length * 0.6))) continue;
+          const id = d.link.match(/(\d+)(?:[/?#]|$)/)?.[1] ?? d.link;
+          if (!(await once(w.user_id, `deal-${w.id}-${id}`))) continue;
+          sent += await sendTo(byUser.get(w.user_id)!, {
+            title: `🎁 Deal on your wish list: ${w.name}`,
+            body: `${d.title}${d.price ? ` — ${d.price}` : ""}${d.merchant ? ` at ${d.merchant}` : ""}`.slice(0, 170),
+            url: "/deals",
+            tag: `deal-${w.id}`,
+          });
+        }
+      }
+    }
+  }
+
   return { users: byUser.size, sent };
 }
 

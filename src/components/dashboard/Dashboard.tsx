@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpRight, CalendarDays, Check, Eye, EyeOff, Plus, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cards, type CardDef, useDashboardPrefs } from "@/lib/dashboard";
-import { formatDay, kindInfo, upcoming, useCalendarEvents } from "@/lib/calendar";
+import { formatDay, fromISODate, kindInfo, upcoming, useCalendarEvents } from "@/lib/calendar";
 import { phaseNames } from "@/lib/nav";
 import { useAuth } from "@/components/AuthProvider";
 import { BillLogo } from "@/components/BillLogo";
@@ -75,20 +75,42 @@ export function Dashboard() {
           Every section is hidden. Tap <span className="font-semibold text-ink">Customise</span> to bring some back.
         </div>
       ) : (
-        <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visible.map((c, i) => (
-            <DashCard key={c.id} card={c} index={i}>
-              {c.id === "calendar" ? (
-                <EventList items={upcoming(events, 14).slice(0, 4)} empty="Nothing in the next two weeks." />
-              ) : c.id === "bills" ? (
-                <BillsSummary />
-              ) : c.id === "reminders" ? (
-                <EventList items={upcoming(events, 30).filter((e) => e.kind === "reminder").slice(0, 3)} empty="No reminders set." />
-              ) : (
-                <NotConnected card={c} />
-              )}
-            </DashCard>
-          ))}
+        <div className="space-y-8">
+          {/* Live sections — real information */}
+          {visible.some((c) => LIVE.has(c.id)) && (
+            <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2">
+              {visible
+                .filter((c) => LIVE.has(c.id))
+                .map((c, i) => (
+                  <DashCard key={c.id} card={c} index={i}>
+                    {c.id === "calendar" ? (
+                      <EventList items={upcoming(events, 14).slice(0, 5)} empty="Nothing in the next two weeks." />
+                    ) : c.id === "bills" ? (
+                      <BillsSummary />
+                    ) : (
+                      <EventList items={upcoming(events, 30).filter((e) => e.kind === "reminder").slice(0, 4)} empty="No reminders set — add one from the calendar." />
+                    )}
+                  </DashCard>
+                ))}
+            </div>
+          )}
+
+          {/* Planned sections — compact tiles */}
+          {visible.some((c) => !LIVE.has(c.id)) && (
+            <section>
+              <div className="mb-3 flex items-baseline justify-between px-1">
+                <h2 className="font-display text-lg font-semibold">Coming soon</h2>
+                <span className="text-xs text-faint">Being built in stages</span>
+              </div>
+              <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                {visible
+                  .filter((c) => !LIVE.has(c.id))
+                  .map((c, i) => (
+                    <SoonTile key={c.id} card={c} index={i} />
+                  ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </>
@@ -150,7 +172,7 @@ function DashCard({ card, index, children }: { card: CardDef; index: number; chi
     <Link
       href={card.href}
       style={{ "--tile": card.color, "--i": index } as React.CSSProperties}
-      className={`card card-interactive flex flex-col p-4 sm:p-5 ${card.wide ? "sm:col-span-2" : ""}`}
+      className={`card card-interactive flex flex-col p-4 sm:p-5 ${card.wide ? "md:col-span-2" : ""}`}
     >
       <div className="mb-3 flex items-center gap-2.5">
         <span className="icon-tile">
@@ -197,31 +219,56 @@ function BillsSummary() {
   );
 }
 
-function NotConnected({ card }: { card: CardDef }) {
+const LIVE = new Set<CardDef["id"]>(["calendar", "bills", "reminders"]);
+
+function SoonTile({ card, index }: { card: CardDef; index: number }) {
+  const Icon = card.icon;
   return (
-    <div>
-      <p className="text-sm text-muted">{card.promise}</p>
-      <span className="chip mt-3">
-        Phase {card.phase} · {phaseNames[card.phase]}
+    <Link
+      href={card.href}
+      title={card.promise}
+      style={{ "--tile": card.color, "--i": index } as React.CSSProperties}
+      className="card card-interactive flex flex-col gap-3 p-3.5"
+    >
+      <span className="icon-tile size-10! rounded-xl!">
+        <Icon size={20} />
       </span>
-    </div>
+      <span>
+        <span className="block text-sm font-semibold leading-tight">{card.title}</span>
+        <span className="mt-1 block text-[0.68rem] font-medium text-faint">
+          Phase {card.phase} · {phaseNames[card.phase].split(" ")[0]}
+        </span>
+      </span>
+    </Link>
   );
 }
 
 function EventList({ items, empty }: { items: ReturnType<typeof upcoming>; empty: string }) {
   if (items.length === 0) return <p className="text-sm text-muted">{empty}</p>;
   return (
-    <ul className="space-y-2">
-      {items.map((e) => (
-        <li key={e.id} className="flex items-center gap-3">
-          <span className="h-7 w-1 rounded-full" style={{ background: kindInfo[e.kind].color }} />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">{e.title}</span>
-          <span className="shrink-0 text-xs text-muted">
-            {formatDay(e.date)}
-            {e.time ? ` · ${e.time}` : ""}
-          </span>
-        </li>
-      ))}
+    <ul className="space-y-1.5">
+      {items.map((e) => {
+        const d = fromISODate(e.date);
+        const color = kindInfo[e.kind].color;
+        return (
+          <li key={e.id} className="flex items-center gap-3 rounded-xl px-1 py-1">
+            <span
+              className="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl leading-none"
+              style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
+            >
+              <span className="text-[0.6rem] font-bold uppercase tracking-wider">{d.toLocaleDateString("en-GB", { weekday: "short" })}</span>
+              <span className="mt-0.5 font-display text-base font-semibold">{d.getDate()}</span>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">{e.title}</span>
+              <span className="block text-xs text-muted">
+                {formatDay(e.date)}
+                {e.time ? ` · ${e.time}` : ""} · {e.kind === "bill" && e.amount != null ? money(e.amount) : kindInfo[e.kind].label}
+              </span>
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

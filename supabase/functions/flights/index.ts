@@ -9,6 +9,28 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (!TOKEN) return json({ configured: false, flights: [] });
   const u = new URL(req.url);
+  // Cheapest recent return fare to every destination from one airport, for a month (map price tags)
+  if (u.searchParams.get("mode") === "cheapest") {
+    const origin = (u.searchParams.get("from") ?? "").toUpperCase();
+    const month = u.searchParams.get("month") ?? "";
+    if (!/^[A-Z]{3}$/.test(origin) || !/^\d{4}-\d{2}$/.test(month)) return json({ configured: true, prices: {} }, 400);
+    const q = new URLSearchParams({ origin, period_type: "month", beginning_of_period: `${month}-01`, currency: "gbp", one_way: "false", sorting: "price", limit: "1000", market: "uk", token: TOKEN });
+    try {
+      const r = await fetch(`https://api.travelpayouts.com/aviasales/v3/get_latest_prices?${q}`, { headers: { "Accept-Encoding": "gzip" } });
+      const j = await r.json();
+      const prices: Record<string, { price: number; direct: boolean; depart: string }> = {};
+      // deno-lint-ignore no-explicit-any
+      for (const f of (j.data ?? []) as any[]) {
+        const code = String(f.destination ?? "").toUpperCase();
+        const price = Number(f.value ?? f.price);
+        if (!code || !Number.isFinite(price)) continue;
+        if (!prices[code] || price < prices[code].price) prices[code] = { price, direct: (f.number_of_changes ?? f.transfers ?? 1) === 0, depart: f.depart_date ?? f.departure_at ?? "" };
+      }
+      return json({ configured: true, prices });
+    } catch (e) {
+      return json({ configured: true, prices: {}, error: e instanceof Error ? e.message : "Couldn't reach flight prices" }, 502);
+    }
+  }
   const from = (u.searchParams.get("from") ?? "").toUpperCase();
   const to = (u.searchParams.get("to") ?? "").toUpperCase();
   const depart = u.searchParams.get("depart") ?? "";

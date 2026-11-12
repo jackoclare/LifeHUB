@@ -9,6 +9,7 @@ import { SetPin } from "@/components/SetPin";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { CalendarFeed } from "@/components/CalendarFeed";
 import { ConnectionsStatus } from "@/components/ConnectionsStatus";
+import { PreferencesCard } from "@/components/PreferencesCard";
 
 export function SettingsView() {
   const [theme, setTheme] = useTheme();
@@ -37,6 +38,7 @@ export function SettingsView() {
             <NotificationSettings />
             <CalendarFeed />
             <SetPin />
+            <PreferencesCard />
             <ConnectionsStatus />
           </div>
         )}

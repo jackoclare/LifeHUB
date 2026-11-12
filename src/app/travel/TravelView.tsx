@@ -3,6 +3,7 @@
 import { BedDouble, CalendarPlus, Check, ExternalLink, Heart, Luggage, PlaneTakeoff, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { MapView } from "@/components/map/MapView";
+import { SectionHeader } from "@/components/kit";
 import { WeatherIcon } from "@/components/weather/WeatherWidgets";
 import { ErrorNote, Field, Sheet, inputClass } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
@@ -39,6 +40,26 @@ export function TravelView() {
   const [oneWay, setOneWay] = useState(false);
   const [adults, setAdults] = useState(2);
   const [selected, setSelected] = useState<string | null>(null);
+  const [prices, setPrices] = useState<Record<string, { price: number; direct: boolean; depart: string }>>({});
+  const [pricesOn, setPricesOn] = useState(false);
+  const [budget, setBudget] = useState(0);
+  const [directOnly, setDirectOnly] = useState(false);
+
+  // Cheapest recent fares from your airport for the month you're travelling
+  useEffect(() => {
+    let alive = true;
+    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/flights?mode=cheapest&from=${from}&month=${out.slice(0, 7)}`, { headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "" } })
+      .then((r) => r.json())
+      .then((j) => {
+        if (!alive) return;
+        setPricesOn(Boolean(j.configured));
+        setPrices(j.prices ?? {});
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [from, out]);
 
   const savedCodes = new Set(saved.rows.map((r) => r.code));
   const list = useMemo(
@@ -47,6 +68,18 @@ export function TravelView() {
     [region, saved.rows],
   );
   const back = oneWay ? null : addDays(out, nights);
+  const getaways = useMemo(
+    () =>
+      [...list]
+        .filter((d) => !budget || (prices[d.code] && prices[d.code].price <= budget))
+        .filter((d) => !directOnly || prices[d.code]?.direct)
+        .sort((a, b) => (prices[a.code]?.price ?? 1e9) - (prices[b.code]?.price ?? 1e9)),
+    [list, prices, budget, directOnly],
+  );
+  const weekendPicks = useMemo(() => {
+    const short = DESTINATIONS.filter((d) => ["AMS", "CDG", "BCN", "DUB", "FCO", "LIS", "PMI", "AGP", "DBV", "VCE"].includes(d.code));
+    return [...short].sort((a, b) => (prices[a.code]?.price ?? 1e9) - (prices[b.code]?.price ?? 1e9)).slice(0, 6);
+  }, [prices]);
   const sel = DESTINATIONS.find((d) => d.code === selected) ?? null;
 
   const setAirport = (c: string) => {
@@ -96,54 +129,104 @@ export function TravelView() {
         </div>
       </section>
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
-        {REGIONS.filter((r) => r !== "Saved" || user).map((r) => (
-          <button
-            key={r}
-            onClick={() => setRegion(r)}
-            aria-pressed={region === r}
-            className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors ${region === r ? "bg-accent text-white" : "card text-muted hover:text-ink"}`}
-          >
-            {r === "Saved" ? `♥ Saved (${savedCodes.size})` : r}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+      {/* Map with price tags (prices appear once the flight-price key is added) */}
+      <section className="overflow-hidden rounded-[1.9rem] shadow-[var(--shadow)]">
         <MapView
-          className="h-[42dvh] min-h-72 lg:h-[calc(100dvh-20rem)]"
+          className="h-[44dvh] min-h-80"
           center={{ lat: 44, lon: 3 }}
           zoom={4}
           selectedId={selected}
           onSelect={setSelected}
-          points={list.map((d) => ({ id: d.code, lat: d.lat, lon: d.lon, color: regionColor[d.region], label: d.city, badge: d.code }))}
+          points={list
+            .filter((d) => !budget || (prices[d.code] && prices[d.code].price <= budget))
+            .filter((d) => !directOnly || prices[d.code]?.direct)
+            .map((d) => ({ id: d.code, lat: d.lat, lon: d.lon, color: regionColor[d.region], label: d.city, badge: prices[d.code] ? `${d.code} £${Math.round(prices[d.code].price)}` : d.code }))}
         />
-        <ul className="stagger grid content-start gap-2 sm:grid-cols-2 lg:h-[calc(100dvh-20rem)] lg:grid-cols-1 lg:overflow-y-auto">
-          {list.length === 0 && <li className="card p-5 text-sm text-muted">Nothing saved yet — tap ♥ on a destination.</li>}
-          {list.map((d, i) => (
-            <li key={d.code} style={{ "--i": Math.min(i, 10) } as React.CSSProperties}>
-              <button
-                onClick={() => setSelected(d.code)}
-                className={`card card-interactive flex w-full items-center gap-3 p-3 text-left ${selected === d.code ? "ring-2 ring-accent" : ""}`}
-                style={{ "--tile": regionColor[d.region] } as React.CSSProperties}
-              >
-                <span className="text-2xl">{d.flag}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{d.city}</span>
-                  <span className="block text-xs text-muted">
-                    {d.country} · {d.code}
-                  </span>
+      </section>
+
+      {/* Filters */}
+      <div className="space-y-2">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
+          {REGIONS.filter((r) => r !== "Saved" || user).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRegion(r)}
+              aria-pressed={region === r}
+              className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition-all active:scale-95 ${region === r ? "bg-accent text-white shadow-lg" : "bg-surface text-muted shadow-[var(--shadow)]"}`}
+            >
+              {r === "Saved" ? `♥ Saved (${savedCodes.size})` : r}
+            </button>
+          ))}
+        </div>
+        {pricesOn && (
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0">
+            {[0, 100, 200, 300, 500].map((b) => (
+              <button key={b} onClick={() => setBudget(b)} className={`min-h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium ${budget === b ? "border-accent bg-accent-soft text-accent" : "border-line text-muted"}`}>
+                {b ? `Under £${b}` : "Any budget"}
+              </button>
+            ))}
+            <button onClick={() => setDirectOnly((v) => !v)} className={`min-h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium ${directOnly ? "border-accent bg-accent-soft text-accent" : "border-line text-muted"}`}>
+              Direct only
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Next weekend */}
+      <section>
+        <SectionHeader title="Next weekend" />
+        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0">
+          {weekendPicks.map((d) => (
+            <button
+              key={d.code}
+              onClick={() => {
+                setOut(nextFriday());
+                setOneWay(false);
+                setNights(2);
+                setSelected(d.code);
+              }}
+              className="flex w-64 shrink-0 overflow-hidden rounded-[1.6rem] bg-surface text-left shadow-[var(--shadow)] transition-transform active:scale-[0.98]"
+            >
+              <span className="flex-1 p-4">
+                <span className="block text-lg font-bold">{d.city.split(" (")[0]}</span>
+                <span className="block text-sm text-muted">{prices[d.code] ? `From £${Math.round(prices[d.code].price)}` : "Fri – Sun"}</span>
+              </span>
+              <span className="grid w-24 place-items-center text-4xl" style={{ background: `linear-gradient(160deg, ${regionColor[d.region]}33, ${regionColor[d.region]}88)` }}>
+                {d.flag}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Cheapest getaways */}
+      <section>
+        <SectionHeader title={pricesOn ? "Cheapest getaways" : "Getaways"} />
+        {list.length === 0 && <p className="card p-5 text-sm text-muted">Nothing saved yet — tap ♥ on a destination.</p>}
+        <ul className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {getaways.map((d, i) => (
+            <li key={d.code} style={{ "--i": Math.min(i, 12) } as React.CSSProperties}>
+              <button onClick={() => setSelected(d.code)} className={`block w-full text-left transition-transform active:scale-[0.97] ${selected === d.code ? "scale-[0.98]" : ""}`}>
+                <span
+                  className="relative grid h-32 place-items-center overflow-hidden rounded-[1.4rem] text-5xl shadow-[var(--shadow)]"
+                  style={{ background: `radial-gradient(120% 90% at 20% 10%, ${regionColor[d.region]}55, transparent 60%), linear-gradient(160deg, ${regionColor[d.region]}cc, ${regionColor[d.region]})` }}
+                >
+                  <span className="drop-shadow-lg">{d.flag}</span>
+                  <span className="absolute left-3 top-3 rounded-full bg-black/25 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur">{d.code}</span>
+                  {savedCodes.has(d.code) && <Heart size={16} className="absolute right-3 top-3 fill-white text-white" />}
                 </span>
-                {savedCodes.has(d.code) && <Heart size={14} className="fill-accent text-accent" />}
+                <span className="mt-2 block truncate px-1 font-bold">{d.city}</span>
+                <span className="block px-1 text-sm text-muted">{prices[d.code] ? `Flights from £${Math.round(prices[d.code].price)}${prices[d.code].direct ? " · direct" : ""}` : d.country}</span>
               </button>
             </li>
           ))}
         </ul>
-      </div>
+      </section>
 
       <p className="text-xs text-faint">
-        Prices aren&apos;t shown yet — the buttons open live searches on Skyscanner, Google Flights and Booking.com with your dates filled in. In-app price comparison and price
-        alerts need a flight-price provider (e.g. Travelpayouts, free to join) — ask Claude to set it up.
+        {pricesOn
+          ? "Prices are the cheapest return fares people found in the last few days (Aviasales) — tap a destination to see dates and book. Prices can change."
+          : "In-app prices switch on once the free Travelpayouts key is added — until then each destination opens live searches with your dates filled in."}
       </p>
 
       <Sheet open={!!sel} title={sel ? `${sel.flag} ${sel.city}` : ""} onClose={() => setSelected(null)}>

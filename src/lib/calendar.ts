@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { addDays, formatDay, fromISODate, toISODate } from "./dates";
 import { occurrences } from "./bills";
 import type { Bill, DbCalendarEvent } from "./types";
-import { DEFAULT_TEAMS, loadTeam } from "./football";
+import { loadTeam } from "./football";
+import { readPrefs } from "./prefs";
 
 export { formatDay, fromISODate, toISODate };
 
@@ -107,7 +108,7 @@ export function useCalendarEvents() {
   // Favourite teams' fixtures (Aston Villa, England) — shown to everyone, no sign-in needed
   useEffect(() => {
     let alive = true;
-    Promise.all(DEFAULT_TEAMS.map((t) => loadTeam(t.id))).then((teams) => {
+    Promise.all(readPrefs().teams.map((t) => loadTeam(t.id))).then((teams) => {
       if (!alive) return;
       const seen = new Set<string>();
       const evs: CalendarEvent[] = [];

@@ -11,7 +11,8 @@ import { DailyBriefing } from "./DailyBriefing";
 import { useAlerts } from "@/app/alerts/AlertsView";
 import { WeatherSummary } from "@/components/weather/WeatherWidgets";
 import { Crest, NextMatch } from "@/components/sport/SportWidgets";
-import { DEFAULT_TEAMS, kickoffLabel, useTeams } from "@/lib/football";
+import { kickoffLabel, useTeams } from "@/lib/football";
+import { useFavTeams } from "@/lib/prefs";
 import { useAuth } from "@/components/AuthProvider";
 import { BillLogo } from "@/components/BillLogo";
 import { money } from "@/components/ui";
@@ -357,9 +358,10 @@ function FuelSummary() {
 }
 
 function FootballSummary() {
-  const { data, loading } = useTeams(DEFAULT_TEAMS);
+  const TEAMS = useFavTeams();
+  const { data, loading } = useTeams(TEAMS);
   if (loading) return <div className="h-32 animate-pulse rounded-xl bg-surface-2" />;
-  const teams = DEFAULT_TEAMS.map((t) => data[t.id]).filter(Boolean);
+  const teams = TEAMS.map((t) => data[t.id]).filter(Boolean);
   const first = teams[0];
   return (
     <div className="space-y-3">

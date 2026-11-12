@@ -12,6 +12,7 @@ const ENDPOINTS = {
   "league-next": { path: (id: string) => `eventsnextleague.php?id=${id}`, ttl: 1800, key: "events" },
   "league-past": { path: (id: string) => `eventspastleague.php?id=${id}`, ttl: 1800, key: "events" },
   table: { path: (id: string) => `lookuptable.php?l=${id}`, ttl: 1800, key: "table" },
+  searchteam: { path: (q: string) => `searchteams.php?t=${encodeURIComponent(q)}`, ttl: 86400, key: "teams" },
 } as const;
 
 type Kind = keyof typeof ENDPOINTS;
@@ -20,7 +21,8 @@ export async function GET(req: Request) {
   const sp = new URL(req.url).searchParams;
   const kind = sp.get("kind") as Kind;
   const id = sp.get("id") ?? "";
-  if (!(kind in ENDPOINTS) || !/^\d{3,9}$/.test(id)) return NextResponse.json({ error: "Bad request" }, { status: 400 });
+  const valid = kind === "searchteam" ? /^[\p{L}0-9 .'&-]{2,40}$/u.test(id) : /^\d{3,9}$/.test(id);
+  if (!(kind in ENDPOINTS) || !valid) return NextResponse.json({ error: "Bad request" }, { status: 400 });
   const ep = ENDPOINTS[kind];
   const key = process.env.THESPORTSDB_KEY || "123";
   try {

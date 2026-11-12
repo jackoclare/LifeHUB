@@ -4,7 +4,8 @@ import { HeadlineRotator, LiveBadge } from "@/components/news/NewsWidgets";
 import { Crest, FormChips, MatchRow, NextMatch, ScoreCard } from "@/components/sport/SportWidgets";
 import { PillTabs } from "@/components/kit";
 import { Spinner } from "@/components/ui";
-import { DEFAULT_TEAMS, countdown, useTeams } from "@/lib/football";
+import { countdown, useTeams } from "@/lib/football";
+import { useFavTeams } from "@/lib/prefs";
 import { LEAGUES, type Row, sdbTime, ukDateTime, useSportsDb } from "@/lib/sportsdb";
 import { useEffect, useState } from "react";
 
@@ -34,12 +35,13 @@ export function SportView() {
 }
 
 function FootballTab() {
-  const { data, loading } = useTeams(DEFAULT_TEAMS);
+  const TEAMS = useFavTeams();
+  const { data, loading } = useTeams(TEAMS);
   if (loading) return <Spinner label="Loading fixtures" />;
 
   // Headline cards: the next match (lime), then the latest results
-  const nexts = DEFAULT_TEAMS.map((t) => data[t.id]?.next[0]).filter((m): m is NonNullable<typeof m> => !!m).sort((a, b) => (a.kickoff ?? "").localeCompare(b.kickoff ?? ""));
-  const lasts = DEFAULT_TEAMS.map((t) => data[t.id]?.last[0]).filter((m): m is NonNullable<typeof m> => !!m).sort((a, b) => (b.kickoff ?? "").localeCompare(a.kickoff ?? ""));
+  const nexts = TEAMS.map((t) => data[t.id]?.next[0]).filter((m): m is NonNullable<typeof m> => !!m).sort((a, b) => (a.kickoff ?? "").localeCompare(b.kickoff ?? ""));
+  const lasts = TEAMS.map((t) => data[t.id]?.last[0]).filter((m): m is NonNullable<typeof m> => !!m).sort((a, b) => (b.kickoff ?? "").localeCompare(a.kickoff ?? ""));
   const seen = new Set<string>();
   const top = [...nexts.map((m, i) => ({ m, hi: i === 0 })), ...lasts.map((m) => ({ m, hi: false }))].filter(({ m }) => (seen.has(m.id) ? false : (seen.add(m.id), true))).slice(0, 4);
 
@@ -57,7 +59,7 @@ function FootballTab() {
       </div>
       <p className="text-xl font-semibold text-white">Your teams</p>
       <div className="stagger grid gap-4 md:grid-cols-2">
-        {DEFAULT_TEAMS.map((t, i) => {
+        {TEAMS.map((t, i) => {
           const d = data[t.id];
           if (!d) return null;
           const name = d.team.name ?? t.name;

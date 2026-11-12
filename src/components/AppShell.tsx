@@ -8,6 +8,7 @@ import { Assistant } from "./assistant/Assistant";
 import { LocationBanner } from "./LocationBanner";
 import { useEffect } from "react";
 import { autoLocate } from "@/lib/weather";
+import { syncPrefsFromAccount } from "@/lib/prefs";
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeTab = tabIndex >= 0 ? tabIndex : 2; // any other page lives under Explore
   useEffect(() => {
     autoLocate();
+    syncPrefsFromAccount().catch(() => {});
   }, []);
 
   return (

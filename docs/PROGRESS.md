@@ -27,17 +27,23 @@
 - [x] Deployed to Vercel (first build passed); dashboard and calendar tested on desktop
 - [ ] Add to iPhone Home Screen and check on the phone ← Jack
 
-## Phase 2 — Personal management (next)
+## Phase 2 — Personal management ✅ live (12 Nov 2026)
 
-- Sign-in (Supabase Auth, email magic link)
-- Tables + Row Level Security: profiles, calendar_events, bills, bill_payments, shopping_lists, shopping_items, wishlist_items
-- Move calendar events from the device into Supabase
-- Bills manager → due dates appear on the calendar automatically
-- Shopping lists, wish list
+- [x] Polish: animated background, hero with live clock, staggered cards, hover glow, sliding tab bar
+- [x] Dashboard redesign: live cards (Coming up, Bills, Reminders) on top, "Coming soon" tiles below
+- [x] Supabase: Site URL + redirect set to the live address
+- [x] Tables + Row Level Security: user_settings, calendar_events, bills (+ account_ref, website), bill_payments, shopping_lists, shopping_items, wishlist_items, wishlist_prices. Security advisor: no issues
+- [x] Sign-in: email + password (works inside the iPhone Home Screen app)
+- [x] Calendar synced to Supabase; device-only events moved in on first sign-in; bill due dates shown automatically
+- [x] Bills: add/edit/delete, 8 frequencies, mark paid / undo, overdue, totals, sortable spreadsheet, 12-month + category charts, company logos
+- [x] Shopping lists: multiple lists, aisle auto-sorting, big tick buttons, quantities, prices, running total, "often bought"
+- [x] Wish list: priority, price vs target, price history sparkline, links, images, bought filter
+- [ ] Jack creates his account → Claude imports his bills from his bills sheet
+- [ ] After Jack's account exists: turn off new sign-ups in Supabase so nobody else can register
 
 ## Later phases
 
-- **Phase 3:** deals, travel, fuel, explore, weather
+- **Phase 3:** deals, travel, fuel, explore, weather; automatic wish-list price tracking
 - **Phase 4:** football (Aston Villa + England fixtures auto-added to the calendar), news, TV guide
 - **Phase 5:** iOS companion app (HealthKit), food diary, meal-photo estimates
 - **Phase 6:** notifications, price alerts, final testing

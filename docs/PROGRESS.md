@@ -51,7 +51,13 @@
 - [x] Football: TheSportsDB free key — Aston Villa (133601) & England (133914): next match countdown, recent form, results; fixtures on dashboard + calendar. Free tier only returns next 1 + last 1 match per team
 - [x] News: BBC RSS ticker + rotating cards + /news page
 - [~] Explore map: Leaflet + OpenStreetMap/Overpass, saved places table. Overpass servers are rejecting/timing out from Vercel (406 / timeouts) — needs a fix or a keyed provider (e.g. Geoapify free tier)
-- [~] Fuel: Jack registered for Fuel Finder (production OAuth). Tables fuel_stations / fuel_prices / fuel_sync_log + RPC nearby_fuel(); Edge Function `fuel-sync` pages /api/v1/pfs + /api/v1/pfs/fuel-prices. /fuel page: map with price pins, Unleaded/Diesel/Super/Premium, cheapest/nearest, savings on 50L, directions. Needs Edge Function secrets FUEL_FINDER_CLIENT_ID / FUEL_FINDER_CLIENT_SECRET, then hourly pg_cron. Watch-out: unauthenticated requests from Supabase get a CloudFront 403 (same as from a browser without a token) — confirm authenticated calls get through
+- [x] Fuel: live. Fuel Finder credentials saved as Edge Function secrets, but Fuel Finder's CloudFront firewall returns 403 to cloud servers (Supabase Frankfurt + London, Vercel US) before auth — not worked around. `fuel-sync` falls back to retailers' open JSON feeds (Asda, Esso/Tesco Alliance, SGN, JET, Moto; Tesco/Rontec stale, bp/MFG 403) → ~1,150 stations, hourly via pg_cron job `mylife-fuel-sync` (:07). Switches to full Fuel Finder data automatically if access opens. Next step: ask the Fuel Finder team about server access
+- [x] Map hub (/map): one big map with layers — fuel prices (load for the area on screen), holidays abroad, saved places; sat-nav "follow me" (live GPS + heading arrow) on Map, Fuel and Explore
+- [x] Map tiles switched to OpenStreetMap (CARTO started requiring an API key); dark mode via CSS filter
+- [x] PIN unlock moved to Supabase Edge Function `unlock` (uses built-in service-role key) — Vercel SUPABASE_SECRET_KEY no longer needed
+- [x] Assistant: Safari speech fix (uses heard text when no final result), clear mic error messages, iOS speech unlock
+- [x] Tap whole match panels (dashboard, calendar, coming-up) to open lineups
+- [x] New JC app icon + sidebar logo
 - [x] Travel: destinations, UK airports, Skyscanner / Google Flights / Booking.com search links, saved destinations (no paid provider)
 - [ ] Deals: needs a provider
 - [x] Calendar feed: Edge Function `calendar` serves an iCal (webcal) feed of events, bills and fixtures — subscribe on iPhone
@@ -62,7 +68,7 @@
 - [x] Explore: Geoapify provider wired (falls back to Overpass) — GEOAPIFY_KEY in Vercel is the masked 10-char value; needs the real key
 - [x] /api/health shows which server keys are set/working (never values)
 - [x] Notifications: service worker + Settings → Notifications (turn on, per-type toggles, test). Supabase Edge Function `notify` (bill reminders day-before/on-day/overdue 8am–9pm; kick-off alerts ~1h before Villa/England) runs every 15 min via pg_cron. VAPID secrets set ✅ (configured: true)
-- [ ] SUPABASE_SECRET_KEY in Vercel is the masked value → PIN unlock not working until replaced
+- [x] PIN unlock no longer depends on SUPABASE_SECRET_KEY in Vercel
 - Note: unused function public.get_push_config() left in DB (harmless, service-role only)
 - Optional upgrades: football-data.org free key (league tables, more fixtures); THESPORTSDB_KEY premium ($9/mo) for full fixture lists
 

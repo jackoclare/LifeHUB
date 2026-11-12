@@ -306,6 +306,85 @@ html.theme-ready .card {
   animation: pop 0.35s cubic-bezier(0.3, 1.5, 0.5, 1) both;
 }
 
+/* Sheets / dialogs */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+.sheet-backdrop {
+  animation: fade-in 0.25s ease both;
+}
+.sheet-panel {
+  animation: sheet-up 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (min-width: 640px) {
+  .sheet-panel {
+    animation: dialog-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+
+/* Tick animation for checklists */
+@keyframes tick {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-tick {
+  animation: tick 0.3s ease both;
+}
+
+/* Chart bars grow in */
+@keyframes grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+.bar {
+  transform-origin: bottom;
+  animation: grow-y 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.bar-x {
+  transform-origin: left;
+  animation: grow-x 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Sparkline draws itself */
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.draw {
+  stroke-dasharray: 1;
+  animation: draw 1s ease-out both;
+}
+
 /* iPhone safe areas (notch / home bar) */
 .pt-safe {
   padding-top: env(safe-area-inset-top);

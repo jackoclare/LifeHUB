@@ -1,12 +1,17 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { PageHeader } from "@/components/PageHeader";
+import { RequireAuth } from "@/components/RequireAuth";
+import { findSection } from "@/lib/nav";
+import { ShoppingView } from "./ShoppingView";
 
 export const metadata = { title: "Shopping list" };
 
-export default function Page() {
+export default function ShoppingPage() {
   return (
-    <ComingSoon
-      href="/shopping"
-      plans={["Multiple lists (e.g. Tesco weekly, Aldi top-up)", "Big tick-off buttons for one-handed use in the shop", "Quantities, categories and estimated prices", "Running estimated total", "Frequently bought items for quick adding"]}
-    />
+    <>
+      <PageHeader section={findSection("/shopping")} />
+      <RequireAuth reason="Sign in so your shopping lists sync between your phone and computer.">
+        <ShoppingView />
+      </RequireAuth>
+    </>
   );
 }

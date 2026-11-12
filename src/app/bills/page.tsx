@@ -1,12 +1,17 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { PageHeader } from "@/components/PageHeader";
+import { RequireAuth } from "@/components/RequireAuth";
+import { findSection } from "@/lib/nav";
+import { BillsView } from "./BillsView";
 
 export const metadata = { title: "Bills" };
 
-export default function Page() {
+export default function BillsPage() {
   return (
-    <ComingSoon
-      href="/bills"
-      plans={["Add and edit bills, provider and amount", "Weekly, monthly, annual or custom repeats", "Mark as paid and see overdue bills", "Monthly and annual totals with charts", "Spreadsheet-style view that works on a phone", "Every due date shown on your calendar"]}
-    />
+    <>
+      <PageHeader section={findSection("/bills")} />
+      <RequireAuth reason="Sign in to keep your bills private and synced between your iPhone and computer.">
+        <BillsView />
+      </RequireAuth>
+    </>
   );
 }

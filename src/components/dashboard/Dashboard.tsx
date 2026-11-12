@@ -6,6 +6,12 @@ import { useEffect, useState } from "react";
 import { cards, type CardDef, useDashboardPrefs } from "@/lib/dashboard";
 import { formatDay, kindInfo, upcoming, useCalendarEvents } from "@/lib/calendar";
 import { phaseNames } from "@/lib/nav";
+import { useAuth } from "@/components/AuthProvider";
+import { BillLogo } from "@/components/BillLogo";
+import { money } from "@/components/ui";
+import { useRows } from "@/lib/useRows";
+import { dueLabel, isOverdue, monthlyEquivalent } from "@/lib/bills";
+import type { Bill } from "@/lib/types";
 
 function greeting(h: number) {
   if (h < 12) return "Good morning";
@@ -74,6 +80,8 @@ export function Dashboard() {
             <DashCard key={c.id} card={c} index={i}>
               {c.id === "calendar" ? (
                 <EventList items={upcoming(events, 14).slice(0, 4)} empty="Nothing in the next two weeks." />
+              ) : c.id === "bills" ? (
+                <BillsSummary />
               ) : c.id === "reminders" ? (
                 <EventList items={upcoming(events, 30).filter((e) => e.kind === "reminder").slice(0, 3)} empty="No reminders set." />
               ) : (
@@ -153,6 +161,39 @@ function DashCard({ card, index, children }: { card: CardDef; index: number; chi
       </div>
       <div className="flex-1">{children}</div>
     </Link>
+  );
+}
+
+function BillsSummary() {
+  const { user, loading } = useAuth();
+  const { rows, loading: billsLoading } = useRows<Bill>("bills", [{ column: "next_due_date" }]);
+  if (loading || (user && billsLoading)) return <p className="text-sm text-muted">Loading…</p>;
+  if (!user) return <p className="text-sm text-muted">Sign in (Settings) to see what&apos;s due and anything overdue.</p>;
+  const active = rows.filter((b) => b.is_active);
+  if (!active.length) return <p className="text-sm text-muted">No bills added yet.</p>;
+  const overdue = active.filter((b) => isOverdue(b));
+  const monthly = active.reduce((s, b) => s + monthlyEquivalent(b), 0);
+  return (
+    <div>
+      {overdue.length > 0 && (
+        <p className="mb-2 rounded-lg bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-400">
+          {overdue.length} overdue · {money(overdue.reduce((s, b) => s + Number(b.amount), 0))}
+        </p>
+      )}
+      <ul className="space-y-2">
+        {active.slice(0, 3).map((b) => (
+          <li key={b.id} className="flex items-center gap-2.5">
+            <BillLogo website={b.website} category={b.category} tone="var(--c-money)" size={28} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">{b.name}</span>
+              <span className="block text-xs text-muted">{dueLabel(b.next_due_date)}</span>
+            </span>
+            <span className="text-sm font-semibold tabular-nums">{money(b.amount)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 border-t border-line pt-2 text-xs text-muted">About {money(monthly)} a month in total</p>
+    </div>
   );
 }
 

@@ -1,12 +1,17 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { PageHeader } from "@/components/PageHeader";
+import { RequireAuth } from "@/components/RequireAuth";
+import { findSection } from "@/lib/nav";
+import { WishlistView } from "./WishlistView";
 
 export const metadata = { title: "Wish list" };
 
-export default function Page() {
+export default function WishlistPage() {
   return (
-    <ComingSoon
-      href="/wishlist"
-      plans={["Image, retailer, link, priority and notes", "Current price vs your target price", "Price history where available", "Alerts when an item gets cheaper"]}
-    />
+    <>
+      <PageHeader section={findSection("/wishlist")} />
+      <RequireAuth reason="Sign in to save your wish list.">
+        <WishlistView />
+      </RequireAuth>
+    </>
   );
 }

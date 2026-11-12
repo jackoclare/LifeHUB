@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
+import { ErrorNote, money } from "@/components/ui";
 import { useMemo, useState } from "react";
 import {
   type EventKind,
@@ -25,7 +27,8 @@ function buildMonth(year: number, month: number) {
 }
 
 export function CalendarView() {
-  const { events, add, remove } = useCalendarEvents();
+  const { events, add, remove, signedIn, error: loadError } = useCalendarEvents();
+  const [err, setErr] = useState<string | null>(null);
   const today = toISODate(new Date());
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
@@ -139,16 +142,22 @@ export function CalendarView() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{e.title}</p>
                     <p className="text-xs text-muted">
-                      {e.time ?? "All day"} · {kindInfo[e.kind].label}
+                      {e.kind === "bill" ? money(e.amount) : (e.time ?? "All day")} · {kindInfo[e.kind].label}
                     </p>
                   </div>
-                  <button
-                    onClick={() => remove(e.id)}
-                    className="grid size-10 place-items-center rounded-full text-faint hover:text-ink"
-                    aria-label={`Delete ${e.title}`}
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {e.readOnly ? (
+                    <Link href="/bills" className="grid size-10 place-items-center rounded-full text-faint hover:text-ink" aria-label={`Open ${e.title} in Bills`}>
+                      <ChevronRight size={16} />
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={async () => setErr(await remove(e.id))}
+                      className="grid size-10 place-items-center rounded-full text-faint hover:text-ink"
+                      aria-label={`Delete ${e.title}`}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -158,11 +167,17 @@ export function CalendarView() {
             <AddEventForm
               date={selected}
               onCancel={() => setAdding(false)}
-              onSave={(e) => {
-                add(e);
-                setAdding(false);
+              onSave={async (e) => {
+                const msg = await add(e);
+                setErr(msg);
+                if (!msg) setAdding(false);
               }}
             />
+          )}
+          {(err ?? loadError) && (
+            <div className="mt-3">
+              <ErrorNote message={(err ?? loadError)!} />
+            </div>
           )}
         </section>
 
@@ -179,7 +194,19 @@ export function CalendarView() {
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-xs text-faint">For now, events you add are saved on this device only. Once you can sign in (Phase 2), they'll sync between your iPhone and computer.</p>
+          <p className="mt-4 text-xs text-faint">
+            {signedIn ? (
+              "Synced to your account, so it's the same on your iPhone and computer."
+            ) : (
+              <>
+                You&apos;re not signed in, so events are saved on this device only.{" "}
+                <Link href="/settings" className="font-semibold text-accent">
+                  Sign in
+                </Link>{" "}
+                to sync them and see your bills here.
+              </>
+            )}
+          </p>
         </section>
       </aside>
     </div>

@@ -40,9 +40,20 @@
 - [x] Wish list: priority, price vs target, price history sparkline, links, images, bought filter
 - [x] Jack created his account; 8 bills imported from his bills sheet (IWNL paused: no amount/day on the sheet)
 - [x] PIN unlock: per-person PIN (bcrypt), server-checked, lock-out after 5 wrong tries; set in Settings
-- [ ] Jack pastes SUPABASE_SECRET_KEY into Vercel (needed for PIN unlock), then redeploy
+- [x] SUPABASE_SECRET_KEY added in Vercel and redeployed → PIN unlock live (Jack sets his PIN in Settings)
 - [x] Live news: BBC RSS (top, UK, football, sport) — scrolling ticker, rotating headline cards, /news page
 - Sign-ups stay open: Jack may add accounts for other people later (each sees only their own data)
+
+## Phase 3/4 — started (12 Nov 2026)
+
+- [x] Crisper design: Inter / Inter Tight, deeper neutrals, near-solid cards, solid gradient icon tiles, calmer background
+- [x] Weather: Open-Meteo (free, no key) — dashboard card with hourly strip, /weather page with 7-day forecast, animated icons; location by postcode/town/device
+- [x] Football: TheSportsDB free key — Aston Villa (133601) & England (133914): next match countdown, recent form, results; fixtures on dashboard + calendar. Free tier only returns next 1 + last 1 match per team
+- [x] News: BBC RSS ticker + rotating cards + /news page
+- [~] Explore map: Leaflet + OpenStreetMap/Overpass, saved places table. Overpass servers are rejecting/timing out from Vercel (406 / timeouts) — needs a fix or a keyed provider (e.g. Geoapify free tier)
+- [ ] Fuel: needs Jack to register for Fuel Finder API (GOV.UK One Login) → client id/secret in Vercel; page shows the steps
+- [ ] Travel + Deals: need provider keys (research + Jack's sign-ups)
+- Optional upgrades: football-data.org free key (league tables, more fixtures); THESPORTSDB_KEY premium ($9/mo) for full fixture lists
 
 ## Later phases
 

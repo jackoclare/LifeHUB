@@ -231,5 +231,13 @@ export function useCalendarEvents() {
 export function upcoming(events: CalendarEvent[], days = 14) {
   const today = toISODate(new Date());
   const last = addDays(today, days);
-  return events.filter((e) => e.date >= today && e.date <= last).sort(sortEvents);
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  // Drop today's timed events once they're over (matches ~2 hours, everything else 1 hour after the start)
+  const finished = (e: CalendarEvent) => {
+    if (e.date !== today || !e.time) return false;
+    const [h, m] = e.time.split(":").map(Number);
+    return nowMins > h * 60 + m + (e.kind === "football" ? 120 : 60);
+  };
+  return events.filter((e) => e.date >= today && e.date <= last && !finished(e)).sort(sortEvents);
 }

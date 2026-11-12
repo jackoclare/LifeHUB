@@ -59,7 +59,11 @@
 - [x] Tap whole match panels (dashboard, calendar, coming-up) to open lineups
 - [x] New JC app icon + sidebar logo
 - [x] Travel: destinations, UK airports, Skyscanner / Google Flights / Booking.com search links, saved destinations (no paid provider)
-- [ ] Deals: needs a provider
+- [x] Deals (/deals): HotUKDeals public RSS (hottest/newest), search, categories, wish-list matches flagged and shown first; "Hot deals" dashboard card
+- [x] Directions: Map "From" (current location or typed) / "To" rows + swap; /api/route (Geoapify or Photon search → OSRM driving route); ETA + route line + Start in Apple Maps. Assistant: "take me to Tesco Extra", "how long to get to Villa Park", "from Solihull to Villa Park"
+- [x] Live fuel dashboard card; assistant answers "cheapest diesel/petrol"; assistant voice picker
+- [ ] TV guide: no good free UK listings source (TVmaze UK schedule is ~20 shows/day) — needs a listings provider
+- ⚠️ 12 Nov ~18:55: Vercel Hobby deployment limit hit ("rate limited — retry in 24 hours"). Commits after 28ea0d6 are pushed but not live until it resets: typed-From fix, Deals, deals card
 - [x] Calendar feed: Edge Function `calendar` serves an iCal (webcal) feed of events, bills and fixtures — subscribe on iPhone
 - [x] Voice assistant: floating button, speech in/out (en-GB), adds shopping/wish-list items and calendar events, opens pages, answers weather/next match/bills due (on-device parsing, no paid AI)
 - [x] Build fix: tsconfig excludes supabase/ (Deno functions broke Vercel type-check)

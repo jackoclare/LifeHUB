@@ -53,6 +53,13 @@
 - [~] Explore map: Leaflet + OpenStreetMap/Overpass, saved places table. Overpass servers are rejecting/timing out from Vercel (406 / timeouts) — needs a fix or a keyed provider (e.g. Geoapify free tier)
 - [ ] Fuel: needs Jack to register for Fuel Finder API (GOV.UK One Login) → client id/secret in Vercel; page shows the steps
 - [ ] Travel + Deals: need provider keys (research + Jack's sign-ups)
+- [x] Match pages (/sport/match/[id]): scoreboard, countdown, venue, lineups. API-Football (free: only yesterday→tomorrow) gives full XIs/subs/formation on match day; TheSportsDB partial fallback
+- [x] Sport tabs: Football (Villa, England, PL table top-5), F1 (4370), Darts (PDC 4554)
+- [x] Explore: Geoapify provider wired (falls back to Overpass) — GEOAPIFY_KEY in Vercel is the masked 10-char value; needs the real key
+- [x] /api/health shows which server keys are set/working (never values)
+- [x] Notifications: service worker + Settings → Notifications (turn on, per-type toggles, test). Supabase Edge Function `notify` (bill reminders day-before/on-day/overdue 8am–9pm; kick-off alerts ~1h before Villa/England) runs every 15 min via pg_cron. Needs Edge Function secrets VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY
+- [ ] SUPABASE_SECRET_KEY in Vercel is the masked value → PIN unlock not working until replaced
+- Note: unused function public.get_push_config() left in DB (harmless, service-role only)
 - Optional upgrades: football-data.org free key (league tables, more fixtures); THESPORTSDB_KEY premium ($9/mo) for full fixture lists
 
 ## Later phases

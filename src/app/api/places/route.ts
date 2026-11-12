@@ -6,6 +6,8 @@ import { NextResponse } from "next/server";
  * but no ratings or reviews. Cached for a day per area/category to respect fair use.
  */
 
+export const maxDuration = 40;
+
 const CATEGORIES = {
   restaurants: `nwr["amenity"="restaurant"]`,
   pubs: `nwr["amenity"~"^(pub|bar)$"]`,
@@ -48,13 +50,27 @@ export async function GET(req: Request) {
   const query = `[out:json][timeout:20];(${CATEGORIES[cat]}["name"](around:${radius},${rlat},${rlon}););out center tags 120;`;
 
   try {
-    const res = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "MyLifeHub/1.0 (personal dashboard)" },
-      body: `data=${encodeURIComponent(query)}`,
-      next: { revalidate: 86400 },
-    });
-    if (!res.ok) throw new Error(`Overpass ${res.status}`);
+    // Public Overpass servers are busy and sometimes refuse cloud traffic — try a few mirrors in turn.
+    const mirrors = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+    let res: Response | null = null;
+    let lastErr = "";
+    for (const m of mirrors) {
+      try {
+        const r = await fetch(`${m}?data=${encodeURIComponent(query)}`, {
+          headers: { "User-Agent": "MyLifeHub/1.0 (personal dashboard; https://life-hub-nine-rouge.vercel.app)", Accept: "application/json" },
+          next: { revalidate: 86400 },
+          signal: AbortSignal.timeout(12000),
+        });
+        if (r.ok && (r.headers.get("content-type") ?? "").includes("json")) {
+          res = r;
+          break;
+        }
+        lastErr = `${new URL(m).host} ${r.status}`;
+      } catch (err) {
+        lastErr = `${new URL(m).host} ${(err as Error).name}`;
+      }
+    }
+    if (!res) throw new Error(lastErr || "no server answered");
     const data = await res.json();
     type El = { type: string; id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> };
     const places: Place[] = (data.elements as El[])

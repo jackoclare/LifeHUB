@@ -1,0 +1,2 @@
+-- See applied migration "fuel_finder": fuel_stations, fuel_prices, fuel_sync_log tables (public read RLS) + nearby_fuel() RPC.
+-- Data is synced hourly by the fuel-sync Edge Function (cron added in a later migration once credentials are set).

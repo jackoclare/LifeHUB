@@ -116,16 +116,18 @@ Deno.serve(async (req) => {
         `DTSTART;VALUE=DATE:${ymd(d)}`,
         `DTEND;VALUE=DATE:${ymd(nextDay(d))}`,
         `SUMMARY:${esc(`💷 ${b.name} – ${gbp(Number(b.amount))}`)}`,
-        `DESCRIPTION:${esc(`Bill due${b.provider ? ` (${b.provider})` : ""}. Open MyLife Hub → Bills to mark it paid.`)}`,
+        `DESCRIPTION:${esc(`Bill due${b.provider ? ` (${b.provider})` : ""}. Open LifeHub → Bills to mark it paid.`)}`,
         "TRANSP:TRANSPARENT",
         "END:VEVENT",
       );
     }
   }
 
-  // Football fixtures
+  // Football fixtures — the person's favourite teams (Profile → preferences), or Villa & England by default
+  const { data: st } = await admin.from("user_settings").select("prefs").eq("user_id", userId).maybeSingle();
+  const myTeams = ((st?.prefs as { teams?: { id: string }[] } | null)?.teams ?? []).map((t) => String(t.id)).filter((id) => /^\d{3,9}$/.test(id));
   const seen = new Set<string>();
-  for (const team of TEAMS) {
+  for (const team of myTeams.length ? myTeams : TEAMS) {
     try {
       const j = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${team}`).then((r) => r.json());
       for (const e of (j?.events ?? []) as Record<string, string>[]) {

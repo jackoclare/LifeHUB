@@ -1,4 +1,4 @@
-// MyLife Hub — push notifications (Supabase Edge Function, Deno)
+// LifeHub — push notifications (Supabase Edge Function, Deno)
 //
 // GET            → { configured, publicKey }        (public key for the app to subscribe with)
 // POST {test}    → sends a test notification to the signed-in caller (needs their JWT)
@@ -108,10 +108,18 @@ async function runScheduled() {
     }
   }
 
-  // ---- Kick-off alerts: matches starting in the next 75 minutes
+  // ---- Kick-off alerts: matches starting in the next 75 minutes, for each person's favourite teams
   const now = Date.now();
   const seen = new Set<string>();
-  for (const team of TEAMS) {
+  const { data: settings } = await admin.from("user_settings").select("user_id,prefs").in("user_id", [...byUser.keys()]);
+  const teamsByUser = new Map<string, string[]>();
+  for (const [uid] of byUser) {
+    const p = (settings ?? []).find((x) => x.user_id === uid)?.prefs as { teams?: { id: string }[] } | null;
+    const ids = (p?.teams ?? []).map((t) => String(t.id)).filter((id) => /^\d{3,9}$/.test(id));
+    teamsByUser.set(uid, ids.length ? ids : TEAMS);
+  }
+  const allTeams = [...new Set([...teamsByUser.values()].flat())];
+  for (const team of allTeams) {
     try {
       const r = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${team}`);
       const j = await r.json();
@@ -125,6 +133,8 @@ async function runScheduled() {
         const time = ts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
         for (const [userId, userSubs] of byUser) {
           if (prefs.get(userId)?.matches === false) continue;
+          const mine = teamsByUser.get(userId) ?? TEAMS;
+          if (!mine.includes(team) && !mine.includes(String(e.idHomeTeam)) && !mine.includes(String(e.idAwayTeam))) continue;
           if (!(await once(userId, `match-${e.idEvent}`))) continue;
           sent += await sendTo(userSubs, {
             title: `⚽ ${e.strHomeTeam} v ${e.strAwayTeam}`,

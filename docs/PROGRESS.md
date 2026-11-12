@@ -7,10 +7,11 @@
 | GitHub repo | `jackoclare/LifeHUB` |
 | Supabase project | Jack's Project — ref `peaxepkkuvdemrnrnfwa`, region eu-central-1 (Frankfurt) |
 | Supabase org | Permanent Recruitment Solutions (moved there so Claude can reach it). Kept fully separate from the PRS CRM project. |
-| Hosting | Vercel (free Hobby plan) |
+| Hosting | Vercel (free Hobby plan), project `life-hub` |
+| Live address | https://life-hub-nine-rouge.vercel.app |
 | Stack | Next.js 16 + TypeScript + Tailwind CSS 4 + Supabase; SwiftUI companion for HealthKit in Phase 5 |
 
-## Phase 1 — Foundations ✅ code written (12 Nov 2026)
+## Phase 1 — Foundations ✅ complete and live (12 Nov 2026)
 
 - [x] Inspected GitHub: only the two PRS CRM repos, left untouched
 - [x] Inspected Supabase: Jack's Project is empty (no tables, migrations or security warnings)
@@ -23,7 +24,8 @@
 - [x] Installable PWA: manifest + app icons
 - [x] Supabase client code ready for Phase 2
 - [x] Code pushed to GitHub (LifeHUB)
-- [ ] First deploy to Vercel and test on iPhone ← **next step for Jack**
+- [x] Deployed to Vercel (first build passed); dashboard and calendar tested on desktop
+- [ ] Add to iPhone Home Screen and check on the phone ← Jack
 
 ## Phase 2 — Personal management (next)
 
@@ -43,4 +45,5 @@
 ## Decisions log
 
 - 12 Nov: Calendar added to Phase 1 as a core section. Bills (Phase 2) and favourite-team fixtures (Phase 4) will feed into it automatically.
+- 12 Nov: Vercel account is the free Hobby plan (its name is "Permanent Recruitment Solutions" but it is personal). No paid plans needed.
 - 12 Nov: Until sign-in exists, dashboard layout and calendar events are stored on each device only.

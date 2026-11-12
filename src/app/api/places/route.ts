@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
  * but no ratings or reviews. Cached for a day per area/category to respect fair use.
  */
 
-export const maxDuration = 40;
+export const maxDuration = 20;
 
 const CATEGORIES = {
   restaurants: `nwr["amenity"="restaurant"]`,
@@ -52,25 +52,23 @@ export async function GET(req: Request) {
   try {
     // Public Overpass servers are busy and sometimes refuse cloud traffic — try a few mirrors in turn.
     const mirrors = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
-    let res: Response | null = null;
-    let lastErr = "";
-    for (const m of mirrors) {
-      try {
-        const r = await fetch(`${m}?data=${encodeURIComponent(query)}`, {
-          headers: { "User-Agent": "MyLifeHub/1.0 (personal dashboard; https://life-hub-nine-rouge.vercel.app)", Accept: "application/json" },
-          next: { revalidate: 86400 },
-          signal: AbortSignal.timeout(12000),
-        });
-        if (r.ok && (r.headers.get("content-type") ?? "").includes("json")) {
-          res = r;
-          break;
-        }
-        lastErr = `${new URL(m).host} ${r.status}`;
-      } catch (err) {
-        lastErr = `${new URL(m).host} ${(err as Error).name}`;
-      }
+    // Ask all mirrors at once and use the first good answer.
+    const attempt = async (m: string) => {
+      const r = await fetch(`${m}?data=${encodeURIComponent(query)}`, {
+        headers: { "User-Agent": "MyLifeHub/1.0 (personal dashboard; https://life-hub-nine-rouge.vercel.app)", Accept: "application/json" },
+        next: { revalidate: 86400 },
+        signal: AbortSignal.timeout(9000),
+      });
+      if (!r.ok || !(r.headers.get("content-type") ?? "").includes("json")) throw new Error(`${new URL(m).host} ${r.status}`);
+      return r;
+    };
+    let res: Response;
+    try {
+      res = await Promise.any(mirrors.map(attempt));
+    } catch (agg) {
+      const errs = (agg as AggregateError).errors?.map((x: Error) => x.message).join("; ");
+      throw new Error(errs || "no server answered");
     }
-    if (!res) throw new Error(lastErr || "no server answered");
     const data = await res.json();
     type El = { type: string; id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> };
     const places: Place[] = (data.elements as El[])

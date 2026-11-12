@@ -16,6 +16,8 @@ import { money } from "@/components/ui";
 import { useRows } from "@/lib/useRows";
 import { dueLabel, isOverdue, monthlyEquivalent } from "@/lib/bills";
 import type { Bill } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
+import { usePlace } from "@/lib/weather";
 
 function greeting(h: number) {
   if (h < 12) return "Good morning";
@@ -104,6 +106,8 @@ export function Dashboard() {
                       <EventList items={upcoming(events, 14).slice(0, 5)} empty="Nothing in the next two weeks." />
                     ) : c.id === "bills" ? (
                       <BillsSummary />
+                    ) : c.id === "fuel" ? (
+                      <FuelSummary />
                     ) : (
                       <EventList items={upcoming(events, 30).filter((e) => e.kind === "reminder").slice(0, 4)} empty="No reminders set — add one from the calendar." />
                     )}
@@ -247,6 +251,47 @@ function BillsSummary() {
   );
 }
 
+type CheapFuel = { name: string; brand: string | null; price: number; distance_km: number };
+
+function FuelSummary() {
+  const { place, ready } = usePlace();
+  const [rows, setRows] = useState<{ label: string; s: CheapFuel | null }[] | null>(null);
+  useEffect(() => {
+    if (!place) return;
+    let alive = true;
+    const supabase = createClient();
+    const fuels = [
+      { id: "E10", label: "Unleaded" },
+      { id: "B7_Standard", label: "Diesel" },
+    ];
+    Promise.all(fuels.map((f) => supabase.rpc("nearby_fuel", { p_lat: place.lat, p_lon: place.lon, p_radius_km: 8, p_fuel: f.id }))).then((res) => {
+      if (!alive) return;
+      setRows(fuels.map((f, i) => ({ label: f.label, s: ((res[i].data as CheapFuel[]) ?? [])[0] ?? null })));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [place]);
+  if (!ready) return null;
+  if (!place) return <p className="text-sm text-muted">Set your location on the weather card to see the cheapest fuel near you.</p>;
+  if (!rows) return <div className="h-20 animate-pulse rounded-xl bg-surface-2" />;
+  return (
+    <ul className="space-y-2.5">
+      {rows.map(({ label, s }) => (
+        <li key={label} className="flex items-center gap-3">
+          <span className="grid min-w-16 place-items-center rounded-xl bg-emerald-500/15 px-2 py-1.5 font-display text-base font-semibold tabular-nums text-emerald-500">
+            {s ? `${Number(s.price).toFixed(1)}p` : "—"}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">{label}</span>
+            <span className="block truncate text-xs text-muted">{s ? `${s.brand ?? s.name} · ${(s.distance_km * 0.621371).toFixed(1)} mi` : "None listed within 5 miles"}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function FootballSummary() {
   const { data, loading } = useTeams(DEFAULT_TEAMS);
   if (loading) return <div className="h-32 animate-pulse rounded-xl bg-surface-2" />;
@@ -274,7 +319,7 @@ function FootballSummary() {
   );
 }
 
-const LIVE = new Set<CardDef["id"]>(["calendar", "weather", "bills", "football", "news", "sport-news", "reminders"]);
+const LIVE = new Set<CardDef["id"]>(["calendar", "weather", "bills", "football", "fuel", "news", "sport-news", "reminders"]);
 
 function SoonTile({ card, index }: { card: CardDef; index: number }) {
   const Icon = card.icon;

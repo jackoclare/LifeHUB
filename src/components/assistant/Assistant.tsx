@@ -16,7 +16,7 @@ import type { Bill } from "@/lib/types";
 
 type Reply = { text: string; ok: boolean; link?: { href: string; label: string }; lines?: string[] };
 
-const EXAMPLES = ["Add milk and 2 loaves of bread to the shopping list", "Dentist Friday at 3pm", "Remind me to call mum tomorrow at 6pm", "When's the next Villa game?", "What bills are due this week?", "Show me the weather"];
+const EXAMPLES = ["Add milk and 2 loaves of bread to the shopping list", "Dentist Friday at 3pm", "Remind me to call mum tomorrow at 6pm", "When's the next Villa game?", "What bills are due this week?", "Where's the cheapest diesel?", "Show me the weather"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SR = any;
@@ -183,6 +183,23 @@ export function Assistant() {
                 link: { href: "/bills", label: "Open bills" },
               });
             }
+            break;
+          }
+          case "fuel": {
+            const place = readPlace();
+            if (!place) return respond({ ok: false, text: "Set your location first, then ask me again.", link: { href: "/fuel", label: "Set location" } });
+            const { data } = await supabase.rpc("nearby_fuel", { p_lat: place.lat, p_lon: place.lon, p_radius_km: 8, p_fuel: intent.fuel });
+            const list = (data ?? []) as { name: string; brand: string | null; address: string | null; price: number; distance_km: number }[];
+            const label = intent.fuel === "B7_Standard" ? "diesel" : intent.fuel === "E5" ? "super unleaded" : "unleaded";
+            if (!list.length) return respond({ ok: false, text: `I couldn't find ${label} prices within 5 miles.`, link: { href: "/fuel", label: "Open fuel map" } });
+            const top = list.slice(0, 3);
+            const miles = (km: number) => `${(km * 0.621371).toFixed(1)} miles`;
+            respond({
+              ok: true,
+              text: `Cheapest ${label} near you is ${Number(top[0].price).toFixed(1)}p at ${top[0].brand ?? top[0].name}, ${miles(top[0].distance_km)} away.`,
+              lines: top.map((s) => `${Number(s.price).toFixed(1)}p — ${s.brand ?? s.name} · ${miles(s.distance_km)}`),
+              link: { href: "/fuel", label: "Open fuel map" },
+            });
             break;
           }
           case "help":

@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CloudSun,
   Dumbbell,
+  Fuel,
   Newspaper,
   Plane,
   ReceiptPoundSterling,
@@ -21,6 +22,7 @@ export type CardId =
   | "weather"
   | "bills"
   | "football"
+  | "fuel"
   | "news"
   | "sport-news"
   | "activity"
@@ -47,6 +49,7 @@ export const cards: CardDef[] = [
   { id: "weather", title: "Weather", icon: CloudSun, color: "var(--c-travel)", href: "/weather", phase: 3, promise: "Today's forecast for your area." },
   { id: "bills", title: "Upcoming bills", icon: ReceiptPoundSterling, color: "var(--c-money)", href: "/bills", phase: 1, promise: "What's due in the next 7 days and anything overdue." },
   { id: "football", title: "Aston Villa & England", icon: Trophy, color: "var(--c-sport)", href: "/sport", phase: 4, promise: "Next match and recent results." },
+  { id: "fuel", title: "Cheapest fuel near you", icon: Fuel, color: "var(--c-discover)", href: "/fuel", phase: 3, promise: "Cheapest unleaded and diesel nearby." },
   { id: "activity", title: "Steps & activity", icon: Dumbbell, color: "var(--c-health)", href: "/health", phase: 5, promise: "Steps, distance and active calories from your Apple Watch." },
   { id: "nutrition", title: "Calories & nutrition", icon: Salad, color: "var(--c-health)", href: "/health", phase: 5, promise: "Today's calories, protein, carbs and fat." },
   { id: "news", title: "Latest news", icon: Newspaper, color: "var(--c-news)", href: "/news", phase: 4, promise: "Top UK headlines." },

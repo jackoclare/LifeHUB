@@ -12,6 +12,7 @@ export type Intent =
   | { kind: "nextMatch"; team: "villa" | "england" | "any" }
   | { kind: "billsDue" }
   | { kind: "billsTotal" }
+  | { kind: "fuel"; fuel: "E10" | "E5" | "B7_Standard" }
   | { kind: "help" }
   | { kind: "unknown"; text: string };
 
@@ -31,6 +32,7 @@ const PAGES: [RegExp, string, string][] = [
   [/\bf1\b|\bformula (1|one)\b|\bgrand prix\b/, "/sport", "Sport"],
   [/\bdarts\b/, "/sport", "Sport"],
   [/\bsport\b|\bfootball\b|\bfixtures?\b|\bscores?\b|\btable\b/, "/sport", "Sport"],
+  [/\bmaps?\b|\bsat ?nav\b/, "/map", "Map"],
   [/\btravel\b|\bholidays?\b|\bflights?\b/, "/travel", "Travel"],
   [/\bexplore\b|\brestaurants?\b|\bpubs?\b|\bcaf(e|é)s?\b|\bthings to do\b/, "/explore", "Explore"],
   [/\bfuel\b|\bpetrol\b|\bdiesel\b/, "/fuel", "Fuel"],
@@ -183,6 +185,9 @@ export function parse(input: string, now = new Date()): Intent {
   if (/\bweather\b|\brain\b|\bcold\b|\bhot\b|\bumbrella\b|\bcoat\b/.test(t) && !/^(show|open|go)/.test(t)) return { kind: "weather" };
   if (/\b(next|when).*(game|match|playing|kick ?off)|\b(villa|england)\b.*(play|game|match)/.test(t)) {
     return { kind: "nextMatch", team: /villa/.test(t) ? "villa" : /england/.test(t) ? "england" : "any" };
+  }
+  if (/\b(cheap|cheapest|price|prices|cost|how much)\b.*\b(fuel|petrol|diesel|unleaded)\b|\b(fuel|petrol|diesel|unleaded)\b.*\b(cheap|cheapest|price|prices|near)\b/.test(t)) {
+    return { kind: "fuel", fuel: /diesel/.test(t) ? "B7_Standard" : /super|premium|e5/.test(t) ? "E5" : "E10" };
   }
   if (/how much.*(bills?|spend|pay)|bills? total|total.*bills?/.test(t)) return { kind: "billsTotal" };
   if (/(what|which|any).*(bills?).*(due|coming|owe)|bills? (due|this week)/.test(t)) return { kind: "billsDue" };

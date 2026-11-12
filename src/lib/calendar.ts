@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { addDays, formatDay, fromISODate, toISODate } from "./dates";
 import { occurrences } from "./bills";
 import type { Bill, DbCalendarEvent } from "./types";
+import { DEFAULT_TEAMS, loadTeam } from "./football";
 
 export { formatDay, fromISODate, toISODate };
 
@@ -37,7 +38,7 @@ export const kindInfo: Record<EventKind, { label: string; color: string; auto?: 
   personal: { label: "Personal", color: "var(--accent)" },
   reminder: { label: "Reminder", color: "var(--c-shop)" },
   bill: { label: "Bill", color: "var(--c-money)", auto: "Added automatically from Bills" },
-  football: { label: "Football", color: "var(--c-sport)", auto: "Aston Villa & England fixtures added automatically (Phase 4)" },
+  football: { label: "Football", color: "var(--c-sport)", auto: "Aston Villa & England fixtures added automatically" },
   travel: { label: "Travel", color: "var(--c-travel)", auto: "Saved trips added automatically (Phase 3)" },
 };
 
@@ -84,6 +85,36 @@ export function useCalendarEvents() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [football, setFootball] = useState<CalendarEvent[]>([]);
+
+  // Favourite teams' fixtures (Aston Villa, England) — shown to everyone, no sign-in needed
+  useEffect(() => {
+    let alive = true;
+    Promise.all(DEFAULT_TEAMS.map((t) => loadTeam(t.id))).then((teams) => {
+      if (!alive) return;
+      const seen = new Set<string>();
+      const evs: CalendarEvent[] = [];
+      for (const d of teams)
+        for (const m of d.next ?? []) {
+          if (seen.has(m.id)) continue;
+          seen.add(m.id);
+          const k = m.kickoff ? new Date(m.kickoff) : null;
+          evs.push({
+            id: `match-${m.id}`,
+            title: `${m.home} v ${m.away}`,
+            date: k ? toISODate(k) : (m.date ?? ""),
+            time: k ? k.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }) : undefined,
+            kind: "football",
+            notes: m.league ?? undefined,
+            readOnly: true,
+          });
+        }
+      setFootball(evs.filter((e) => e.date));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     if (authLoading) return;
@@ -138,7 +169,7 @@ export function useCalendarEvents() {
     );
   }, [bills]);
 
-  const events = useMemo(() => [...own, ...billEvents].sort(sortEvents), [own, billEvents]);
+  const events = useMemo(() => [...own, ...billEvents, ...football].sort(sortEvents), [own, billEvents, football]);
 
   const add = useCallback(
     async (e: Omit<CalendarEvent, "id">) => {

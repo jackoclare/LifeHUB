@@ -146,7 +146,7 @@ export function CalendarView() {
                     </p>
                   </div>
                   {e.readOnly ? (
-                    <Link href="/bills" className="grid size-10 place-items-center rounded-full text-faint hover:text-ink" aria-label={`Open ${e.title} in Bills`}>
+                    <Link href={e.kind === "bill" ? "/bills" : "/sport"} className="grid size-10 place-items-center rounded-full text-faint hover:text-ink" aria-label={`Open ${e.title}`}>
                       <ChevronRight size={16} />
                     </Link>
                   ) : (

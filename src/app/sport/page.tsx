@@ -1,12 +1,14 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { PageHeader } from "@/components/PageHeader";
+import { findSection } from "@/lib/nav";
+import { SportView } from "./SportView";
 
 export const metadata = { title: "Sport" };
 
-export default function Page() {
+export default function SportPage() {
   return (
-    <ComingSoon
-      href="/sport"
-      plans={["Live scores, fixtures, results and tables", "Premier League down to National League, plus Europe's top leagues", "Favourite teams — Aston Villa and England matches on your calendar", "Team pages and match stats where available"]}
-    />
+    <>
+      <PageHeader section={findSection("/sport")} />
+      <SportView />
+    </>
   );
 }

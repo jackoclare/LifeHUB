@@ -8,6 +8,8 @@ import { formatDay, fromISODate, kindInfo, upcoming, useCalendarEvents } from "@
 import { phaseNames } from "@/lib/nav";
 import { HeadlineRotator, LiveBadge, NewsTicker } from "@/components/news/NewsWidgets";
 import { WeatherSummary } from "@/components/weather/WeatherWidgets";
+import { Crest, NextMatch } from "@/components/sport/SportWidgets";
+import { DEFAULT_TEAMS, kickoffLabel, useTeams } from "@/lib/football";
 import { useAuth } from "@/components/AuthProvider";
 import { BillLogo } from "@/components/BillLogo";
 import { money } from "@/components/ui";
@@ -90,7 +92,9 @@ export function Dashboard() {
                 .filter((c) => LIVE.has(c.id))
                 .map((c, i) => (
                   <DashCard key={c.id} card={c} index={i} wholeLink={c.id !== "news" && c.id !== "sport-news" && c.id !== "weather"}>
-                    {c.id === "weather" ? (
+                    {c.id === "football" ? (
+                      <FootballSummary />
+                    ) : c.id === "weather" ? (
                       <WeatherSummary />
                     ) : c.id === "news" ? (
                       <HeadlineRotator feed="news" accent="var(--accent)" />
@@ -243,7 +247,30 @@ function BillsSummary() {
   );
 }
 
-const LIVE = new Set<CardDef["id"]>(["calendar", "weather", "bills", "news", "sport-news", "reminders"]);
+function FootballSummary() {
+  const { data, loading } = useTeams(DEFAULT_TEAMS);
+  if (loading) return <div className="h-32 animate-pulse rounded-xl bg-surface-2" />;
+  const teams = DEFAULT_TEAMS.map((t) => data[t.id]).filter(Boolean);
+  const first = teams[0];
+  return (
+    <div className="space-y-3">
+      {first && <NextMatch data={first} compact />}
+      {teams.slice(1).map((d) =>
+        d.next[0] ? (
+          <p key={d.team.id} className="flex items-center gap-2 border-t border-line pt-2 text-xs text-muted">
+            <Crest src={d.team.badge} alt="" size={18} />
+            <span className="min-w-0 flex-1 truncate">
+              {d.next[0].home} v {d.next[0].away}
+            </span>
+            <span className="shrink-0">{kickoffLabel(d.next[0])}</span>
+          </p>
+        ) : null,
+      )}
+    </div>
+  );
+}
+
+const LIVE = new Set<CardDef["id"]>(["calendar", "weather", "bills", "football", "news", "sport-news", "reminders"]);
 
 function SoonTile({ card, index }: { card: CardDef; index: number }) {
   const Icon = card.icon;

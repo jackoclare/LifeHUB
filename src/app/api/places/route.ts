@@ -51,15 +51,15 @@ export async function GET(req: Request) {
 
   try {
     // Public Overpass servers are busy and sometimes refuse cloud traffic — try a few mirrors in turn.
-    const mirrors = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+    const mirrors = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
     // Ask all mirrors at once and use the first good answer.
     const attempt = async (m: string) => {
       const r = await fetch(`${m}?data=${encodeURIComponent(query)}`, {
-        headers: { "User-Agent": "MyLifeHub/1.0 (personal dashboard; https://life-hub-nine-rouge.vercel.app)", Accept: "application/json" },
+        headers: { "User-Agent": "MyLifeHub/1.0 (personal dashboard; https://life-hub-nine-rouge.vercel.app)" },
         next: { revalidate: 86400 },
-        signal: AbortSignal.timeout(9000),
+        signal: AbortSignal.timeout(14000),
       });
-      if (!r.ok || !(r.headers.get("content-type") ?? "").includes("json")) throw new Error(`${new URL(m).host} ${r.status}`);
+      if (!r.ok) throw new Error(`${new URL(m).host} ${r.status}`);
       return r;
     };
     let res: Response;

@@ -8,6 +8,7 @@ import { SignInCard } from "@/components/SignInCard";
 import { SetPin } from "@/components/SetPin";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { CalendarFeed } from "@/components/CalendarFeed";
+import { ConnectionsStatus } from "@/components/ConnectionsStatus";
 
 export function SettingsView() {
   const [theme, setTheme] = useTheme();
@@ -36,6 +37,7 @@ export function SettingsView() {
             <NotificationSettings />
             <CalendarFeed />
             <SetPin />
+            <ConnectionsStatus />
           </div>
         )}
         {loading || user ? null : (

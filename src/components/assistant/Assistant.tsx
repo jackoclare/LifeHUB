@@ -35,12 +35,26 @@ export function Assistant() {
   const finalRef = useRef("");
   const heardRef = useRef("");
   const [hint, setHint] = useState<string | null>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [voiceName, setVoiceName] = useState<string>("");
+  const [showVoices, setShowVoices] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const w = window as unknown as { SpeechRecognition?: SR; webkitSpeechRecognition?: SR };
     setCanListen(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+    const load = () => {
+      if (!("speechSynthesis" in window)) return;
+      const all = window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith("en"));
+      // best first: UK, then enhanced/premium quality, then name
+      const q = (v: SpeechSynthesisVoice) => (/premium/i.test(v.name) ? 0 : /enhanced|natural|neural/i.test(v.name) ? 1 : 2);
+      all.sort((a, b) => Number(b.lang === "en-GB") - Number(a.lang === "en-GB") || q(a) - q(b) || a.name.localeCompare(b.name));
+      setVoices(all);
+    };
+    load();
+    if ("speechSynthesis" in window) window.speechSynthesis.addEventListener?.("voiceschanged", load);
     try {
+      setVoiceName(localStorage.getItem("mlh.assistant.voice") ?? "");
       setSpeak(localStorage.getItem("mlh.assistant.speak") !== "0");
     } catch {
       /* ignore */
@@ -54,11 +68,17 @@ export function Assistant() {
       const u = new SpeechSynthesisUtterance(t.replace(/[💷⚽📅🛒🎁]/gu, ""));
       u.lang = "en-GB";
       u.rate = 1.05;
-      const voice = window.speechSynthesis.getVoices().find((v) => v.lang === "en-GB");
-      if (voice) u.voice = voice;
+      const all = window.speechSynthesis.getVoices();
+      const q = (v: SpeechSynthesisVoice) => (/premium/i.test(v.name) ? 0 : /enhanced|natural|neural/i.test(v.name) ? 1 : 2);
+      const voice =
+        all.find((v) => v.name === voiceName) ?? [...all].filter((v) => v.lang === "en-GB").sort((a, b) => q(a) - q(b))[0];
+      if (voice) {
+        u.voice = voice;
+        u.lang = voice.lang;
+      }
       window.speechSynthesis.speak(u);
     },
-    [speak],
+    [speak, voiceName],
   );
 
   const respond = useCallback(
@@ -268,6 +288,13 @@ export function Assistant() {
               </p>
               <div className="flex gap-1">
                 <button
+                  className={`h-10 rounded-full px-3 text-xs font-semibold ${showVoices ? "bg-accent text-white" : "text-faint hover:text-ink"}`}
+                  onClick={() => setShowVoices((v) => !v)}
+                  aria-expanded={showVoices}
+                >
+                  Voice
+                </button>
+                <button
                   className="grid size-10 place-items-center rounded-full text-faint hover:text-ink"
                   aria-label={speak ? "Mute voice replies" : "Turn on voice replies"}
                   onClick={() => {
@@ -289,6 +316,42 @@ export function Assistant() {
                 </button>
               </div>
             </div>
+
+            {showVoices && (
+              <div className="mx-5 mt-3 rounded-2xl bg-surface-2 p-3">
+                <p className="mb-2 text-xs text-muted">Pick a voice — tap one to hear it.</p>
+                <ul className="max-h-48 space-y-1 overflow-y-auto">
+                  {voices.length === 0 && <li className="text-sm text-muted">No voices found on this device.</li>}
+                  {voices.map((v) => (
+                    <li key={v.voiceURI}>
+                      <button
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm ${voiceName === v.name ? "bg-accent text-white" : "hover:bg-bg"}`}
+                        onClick={() => {
+                          setVoiceName(v.name);
+                          try {
+                            localStorage.setItem("mlh.assistant.voice", v.name);
+                          } catch {
+                            /* ignore */
+                          }
+                          window.speechSynthesis.cancel();
+                          const u = new SpeechSynthesisUtterance("Hi Jack, this is how I'll sound.");
+                          u.voice = v;
+                          u.lang = v.lang;
+                          window.speechSynthesis.speak(u);
+                        }}
+                      >
+                        <span className="truncate">{v.name}</span>
+                        <span className="ml-2 shrink-0 text-xs opacity-70">{v.lang.replace("en-", "")}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-[11px] leading-snug text-faint">
+                  Want a more natural voice? On iPhone: Settings → Accessibility → Read &amp; Speak (or Spoken Content) → Voices → English → download an
+                  &ldquo;Enhanced&rdquo; or &ldquo;Premium&rdquo; voice, then reopen the app and pick it here.
+                </p>
+              </div>
+            )}
 
             {/* Orb */}
             <div className="flex flex-col items-center px-5 pb-2 pt-4">

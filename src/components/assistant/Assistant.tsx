@@ -207,6 +207,32 @@ export function Assistant() {
             setTimeout(() => setOpen(false), 2500);
             break;
           }
+          case "spend": {
+            const now = new Date();
+            const from =
+              intent.period === "week"
+                ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7))
+                : intent.period === "last month"
+                  ? new Date(now.getFullYear(), now.getMonth() - 1, 1)
+                  : new Date(now.getFullYear(), now.getMonth(), 1);
+            const to = intent.period === "last month" ? new Date(now.getFullYear(), now.getMonth(), 0) : now;
+            const iso = (d: Date) => d.toLocaleDateString("en-CA");
+            let q2 = supabase.from("transactions").select("amount,category,posted_on").gte("posted_on", iso(from)).lte("posted_on", iso(to)).lt("amount", 0).neq("category", "transfers");
+            if (intent.category) q2 = q2.eq("category", intent.category);
+            const { data, error } = await q2;
+            if (error) throw error;
+            const { count } = await supabase.from("transactions").select("id", { count: "exact", head: true });
+            if (!count) return respond({ ok: false, text: "I don't have any transactions yet — upload a bank statement first.", link: { href: "/money", label: "Upload statement" } });
+            const total = (data ?? []).reduce((s, r) => s - Number(r.amount), 0);
+            const label = intent.period === "week" ? "this week" : intent.period === "last month" ? "last month" : "this month";
+            const latest = (await supabase.from("transactions").select("posted_on").order("posted_on", { ascending: false }).limit(1)).data?.[0]?.posted_on;
+            respond({
+              ok: true,
+              text: `You've spent £${total.toFixed(2)}${intent.category ? ` on ${intent.category}` : ""} ${label}${latest && latest < iso(to) ? ` (from statements up to ${new Date(`${latest}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })})` : ""}.`,
+              link: { href: "/money", label: "See spending" },
+            });
+            break;
+          }
           case "carDue": {
             const { data } = await supabase.from("vehicles").select("make,model,nickname,reg,mot_due,tax_due,insurance_due,service_due");
             if (!data?.length) return respond({ ok: false, text: "You haven't added a vehicle yet.", link: { href: "/car", label: "Add your car" } });

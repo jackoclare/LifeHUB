@@ -1,0 +1,1 @@
+-- See applied migration "transactions": transactions (dedupe per user), statement_imports. RLS own rows. Edge Function statement-text reads PDFs in memory only.

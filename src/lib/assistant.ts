@@ -13,6 +13,7 @@ export type Intent =
   | { kind: "billsDue" }
   | { kind: "billsTotal" }
   | { kind: "directions"; dest: string; from?: string }
+  | { kind: "spend"; period: "week" | "month" | "last month"; category?: string }
   | { kind: "carDue"; what: "mot" | "tax" | "insurance" | "service" | "all" }
   | { kind: "findDoc"; q: string }
   | { kind: "fuel"; fuel: "E10" | "E5" | "B7_Standard" }
@@ -197,12 +198,28 @@ export function parse(input: string, now = new Date()): Intent {
   if (/\b(next|when).*(game|match|playing|kick ?off)|\b(villa|england)\b.*(play|game|match)/.test(t)) {
     return { kind: "nextMatch", team: /villa/.test(t) ? "villa" : /england/.test(t) ? "england" : "any" };
   }
-  if (/\b(cheap|cheapest|price|prices|cost|how much)\b.*\b(fuel|petrol|diesel|unleaded)\b|\b(fuel|petrol|diesel|unleaded)\b.*\b(cheap|cheapest|price|prices|near)\b/.test(t)) {
+  if (!/\b(spent|spend|spending)\b/.test(t) && /\b(cheap|cheapest|price|prices|cost|how much)\b.*\b(fuel|petrol|diesel|unleaded)\b|\b(fuel|petrol|diesel|unleaded)\b.*\b(cheap|cheapest|price|prices|near)\b/.test(t)) {
     return { kind: "fuel", fuel: /diesel/.test(t) ? "B7_Standard" : /super|premium|e5/.test(t) ? "E5" : "E10" };
   }
   if (/how much.*(bills?|spend|pay)|bills? total|total.*bills?/.test(t)) return { kind: "billsTotal" };
   if (/(what|which|any).*(bills?).*(due|coming|owe)|bills? (due|this week)/.test(t)) return { kind: "billsDue" };
 
+  // Spending from uploaded statements: "how much have I spent this month (on fuel)"
+  if (/\b(how much|what).*\b(spent|spend|spending)\b/.test(t) && !/\bbills?\b/.test(t)) {
+    const period = /last month/.test(t) ? "last month" : /\bweek\b/.test(t) ? "week" : "month";
+    const catMap: [RegExp, string][] = [
+      [/food shop|groceries|supermarket|shopping at tesco|asda/, "groceries"],
+      [/eating out|takeaway|food out|restaurants?|mcdonald/, "eating out"],
+      [/fuel|petrol|diesel/, "fuel"],
+      [/transport|travel|trains?|bus/, "transport"],
+      [/subscriptions?|netflix|spotify/, "subscriptions"],
+      [/shopping|clothes|amazon/, "shopping"],
+      [/betting|gambling/, "betting"],
+      [/cash/, "cash"],
+    ];
+    const category = catMap.find(([re]) => re.test(t))?.[1];
+    return { kind: "spend", period, category };
+  }
   // Car: "when's my MOT due", "is my car taxed", "when does my car insurance run out"
   if (/\b(mot|road tax|car tax|taxed|car insurance|insurance|service|servicing)\b/.test(t) && /\b(when|due|expire|expires|run out|renew|next|is my|taxed)\b/.test(t) && !/\b(add|remind me)\b/.test(t)) {
     const what = /\bmot\b/.test(t) ? "mot" : /\btax/.test(t) ? "tax" : /insurance/.test(t) ? "insurance" : /servic/.test(t) ? "service" : "all";

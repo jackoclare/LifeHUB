@@ -8,6 +8,7 @@ import { SignInCard } from "@/components/SignInCard";
 import { ErrorNote, Field, Sheet, inputClass } from "@/components/ui";
 import { monthlyEquivalent, occurrences } from "@/lib/bills";
 import { BillLogo } from "@/components/BillLogo";
+import { Spending } from "./Spending";
 import { createClient } from "@/lib/supabase/client";
 import type { Bill } from "@/lib/types";
 import { useRows } from "@/lib/useRows";
@@ -89,6 +90,8 @@ export function MoneyView() {
       </section>
 
       <UpcomingWeek bills={active} />
+
+      <Spending />
 
       {/* Monthly overview */}
       <section className="card p-5">

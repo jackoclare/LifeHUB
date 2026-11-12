@@ -6,6 +6,7 @@ import { ArrowUp, Check, Mic, Sparkles, Volume2, VolumeX, X } from "lucide-react
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { currentPosition } from "@/app/map/MapHub";
+import { askAi } from "@/app/ai/AiChat";
 import { createClient } from "@/lib/supabase/client";
 import { type Intent, parse } from "@/lib/assistant";
 import { guessAisle } from "@/app/shopping/ShoppingView";
@@ -224,8 +225,12 @@ export function Assistant() {
           case "help":
             respond({ ok: true, text: "Here are some things you can ask me.", lines: EXAMPLES });
             break;
-          default:
-            respond({ ok: false, text: "Sorry, I didn't get that. Try one of these:", lines: EXAMPLES.slice(0, 4) });
+          default: {
+            // Anything the built-in commands don't cover goes to ChatGPT
+            const r = await askAi({ mode: "chat", messages: [{ role: "user", text: q }] });
+            if (r.error) respond({ ok: false, text: /switched on|connected/.test(r.error) ? "Sorry, I didn't get that. Try one of these:" : r.error, lines: EXAMPLES.slice(0, 4) });
+            else respond({ ok: true, text: r.text ?? "", link: { href: "/ai", label: "Continue in AI chat" } });
+          }
         }
       } catch (e) {
         respond({ ok: false, text: `Something went wrong: ${e instanceof Error ? e.message : "please try again"}.` });

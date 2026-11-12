@@ -15,7 +15,7 @@ import {
   Tag,
   Trophy,
   Tv,
-  type LucideIcon, Map as MapIcon } from "lucide-react";
+  type LucideIcon, Map as MapIcon, Sparkles as SparklesIcon } from "lucide-react";
 
 export type Section = {
   href: string;
@@ -40,6 +40,7 @@ export const sections: Section[] = [
   { href: "/weather", label: "Weather", icon: CloudSun, color: "var(--c-travel)", phase: 3, group: "Discover", blurb: "Live forecast for where you are." },
   { href: "/deals", label: "Deals", icon: Tag, color: "var(--c-shop)", phase: 3, group: "Discover", blurb: "Verified deals from the retailers you care about." },
   { href: "/travel", label: "Travel", icon: Plane, color: "var(--c-travel)", phase: 3, group: "Discover", blurb: "Destinations map, weather and one-tap flight, hotel and holiday searches." },
+  { href: "/ai", label: "AI chat", short: "AI", icon: SparklesIcon, color: "var(--accent)", phase: 3, group: "Discover", blurb: "ChatGPT: ask anything, send photos, create and edit images." },
   { href: "/map", label: "Map", icon: MapIcon, color: "var(--c-discover)", phase: 3, group: "Discover", blurb: "One big map: fuel prices, holidays abroad, saved places and sat-nav follow-me." },
   { href: "/fuel", label: "Fuel", icon: Fuel, color: "var(--c-discover)", phase: 3, group: "Discover", blurb: "Cheapest and nearest UK fuel prices." },
   { href: "/explore", label: "Explore", icon: MapPinned, color: "var(--c-discover)", phase: 3, group: "Discover", blurb: "Restaurants, pubs, days out and events near you." },

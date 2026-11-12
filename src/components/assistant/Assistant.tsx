@@ -187,7 +187,7 @@ export function Assistant() {
             break;
           }
           case "directions": {
-            const pos = await currentPosition(readPlace());
+            const pos = intent.from ? (readPlace() ?? { lat: 52.6, lon: -1.6 }) : await currentPosition(readPlace());
             if (!pos) return respond({ ok: false, text: "I need your location — allow location access and ask again." });
             const params: Record<string, string> = { q: intent.dest, lat: String(pos.lat), lon: String(pos.lon) };
             if (intent.from) params.from = intent.from;

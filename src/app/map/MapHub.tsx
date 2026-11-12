@@ -67,7 +67,8 @@ export function MapHub() {
     async (params: Record<string, string>) => {
       setTripBusy(true);
       setTripError(null);
-      const pos = await currentPosition(me ?? place ?? null);
+      // A typed start point doesn't need your location (UK centre is only used to bias the search)
+      const pos = params.from ? (me ?? place ?? UK) : await currentPosition(me ?? place ?? null);
       if (!pos) {
         setTripBusy(false);
         return setTripError("I need your location — allow location access or set it on the weather card.");

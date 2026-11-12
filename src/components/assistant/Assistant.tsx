@@ -44,7 +44,9 @@ export function Assistant() {
 
   useEffect(() => {
     const w = window as unknown as { SpeechRecognition?: SR; webkitSpeechRecognition?: SR };
-    setCanListen(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+    // iPhone Home Screen apps can't use speech recognition (Apple blocks it) — use keyboard dictation there
+    const iosStandalone = /iP(hone|ad|od)/.test(navigator.userAgent) && ((navigator as Navigator & { standalone?: boolean }).standalone === true || window.matchMedia("(display-mode: standalone)").matches);
+    setCanListen(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition) && !iosStandalone);
     const load = () => {
       if (!("speechSynthesis" in window)) return;
       const all = window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith("en"));
@@ -208,10 +210,10 @@ export function Assistant() {
           case "fuel": {
             const place = readPlace();
             if (!place) return respond({ ok: false, text: "Set your location first, then ask me again.", link: { href: "/fuel", label: "Set location" } });
-            const { data } = await supabase.rpc("nearby_fuel", { p_lat: place.lat, p_lon: place.lon, p_radius_km: 8, p_fuel: intent.fuel });
+            const { data } = await supabase.rpc("nearby_fuel", { p_lat: place.lat, p_lon: place.lon, p_radius_km: 16, p_fuel: intent.fuel });
             const list = (data ?? []) as { name: string; brand: string | null; address: string | null; price: number; distance_km: number }[];
             const label = intent.fuel === "B7_Standard" ? "diesel" : intent.fuel === "E5" ? "super unleaded" : "unleaded";
-            if (!list.length) return respond({ ok: false, text: `I couldn't find ${label} prices within 5 miles.`, link: { href: "/fuel", label: "Open fuel map" } });
+            if (!list.length) return respond({ ok: false, text: `I couldn't find ${label} prices within 10 miles.`, link: { href: "/fuel", label: "Open fuel map" } });
             const top = list.slice(0, 3);
             const miles = (km: number) => `${(km * 0.621371).toFixed(1)} miles`;
             respond({
@@ -244,7 +246,9 @@ export function Assistant() {
   const listen = () => {
     const w = window as unknown as { SpeechRecognition?: SR; webkitSpeechRecognition?: SR };
     const Rec = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!Rec) {
+    if (!Rec || !canListen) {
+      primeSpeech();
+      setHint("Tap the 🎤 on your keyboard and speak — then press Send.");
       inputRef.current?.focus();
       return;
     }

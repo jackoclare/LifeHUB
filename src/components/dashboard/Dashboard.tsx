@@ -151,19 +151,23 @@ function Hero({ now, next, editing, onToggleEdit }: { now: Date | null; next?: R
             <span className="pulse-dot size-2 rounded-full bg-accent" />
             {now ? now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) : " "}
           </p>
-          <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight sm:text-[2.6rem] sm:leading-tight" suppressHydrationWarning>
+          <h1 className="large-title mt-1" suppressHydrationWarning>
             {now ? greeting(now.getHours()) : "Hello"}, Jack
           </h1>
         </div>
         <p className="shrink-0 font-display text-3xl font-medium tabular-nums tracking-tight text-muted sm:text-5xl" suppressHydrationWarning aria-label="Current time">
-          {hh}
+          <span key={`h${hh}`} className="num-in">
+            {hh}
+          </span>
           <span className="blink">:</span>
-          {mm}
+          <span key={`m${mm}`} className="num-in">
+            {mm}
+          </span>
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <Link href={next?.id.startsWith("match-") ? `/sport/match/${next.id.slice(6)}` : next?.kind === "bill" ? "/bills" : "/calendar"} className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-xl bg-surface-2/80 px-3.5 py-2 text-sm transition-colors hover:bg-surface-2">
+        <Link href={next?.id.startsWith("match-") ? `/sport/match/${next.id.slice(6)}` : next?.kind === "bill" ? "/bills" : "/calendar"} className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-full bg-surface-2 px-4 py-2 text-sm transition-transform duration-300 active:scale-95">
           <CalendarDays size={16} className="shrink-0 text-accent" />
           {next ? (
             <span className="truncate">
@@ -306,7 +310,7 @@ function FuelSummary() {
       { id: "E10", label: "Unleaded" },
       { id: "B7_Standard", label: "Diesel" },
     ];
-    Promise.all(fuels.map((f) => supabase.rpc("nearby_fuel", { p_lat: place.lat, p_lon: place.lon, p_radius_km: 8, p_fuel: f.id }))).then((res) => {
+    Promise.all(fuels.map((f) => supabase.rpc("nearby_fuel", { p_lat: place.lat, p_lon: place.lon, p_radius_km: 16, p_fuel: f.id }))).then((res) => {
       if (!alive) return;
       setRows(fuels.map((f, i) => ({ label: f.label, s: ((res[i].data as CheapFuel[]) ?? [])[0] ?? null })));
     });
@@ -326,7 +330,7 @@ function FuelSummary() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold">{label}</span>
-            <span className="block truncate text-xs text-muted">{s ? `${s.brand ?? s.name} · ${(s.distance_km * 0.621371).toFixed(1)} mi` : "None listed within 5 miles"}</span>
+            <span className="block truncate text-xs text-muted">{s ? `${s.brand ?? s.name} · ${(s.distance_km * 0.621371).toFixed(1)} mi` : "None listed within 10 miles"}</span>
           </span>
         </li>
       ))}

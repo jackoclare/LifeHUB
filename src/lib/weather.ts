@@ -179,3 +179,25 @@ export function describe(code: number): { label: string; kind: "clear" | "partly
   if (code >= 95) return { label: "Thunderstorms", kind: "storm" };
   return { label: "—", kind: "cloud" };
 }
+
+/** Save a place for every location-based card (weather, fuel, maps) */
+export function savePlace(p: Place) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new Event("mlh-place"));
+}
+
+/** If no location is saved and location access is already allowed, fill it in silently. */
+export async function autoLocate() {
+  if (typeof window === "undefined" || readPlace()) return;
+  try {
+    const status = await navigator.permissions?.query({ name: "geolocation" as PermissionName });
+    if (status?.state !== "granted") return;
+    savePlace(await locateMe());
+  } catch {
+    /* ignore */
+  }
+}

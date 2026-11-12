@@ -59,7 +59,7 @@ function todayHours(s: Station) {
 export function FuelView() {
   const { place, ready } = usePlace();
   const [fuel, setFuel] = useState<FuelId>("E10");
-  const [radius, setRadius] = useState(8);
+  const [radius, setRadius] = useState(16);
   const [sort, setSort] = useState<"cheapest" | "nearest">("cheapest");
   const [rows, setRows] = useState<Station[]>([]);
   const [loading, setLoading] = useState(false);

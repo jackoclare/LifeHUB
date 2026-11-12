@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 import { groups, mobileTabs, sections } from "@/lib/nav";
 import { ThemeToggle } from "./ThemeToggle";
 import { Assistant } from "./assistant/Assistant";
+import { LocationBanner } from "./LocationBanner";
+import { useEffect } from "react";
+import { autoLocate } from "@/lib/weather";
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -15,6 +18,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const tabIndex = mobileTabs.findIndex((t) => isActive(pathname, t.href));
   // Any section not on the bar (Travel, Fuel…) highlights "More"
   const activeTab = tabIndex >= 0 ? tabIndex : mobileTabs.length - 1;
+  useEffect(() => {
+    autoLocate();
+  }, []);
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -25,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ---------- Desktop sidebar ---------- */}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line bg-bg-elevated/70 px-4 py-6 backdrop-blur-xl lg:flex">
+      <aside className="glass sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line px-4 py-6 lg:flex">
         <Link href="/" className="mb-8 flex items-center gap-2.5 px-2">
           <Logo />
           <span className="font-display text-lg font-semibold tracking-tight">MyLife Hub</span>
@@ -46,11 +52,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <Link
                           href={s.href}
                           aria-current={active ? "page" : undefined}
-                          className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors ${
-                            active ? "bg-surface-2 text-ink" : "text-muted hover:bg-surface-2/60 hover:text-ink"
+                          className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-[0.95rem] font-medium transition-all duration-300 active:scale-[0.97] ${
+                            active ? "bg-accent text-white" : "text-ink hover:bg-surface-2"
                           }`}
                         >
-                          <Icon size={18} style={{ color: active ? s.color : undefined }} />
+                          <span className="grid size-7 place-items-center rounded-lg text-white" style={{ background: s.color }}>
+                            <Icon size={16} strokeWidth={2.2} />
+                          </span>
                           {s.label}
                         </Link>
                       </li>
@@ -69,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ---------- Page ---------- */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="pt-safe sticky top-0 z-30 border-b border-line bg-bg/80 backdrop-blur-xl lg:hidden">
+        <header className="glass pt-safe sticky top-0 z-30 border-b border-line lg:hidden">
           <div className="flex h-14 items-center justify-between px-4">
             <Link href="/" className="flex items-center gap-2">
               <Logo />
@@ -81,6 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-5 sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
           <div key={pathname} className="animate-rise">
+            <LocationBanner />
             {children}
           </div>
         </main>
@@ -90,14 +99,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Mobile bottom tab bar */}
         <nav
           aria-label="Tabs"
-          className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg-elevated/85 backdrop-blur-xl lg:hidden"
+          className="glass pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line lg:hidden"
         >
           <ul className="relative mx-auto grid max-w-md grid-cols-5">
             {/* sliding highlight behind the active tab */}
             {activeTab >= 0 && (
               <span
                 aria-hidden
-                className="absolute top-2 h-12 w-[20%] px-2 transition-transform duration-500 ease-[cubic-bezier(0.3,1.3,0.5,1)]"
+                className="absolute top-2 h-12 w-[20%] px-3 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
                 style={{ transform: `translateX(${activeTab * 100}%)` }}
               >
                 <span

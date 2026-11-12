@@ -1,19 +1,18 @@
 import type { Section } from "@/lib/nav";
 
+/** iOS-style large title */
 export function PageHeader({ section, title, subtitle, action }: { section?: Section; title?: string; subtitle?: string; action?: React.ReactNode }) {
   const Icon = section?.icon;
   return (
     <div className="mb-6 flex items-end justify-between gap-4">
-      <div className="flex items-center gap-3">
+      <div className="min-w-0">
         {Icon && (
-          <span className="icon-tile size-11! rounded-2xl!" style={{ "--tile": section!.color } as React.CSSProperties}>
-            <Icon size={22} />
+          <span className="mb-2 flex items-center gap-1.5 text-[0.8rem] font-semibold" style={{ color: section!.color }}>
+            <Icon size={15} strokeWidth={2.4} /> {section!.group}
           </span>
         )}
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{title ?? section?.label}</h1>
-          {(subtitle ?? section?.blurb) && <p className="mt-0.5 text-sm text-muted">{subtitle ?? section?.blurb}</p>}
-        </div>
+        <h1 className="large-title">{title ?? section?.label}</h1>
+        {(subtitle ?? section?.blurb) && <p className="mt-1.5 text-[0.95rem] text-muted">{subtitle ?? section?.blurb}</p>}
       </div>
       {action}
     </div>

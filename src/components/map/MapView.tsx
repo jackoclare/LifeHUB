@@ -177,6 +177,12 @@ export function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.lat, center.lon]);
 
+  // Follow zoom changes from the page (e.g. jumping to your location or to "Holidays abroad")
+  useEffect(() => {
+    if (map.current && map.current.getZoom() !== zoom) map.current.setView([center.lat, center.lon], zoom, { animate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom]);
+
   useEffect(() => {
     const p = points.find((x) => x.id === selectedId);
     if (p && map.current) map.current.panTo([p.lat, p.lon], { animate: true });

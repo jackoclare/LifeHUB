@@ -106,8 +106,11 @@ export function MapHub() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // When your saved location loads, centre on it at street level (unless a route or holidays view is showing)
   useEffect(() => {
-    if (place) setFocus(place);
+    if (!place) return;
+    setFocus(place);
+    setZoom((z) => (z < 10 ? 13 : z));
   }, [place]);
 
   useEffect(() => {

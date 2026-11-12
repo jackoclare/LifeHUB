@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+/* Theme switching: <html data-theme="dark|light"> */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------- Design tokens ---------- */
+:root {
+  /* Light theme */
+  --bg: #f4f2ee;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #efece6;
+  --border: rgb(20 18 14 / 0.08);
+  --text: #16140f;
+  --text-muted: #6b665c;
+  --text-faint: #9a9488;
+  --accent: #e8572f;
+  --accent-soft: rgb(232 87 47 / 0.12);
+  --ring: rgb(232 87 47 / 0.45);
+  --shadow: 0 1px 2px rgb(20 18 14 / 0.04), 0 8px 24px -12px rgb(20 18 14 / 0.12);
+
+  /* Section colours — one per area of the app */
+  --c-money: #2f9e6e;
+  --c-travel: #2f7fe8;
+  --c-sport: #8b5cf6;
+  --c-health: #e8457a;
+  --c-shop: #d9902a;
+  --c-discover: #0ea5a4;
+  --c-tv: #6366f1;
+  --c-news: #64748b;
+}
+
+[data-theme="dark"] {
+  --bg: #0c0d10;
+  --bg-elevated: #121318;
+  --surface: #16181e;
+  --surface-2: #1d2027;
+  --border: rgb(255 255 255 / 0.07);
+  --text: #f3f1ec;
+  --text-muted: #a19d94;
+  --text-faint: #6c6961;
+  --accent: #ff6b3d;
+  --accent-soft: rgb(255 107 61 / 0.14);
+  --ring: rgb(255 107 61 / 0.5);
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 12px 32px -16px rgb(0 0 0 / 0.6);
+
+  --c-money: #4ade9a;
+  --c-travel: #60a5fa;
+  --c-sport: #a78bfa;
+  --c-health: #fb7199;
+  --c-shop: #fbbf4b;
+  --c-discover: #2dd4bf;
+  --c-tv: #818cf8;
+  --c-news: #94a3b8;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-heading), var(--font-body), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 1.25rem;
+  --shadow-card: var(--shadow);
+}
+
+/* ---------- Base ---------- */
+html {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Smooth theme changes, without animating on first paint */
+html.theme-ready body,
+html.theme-ready .card {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Page enter animation */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* iPhone safe areas (notch / home bar) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ---------- Reusable pieces ---------- */
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    background: var(--surface-2);
+    color: var(--text-muted);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px; /* Apple's minimum tap size */
+    padding: 0 1rem;
+    border-radius: 0.9rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: transform 0.12s ease, background-color 0.2s ease, opacity 0.2s ease;
+  }
+  .btn:active {
+    transform: scale(0.97);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-ghost {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .icon-tile {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.8rem;
+    background: color-mix(in srgb, var(--tile) 16%, transparent);
+    color: var(--tile);
+  }
+}

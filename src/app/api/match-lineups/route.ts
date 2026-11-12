@@ -49,7 +49,7 @@ export async function GET(req: Request) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !home || !away) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
   try {
-    const day = await api<ApiFixture[]>(`/fixtures?date=${date}&timezone=Europe/London`, key, 3600);
+    const day = await api<ApiFixture[]>(`/fixtures?date=${date}&timezone=Europe/London`, key, 900);
     const errs = day.errors && (Array.isArray(day.errors) ? day.errors.length : Object.keys(day.errors as object).length);
     if (errs) return NextResponse.json({ configured: true, lineups: [], error: `API-Football: ${JSON.stringify(day.errors)}` });
     // Pick the right game: youth/women's/reserve sides share names (England U21 v Croatia U21), so prefer exact
@@ -68,7 +68,9 @@ export async function GET(req: Request) {
 
     // Lineups appear ~1h before kick-off; cache short before that, longer after
     const started = !["NS", "TBD", "PST"].includes(fx.fixture.status.short);
-    const lu = await api<ApiLineup[]>(`/fixtures/lineups?fixture=${fx.fixture.id}`, key, started ? 86400 : 600);
+    // From 75 min before kick-off, re-check every 3 minutes until lineups appear; once the game is under way they don't change
+    const nearKickoff = Date.now() > new Date(fx.fixture.date).getTime() - 75 * 60e3;
+    const lu = await api<ApiLineup[]>(`/fixtures/lineups?fixture=${fx.fixture.id}`, key, started ? 86400 : nearKickoff ? 180 : 1800);
     const lineups = (lu.response ?? []).map((l) => ({
       team: l.team.name,
       logo: l.team.logo,

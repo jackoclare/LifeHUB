@@ -62,6 +62,11 @@
 - [x] Deals (/deals): HotUKDeals public RSS (hottest/newest), search, categories, wish-list matches flagged and shown first; "Hot deals" dashboard card
 - [x] Directions: Map "From" (current location or typed) / "To" rows + swap; /api/route (Geoapify or Photon search → OSRM driving route); ETA + route line + Start in Apple Maps. Assistant: "take me to Tesco Extra", "how long to get to Villa Park", "from Solihull to Villa Park"
 - [x] Live fuel dashboard card; assistant answers "cheapest diesel/petrol"; assistant voice picker
+- [x] AI chat (/ai) + assistant fallback: Edge Function `ai` (OpenAI; OPENAI_CHAT_MODEL default gpt-5.5, OPENAI_IMAGE_MODEL default gpt-image-2), chat with photos, create/edit images saved to private bucket `ai-images`, daily caps (200 chats / 25 images). PARKED: Jack to add card on platform.openai.com, $10 monthly limit, create key → Supabase secret OPENAI_API_KEY
+- [x] UK bank holidays on the calendar (GOV.UK JSON)
+- [x] Met Office warnings: banner on weather card (region from location), push alerts via `notify` (v6, 7am–10pm), Settings toggle; notification_prefs.weather + weather_region
+- Note: no device has push notifications switched on yet (notify run: users 0) — Jack to turn on in Settings → Notifications from the Home Screen app
+- Fuel Finder: support email drafted to fuel.finder@ve3.global (tel 020 3836 5818)
 - [ ] TV guide: no good free UK listings source (TVmaze UK schedule is ~20 shows/day) — needs a listings provider
 - ⚠️ 12 Nov ~18:55: Vercel Hobby deployment limit hit ("rate limited — retry in 24 hours"). Commits after 28ea0d6 are pushed but not live until it resets: typed-From fix, Deals, deals card
 - [x] Calendar feed: Edge Function `calendar` serves an iCal (webcal) feed of events, bills and fixtures — subscribe on iPhone

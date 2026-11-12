@@ -22,6 +22,7 @@
 - [x] Placeholder pages for every later section, which show no fake data
 - [x] Installable PWA: manifest + app icons
 - [x] Supabase client code ready for Phase 2
+- [x] Code pushed to GitHub (LifeHUB)
 - [ ] First deploy to Vercel and test on iPhone ← **next step for Jack**
 
 ## Phase 2 — Personal management (next)

@@ -1,0 +1,1 @@
+-- See applied migrations "money_centre" (finance_profile, savings_goals) and "meals_home" (meal_plan, home_tasks). All RLS own-rows.

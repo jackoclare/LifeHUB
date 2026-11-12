@@ -25,6 +25,7 @@ export function useAlerts() {
   const [vehicleAlerts, setVehicleAlerts] = useState<Alert[]>([]);
   const [docAlerts, setDocAlerts] = useState<Alert[]>([]);
   const [wx, setWx] = useState<Alert[]>([]);
+  const [homeAlerts, setHomeAlerts] = useState<Alert[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -49,6 +50,17 @@ export function useAlerts() {
         }
         setVehicleAlerts(out);
       });
+    sb.from("home_tasks")
+      .select("id,name,next_due")
+      .not("next_due", "is", null)
+      .then(({ data }) =>
+        setHomeAlerts(
+          (data ?? [])
+            .map((t) => ({ t, d: daysUntil(t.next_due as string) }))
+            .filter(({ d }) => d <= 2)
+            .map(({ t, d }) => ({ id: `home-${t.id}`, emoji: "🏠", title: t.name, detail: d < 0 ? `${-d} day${d === -1 ? "" : "s"} overdue` : when(d), days: d + 0.3, href: "/home" })),
+        ),
+      );
     sb.from("documents")
       .select("id,title,expires_on")
       .not("expires_on", "is", null)
@@ -83,8 +95,8 @@ export function useAlerts() {
       else if (e.kind === "football" && d >= 0 && d <= 2) fromCalendar.push({ id: `cal-${e.id}`, emoji: "⚽", title: e.title, detail: `${when(d)}${e.time ? ` · ${e.time}` : ""}`, days: d + 0.5, href: e.id.startsWith("match-") ? `/sport/match/${e.id.slice(6)}` : "/sport" });
       else if (e.kind === "travel" && d >= 0 && d <= 14) fromCalendar.push({ id: `cal-${e.id}`, emoji: "✈️", title: e.title, detail: when(d), days: d, href: "/calendar" });
     }
-    return [...wx, ...fromCalendar, ...vehicleAlerts, ...docAlerts].sort((a, b) => a.days - b.days);
-  }, [events, vehicleAlerts, docAlerts, wx]);
+    return [...wx, ...fromCalendar, ...vehicleAlerts, ...docAlerts, ...homeAlerts].sort((a, b) => a.days - b.days);
+  }, [events, vehicleAlerts, docAlerts, wx, homeAlerts]);
 }
 
 export function AlertsView() {

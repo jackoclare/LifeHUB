@@ -14,7 +14,7 @@ import {
   Tag,
   Trophy,
   Tv,
-  type LucideIcon, Map as MapIcon, Sparkles as SparklesIcon, Bell, Car, FolderLock, Compass, CircleUserRound } from "lucide-react";
+  type LucideIcon, Map as MapIcon, Sparkles as SparklesIcon, Bell, Car, FolderLock, Compass, CircleUserRound, Wallet, ChefHat, Hammer as HomeIcon } from "lucide-react";
 
 export type Section = {
   href: string;
@@ -33,8 +33,11 @@ export const sections: Section[] = [
   { href: "/alerts", label: "Alerts", icon: Bell, color: "#ff3b30", phase: 6, group: "Home", blurb: "Everything that needs your attention, in one place." },
   { href: "/calendar", label: "Calendar", icon: CalendarDays, color: "var(--c-travel)", phase: 1, group: "Home", blurb: "Bills, matches, trips and reminders in one calendar." },
 
+  { href: "/money", label: "Money", icon: Wallet, color: "var(--c-money)", phase: 2, group: "Money & lists", blurb: "Income vs bills, savings goals and repayment calculators." },
   { href: "/bills", label: "Bills", icon: ReceiptPoundSterling, color: "var(--c-money)", phase: 2, group: "Money & lists", blurb: "Track bills, due dates and monthly spending." },
   { href: "/shopping", label: "Shopping list", short: "Shopping", icon: ShoppingBasket, color: "var(--c-shop)", phase: 2, group: "Money & lists", blurb: "Supermarket lists you can tick off as you go." },
+  { href: "/meals", label: "Meal planner", short: "Meals", icon: ChefHat, color: "var(--c-shop)", phase: 3, group: "Money & lists", blurb: "Plan the week's meals and send the ingredients to your shopping list." },
+  { href: "/home", label: "Household", icon: HomeIcon, color: "var(--c-money)", phase: 3, group: "Money & lists", blurb: "Cleaning rota, maintenance and garden jobs that come back round." },
   { href: "/documents", label: "Documents", icon: FolderLock, color: "var(--c-tv)", phase: 2, group: "Money & lists", blurb: "Private wallet for insurance, warranties, receipts and bookings." },
   { href: "/wishlist", label: "Wish list", icon: Gift, color: "var(--c-shop)", phase: 2, group: "Money & lists", blurb: "Things you want, with target prices and price drops." },
 

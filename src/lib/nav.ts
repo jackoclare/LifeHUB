@@ -6,6 +6,7 @@ import {
   House,
   LayoutGrid,
   MapPinned,
+  Newspaper,
   Plane,
   ReceiptPoundSterling,
   Settings,
@@ -41,6 +42,7 @@ export const sections: Section[] = [
   { href: "/fuel", label: "Fuel", icon: Fuel, color: "var(--c-discover)", phase: 3, group: "Discover", blurb: "Cheapest and nearest UK fuel prices." },
   { href: "/explore", label: "Explore", icon: MapPinned, color: "var(--c-discover)", phase: 3, group: "Discover", blurb: "Restaurants, pubs, days out and events near you." },
 
+  { href: "/news", label: "News", icon: Newspaper, color: "var(--c-news)", phase: 4, group: "Sport & TV", blurb: "Live headlines from the BBC — top stories, UK, football and sport." },
   { href: "/sport", label: "Sport", icon: Trophy, color: "var(--c-sport)", phase: 4, group: "Sport & TV", blurb: "Live scores, fixtures, tables and football news." },
   { href: "/tv", label: "TV guide", short: "TV", icon: Tv, color: "var(--c-tv)", phase: 4, group: "Sport & TV", blurb: "What's on tonight across UK and Sky channels." },
 

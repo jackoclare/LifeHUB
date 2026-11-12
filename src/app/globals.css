@@ -385,6 +385,65 @@ html.theme-ready .card {
   animation: draw 1s ease-out both;
 }
 
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-7px); }
+  40%, 60% { transform: translateX(7px); }
+}
+.animate-shake {
+  animation: shake 0.45s ease both;
+}
+
+/* ---------- Live news ---------- */
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.ticker-track {
+  animation: ticker linear infinite;
+  padding-right: 2.5rem;
+}
+.ticker:hover .ticker-track {
+  animation-play-state: paused;
+}
+@keyframes headline-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+    filter: blur(4px);
+  }
+}
+.headline-in {
+  animation: headline-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes kenburns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12) translate(-2%, -2%);
+  }
+}
+.kenburns {
+  animation: kenburns 7s ease-out both;
+}
+@keyframes progress {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.progress-fill {
+  animation: progress 6s linear both;
+}
+
 /* iPhone safe areas (notch / home bar) */
 .pt-safe {
   padding-top: env(safe-area-inset-top);

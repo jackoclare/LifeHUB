@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { cards, type CardDef, useDashboardPrefs } from "@/lib/dashboard";
 import { formatDay, fromISODate, kindInfo, upcoming, useCalendarEvents } from "@/lib/calendar";
 import { phaseNames } from "@/lib/nav";
+import { HeadlineRotator, LiveBadge, NewsTicker } from "@/components/news/NewsWidgets";
 import { useAuth } from "@/components/AuthProvider";
 import { BillLogo } from "@/components/BillLogo";
 import { money } from "@/components/ui";
@@ -37,6 +38,11 @@ export function Dashboard() {
   return (
     <>
       <Hero now={now} next={upcoming(events, 60)[0]} editing={editing} onToggleEdit={() => setEditing((e) => !e)} />
+      {!editing && !prefs.hidden.includes("news") && (
+        <div className="animate-rise -mt-2 mb-6">
+          <NewsTicker />
+        </div>
+      )}
 
       {editing ? (
         <section className="card overflow-hidden">
@@ -82,8 +88,12 @@ export function Dashboard() {
               {visible
                 .filter((c) => LIVE.has(c.id))
                 .map((c, i) => (
-                  <DashCard key={c.id} card={c} index={i}>
-                    {c.id === "calendar" ? (
+                  <DashCard key={c.id} card={c} index={i} wholeLink={c.id !== "news" && c.id !== "sport-news"}>
+                    {c.id === "news" ? (
+                      <HeadlineRotator feed="news" accent="var(--accent)" />
+                    ) : c.id === "sport-news" ? (
+                      <HeadlineRotator feed="football" accent="var(--c-sport)" />
+                    ) : c.id === "calendar" ? (
                       <EventList items={upcoming(events, 14).slice(0, 5)} empty="Nothing in the next two weeks." />
                     ) : c.id === "bills" ? (
                       <BillsSummary />
@@ -166,21 +176,32 @@ function Hero({ now, next, editing, onToggleEdit }: { now: Date | null; next?: R
   );
 }
 
-function DashCard({ card, index, children }: { card: CardDef; index: number; children: React.ReactNode }) {
+function DashCard({ card, index, children, wholeLink = true }: { card: CardDef; index: number; children: React.ReactNode; wholeLink?: boolean }) {
   const Icon = card.icon;
-  return (
-    <Link
-      href={card.href}
-      style={{ "--tile": card.color, "--i": index } as React.CSSProperties}
-      className={`card card-interactive flex flex-col p-4 sm:p-5 ${card.wide ? "md:col-span-2" : ""}`}
-    >
-      <div className="mb-3 flex items-center gap-2.5">
-        <span className="icon-tile">
-          <Icon size={18} />
-        </span>
-        <h2 className="flex-1 text-sm font-semibold">{card.title}</h2>
-        <ArrowUpRight size={16} className="card-arrow text-faint" />
+  const style = { "--tile": card.color, "--i": index } as React.CSSProperties;
+  const cls = `card card-interactive flex flex-col p-4 sm:p-5 ${card.wide ? "md:col-span-2" : ""}`;
+  const header = (
+    <div className="mb-3 flex items-center gap-2.5">
+      <span className="icon-tile">
+        <Icon size={18} />
+      </span>
+      <h2 className="flex-1 text-sm font-semibold">{card.title}</h2>
+      {(card.id === "news" || card.id === "sport-news") && <LiveBadge />}
+      <ArrowUpRight size={16} className="card-arrow text-faint" />
+    </div>
+  );
+  if (!wholeLink) {
+    // Cards whose content has its own links (e.g. news) — only the header links through
+    return (
+      <div style={style} className={cls}>
+        <Link href={card.href}>{header}</Link>
+        <div className="flex-1">{children}</div>
       </div>
+    );
+  }
+  return (
+    <Link href={card.href} style={style} className={cls}>
+      {header}
       <div className="flex-1">{children}</div>
     </Link>
   );
@@ -219,7 +240,7 @@ function BillsSummary() {
   );
 }
 
-const LIVE = new Set<CardDef["id"]>(["calendar", "bills", "reminders"]);
+const LIVE = new Set<CardDef["id"]>(["calendar", "bills", "news", "sport-news", "reminders"]);
 
 function SoonTile({ card, index }: { card: CardDef; index: number }) {
   const Icon = card.icon;

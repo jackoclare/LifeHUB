@@ -5,6 +5,7 @@ import { ChevronRight, LogOut, Moon, Smartphone, Sun, UserRound } from "lucide-r
 import { useTheme } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
+import { SetPin } from "@/components/SetPin";
 
 export function SettingsView() {
   const [theme, setTheme] = useTheme();
@@ -27,7 +28,13 @@ export function SettingsView() {
               <LogOut size={16} /> Sign out
             </button>
           </div>
-        ) : (
+        ) : null}
+        {!loading && user && (
+          <div className="mt-3">
+            <SetPin />
+          </div>
+        )}
+        {loading || user ? null : (
           <SignInCard />
         )}
       </section>

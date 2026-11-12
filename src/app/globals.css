@@ -537,6 +537,85 @@ html.theme-ready .card {
   font-size: 9px !important;
 }
 
+/* ---------- Assistant ---------- */
+.assistant-fab {
+  background: conic-gradient(from 180deg, #ff6b3d, #ec4899, #8b5cf6, #3b82f6, #ff6b3d);
+  box-shadow: 0 10px 30px -8px rgb(236 72 153 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.3);
+  animation: fab-float 4s ease-in-out infinite;
+  transition: transform 0.2s ease;
+}
+.assistant-fab:active {
+  transform: scale(0.92);
+}
+@keyframes fab-float {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 999px;
+}
+.orb-core {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 999px;
+  color: #fff;
+  background: radial-gradient(circle at 30% 30%, #ffb199, #ff6b3d 40%, #ec4899 75%, #8b5cf6);
+  box-shadow: 0 12px 40px -10px rgb(236 72 153 / 0.7), inset 0 2px 0 rgb(255 255 255 / 0.35);
+  transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.orb:active .orb-core {
+  transform: scale(0.94);
+}
+.orb-ring {
+  position: absolute;
+  inset: 0.5rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgb(255 107 61 / 0.35), transparent 70%);
+  opacity: 0;
+}
+.orb.is-listening .orb-ring {
+  animation: orb-wave 1.6s ease-out infinite;
+}
+.orb.is-listening .orb-ring-2 {
+  animation-delay: 0.8s;
+}
+.orb.is-listening .orb-core {
+  animation: orb-breathe 1.2s ease-in-out infinite;
+}
+.orb.is-busy .orb-core {
+  animation: orb-spin 1.4s linear infinite;
+}
+@keyframes orb-wave {
+  from {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+@keyframes orb-breathe {
+  50% {
+    transform: scale(1.08);
+  }
+}
+@keyframes orb-spin {
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
 /* iPhone safe areas (notch / home bar) */
 .pt-safe {
   padding-top: env(safe-area-inset-top);

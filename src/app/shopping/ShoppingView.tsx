@@ -224,7 +224,7 @@ export function ShoppingView() {
 
       {/* Running total — sits above the tab bar on iPhone */}
       {current.length > 0 && (
-        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 px-4 lg:static lg:px-0">
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 pl-4 pr-20 lg:static lg:px-0">
           <div className="card mx-auto flex max-w-md items-center justify-between gap-4 px-4 py-3 lg:max-w-none">
             <div>
               <p className="text-xs text-muted">Estimated total</p>

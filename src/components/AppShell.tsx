@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { groups, mobileTabs, sections } from "@/lib/nav";
 import { ThemeToggle } from "./ThemeToggle";
+import { Assistant } from "./assistant/Assistant";
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -83,6 +84,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </main>
+
+        <Assistant />
 
         {/* Mobile bottom tab bar */}
         <nav

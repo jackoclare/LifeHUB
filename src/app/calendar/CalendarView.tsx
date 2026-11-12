@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
 import { ErrorNote, money } from "@/components/ui";
+import { CalendarFeed } from "@/components/CalendarFeed";
 import { useMemo, useState } from "react";
 import {
   type EventKind,
@@ -196,7 +197,12 @@ export function CalendarView() {
           </ul>
           <p className="mt-4 text-xs text-faint">
             {signedIn ? (
-              "Synced to your account, so it's the same on your iPhone and computer."
+              <>
+                Synced to your account, so it&apos;s the same on your iPhone and computer.
+                <span className="mt-2 block">
+                  <CalendarFeed compact />
+                </span>
+              </>
             ) : (
               <>
                 You&apos;re not signed in, so events are saved on this device only.{" "}

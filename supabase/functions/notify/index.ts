@@ -11,8 +11,10 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
-const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+// Strip any spaces/new lines/quotes picked up when pasting
+const clean = (v: string | undefined) => (v ?? "").replace(/[\s"']/g, "");
+const VAPID_PUBLIC = clean(Deno.env.get("VAPID_PUBLIC_KEY"));
+const VAPID_PRIVATE = clean(Deno.env.get("VAPID_PRIVATE_KEY"));
 const TEAMS = ["133601", "133914"]; // Aston Villa, England (TheSportsDB ids)
 
 const cors = {
@@ -23,8 +25,14 @@ const cors = {
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-const configured = Boolean(VAPID_PUBLIC && VAPID_PRIVATE);
-if (configured) webpush.setVapidDetails("mailto:noreply@mylifehub.app", VAPID_PUBLIC, VAPID_PRIVATE);
+let configError: string | null = null;
+try {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) throw new Error("Push keys not set yet (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY)");
+  webpush.setVapidDetails("mailto:noreply@mylifehub.app", VAPID_PUBLIC, VAPID_PRIVATE);
+} catch (e) {
+  configError = (e as Error).message;
+}
+const configured = configError === null;
 
 type Sub = { id: string; user_id: string; endpoint: string; p256dh: string; auth: string };
 type Msg = { title: string; body: string; url?: string; tag?: string };
@@ -135,8 +143,9 @@ async function runScheduled() {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method === "GET") return json({ configured, publicKey: VAPID_PUBLIC || null });
-  if (!configured) return json({ ok: false, error: "Push keys not set yet (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY)" }, 503);
+  // The public key is safe to share (browsers need it to subscribe); the private key never leaves the server.
+  if (req.method === "GET") return json({ configured, publicKey: VAPID_PUBLIC || null, publicKeyLength: VAPID_PUBLIC.length, privateKeyLength: VAPID_PRIVATE.length, error: configError });
+  if (!configured) return json({ ok: false, error: configError }, 503);
 
   const body = await req.json().catch(() => ({}));
   if (body?.test) {

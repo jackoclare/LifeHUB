@@ -209,6 +209,9 @@ function DestinationDetail({ d, from, out, back, adults, saved, onSavedChange }:
         </div>
       )}
 
+      <FlightPrices from={from} to={d.code} out={out} back={back} adults={adults} />
+
+      <p className="text-xs font-semibold uppercase tracking-wider text-faint">Book or compare</p>
       <div className="grid grid-cols-2 gap-2">
         <a className="btn btn-primary col-span-2" href={links.skyscanner} target="_blank" rel="noopener noreferrer">
           <PlaneTakeoff size={16} /> Flights on Skyscanner <ExternalLink size={13} />
@@ -234,6 +237,79 @@ function DestinationDetail({ d, from, out, back, adults, saved, onSavedChange }:
         )}
       </div>
       {error && <ErrorNote message={error} />}
+    </div>
+  );
+}
+
+type Fare = { price: number; airline: string; flightNumber: string; departAt: string; returnAt: string | null; stops: number; returnStops: number | null; minutes: number | null; link: string | null };
+
+/** Cheapest recent fares, shown right here in the app */
+function FlightPrices({ from, to, out, back, adults }: { from: string; to: string; out: string; back: string | null; adults: number }) {
+  const [state, setState] = useState<{ loading: boolean; configured?: boolean; flights: Fare[]; error?: string; month?: boolean }>({ loading: true, flights: [] });
+  useEffect(() => {
+    let alive = true;
+    const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/flights`;
+    const headers = { apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "" };
+    const get = (depart: string, ret: string | null) =>
+      fetch(`${base}?${new URLSearchParams({ from, to, depart, ...(ret ? { return: ret } : {}) })}`, { headers }).then((r) => r.json());
+    (async () => {
+      setState({ loading: true, flights: [] });
+      try {
+        let j = await get(out, back);
+        let month = false;
+        // Nothing for those exact dates? Show the cheapest that month instead
+        if (j.configured && !j.flights?.length && !j.error) {
+          j = await get(out.slice(0, 7), back ? back.slice(0, 7) : null);
+          month = true;
+        }
+        if (alive) setState({ loading: false, configured: j.configured, flights: j.flights ?? [], error: j.error, month });
+      } catch {
+        if (alive) setState({ loading: false, flights: [], error: "Couldn't load prices" });
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [from, to, out, back]);
+
+  if (state.loading) return <div className="h-24 animate-pulse rounded-2xl bg-surface-2" />;
+  if (state.configured === false)
+    return <p className="rounded-2xl bg-surface-2 p-3 text-xs text-muted">Live flight prices inside the app switch on once the free Travelpayouts key is added. Until then, use the buttons below.</p>;
+  if (state.error) return <p className="rounded-2xl bg-surface-2 p-3 text-xs text-muted">{state.error}</p>;
+  if (!state.flights.length) return <p className="rounded-2xl bg-surface-2 p-3 text-xs text-muted">No recent fares found for this route — try another month or airport.</p>;
+
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
+  return (
+    <div>
+      <p className="mb-2 flex items-baseline justify-between text-xs font-semibold uppercase tracking-wider text-faint">
+        <span>Cheapest fares{state.month ? " this month" : ""}</span>
+        <span className="normal-case tracking-normal">per person</span>
+      </p>
+      <ul className="stagger space-y-2">
+        {state.flights.slice(0, 6).map((f, i) => (
+          <li key={i} style={{ "--i": i } as React.CSSProperties}>
+            <a href={f.link ?? "#"} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-2xl bg-surface-2 p-3 transition-transform active:scale-[0.98]">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-xs font-bold">{f.airline}</span>
+              <span className="min-w-0 flex-1 text-sm">
+                <span className="block font-semibold">
+                  {fmt(f.departAt)} · {time(f.departAt)}
+                </span>
+                <span className="block text-xs text-muted">
+                  {f.stops === 0 ? "Direct" : `${f.stops} stop${f.stops > 1 ? "s" : ""}`}
+                  {f.minutes ? ` · ${Math.floor(f.minutes / 60)}h ${f.minutes % 60}m` : ""}
+                  {f.returnAt ? ` · back ${fmt(f.returnAt)}` : ""}
+                </span>
+              </span>
+              <span className="text-right">
+                <span className="block font-display text-lg font-bold text-[var(--c-money)]">£{Math.round(f.price)}</span>
+                {adults > 1 && <span className="block text-[10px] text-faint">£{Math.round(f.price * adults)} for {adults}</span>}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1.5 text-[10px] text-faint">Recent prices found by Aviasales users — tap one to check and book. Prices can change.</p>
     </div>
   );
 }

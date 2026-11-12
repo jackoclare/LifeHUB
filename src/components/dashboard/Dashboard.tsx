@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ArrowUpRight, CalendarDays, Check, Eye, EyeOff, Plus, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpRight, Bell, CalendarDays, Check, Eye, EyeOff, Mic, Plus, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cards, type CardDef, useDashboardPrefs } from "@/lib/dashboard";
 import { formatDay, fromISODate, kindInfo, upcoming, useCalendarEvents } from "@/lib/calendar";
 import { phaseNames } from "@/lib/nav";
 import { HeadlineRotator, LiveBadge, NewsTicker } from "@/components/news/NewsWidgets";
 import { DailyBriefing } from "./DailyBriefing";
+import { useAlerts } from "@/app/alerts/AlertsView";
 import { WeatherSummary } from "@/components/weather/WeatherWidgets";
 import { Crest, NextMatch } from "@/components/sport/SportWidgets";
 import { DEFAULT_TEAMS, kickoffLabel, useTeams } from "@/lib/football";
@@ -144,53 +145,60 @@ export function Dashboard() {
 }
 
 function Hero({ now, next, editing, onToggleEdit }: { now: Date | null; next?: ReturnType<typeof upcoming>[number]; editing: boolean; onToggleEdit: () => void }) {
-  const hh = now ? String(now.getHours()).padStart(2, "0") : "--";
-  const mm = now ? String(now.getMinutes()).padStart(2, "0") : "--";
+  const alerts = useAlerts().filter((a) => a.days <= 3).length;
   return (
-    <section className="hero animate-rise mb-6 p-5 sm:p-7">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-medium text-muted" suppressHydrationWarning>
-            <span className="pulse-dot size-2 rounded-full bg-accent" />
-            {now ? now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) : " "}
+    <section className="animate-rise mb-5">
+      {/* Greeting row: avatar · hello · bell */}
+      <div className="flex items-center gap-3">
+        <Link href="/settings" aria-label="Profile" className="grid size-14 shrink-0 place-items-center rounded-full font-display text-lg font-black italic text-[#fff4ea] shadow-lg transition-transform active:scale-95" style={{ background: "linear-gradient(135deg, #0a0c1c 0%, #4c1d95 60%, #ff5e3a 100%)" }}>
+          JC
+        </Link>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-muted" suppressHydrationWarning>
+            {now ? `${greeting(now.getHours())}!` : "Hello!"}
           </p>
-          <h1 className="large-title mt-1" suppressHydrationWarning>
-            {now ? greeting(now.getHours()) : "Hello"}, Jack
-          </h1>
+          <h1 className="truncate text-2xl font-bold tracking-tight">Jack Clare</h1>
         </div>
-        <p className="shrink-0 font-display text-3xl font-medium tabular-nums tracking-tight text-muted sm:text-5xl" suppressHydrationWarning aria-label="Current time">
-          <span key={`h${hh}`} className="num-in">
-            {hh}
-          </span>
-          <span className="blink">:</span>
-          <span key={`m${mm}`} className="num-in">
-            {mm}
-          </span>
-        </p>
+        <Link href="/alerts" aria-label={`Alerts${alerts ? ` (${alerts})` : ""}`} className="relative grid size-12 shrink-0 place-items-center rounded-full bg-surface shadow-[var(--shadow)] transition-transform active:scale-95">
+          <Bell size={20} />
+          {alerts > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-[#ff3b30] px-1 text-[11px] font-bold text-white">{alerts}</span>}
+        </Link>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <Link href={next?.id.startsWith("match-") ? `/sport/match/${next.id.slice(6)}` : next?.kind === "bill" ? "/bills" : "/calendar"} className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-full bg-surface-2 px-4 py-2 text-sm transition-transform duration-300 active:scale-95">
-          <CalendarDays size={16} className="shrink-0 text-accent" />
+      {/* Ask anything — opens the assistant */}
+      <div className="mt-4 flex gap-2">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("lifehub-assistant"))}
+          className="flex min-h-13 flex-1 items-center gap-3 rounded-2xl bg-surface px-4 text-left text-muted shadow-[var(--shadow)] transition-transform active:scale-[0.98]"
+        >
+          <Search size={19} />
+          <span className="flex-1 truncate">Ask LifeHub anything…</span>
+          <Mic size={18} className="text-accent" />
+        </button>
+        <button className="grid size-13 shrink-0 place-items-center rounded-2xl bg-accent text-white shadow-lg transition-transform active:scale-95" onClick={onToggleEdit} aria-label={editing ? "Finish customising" : "Customise dashboard"}>
+          {editing ? <Check size={20} /> : <SlidersHorizontal size={20} />}
+        </button>
+      </div>
+
+      {/* Date · next up */}
+      <div className="mt-3 flex items-center gap-2 overflow-x-auto [scrollbar-width:none]">
+        <span className="shrink-0 rounded-full bg-surface px-3.5 py-2 text-sm font-medium shadow-[var(--shadow)]" suppressHydrationWarning>
+          {now ? now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) : " "}
+        </span>
+        <Link href={next?.id.startsWith("match-") ? `/sport/match/${next.id.slice(6)}` : next?.kind === "bill" ? "/bills" : "/calendar"} className="flex min-w-0 shrink-0 items-center gap-2 rounded-full bg-surface px-3.5 py-2 text-sm shadow-[var(--shadow)] transition-transform active:scale-95">
+          <CalendarDays size={15} className="shrink-0 text-accent" />
           {next ? (
             <span className="truncate">
-              <span className="text-muted">Next: </span>
               <span className="font-semibold">{next.title}</span>
               <span className="text-muted"> · {formatDay(next.date)}{next.time ? ` ${next.time}` : ""}</span>
             </span>
           ) : (
-            <span className="text-muted">Nothing planned yet — add something</span>
+            <span className="text-muted">Nothing planned</span>
           )}
         </Link>
-        <div className="ml-auto flex gap-2">
-          <Link href="/calendar" className="btn btn-primary" aria-label="Add an event">
-            <Plus size={16} /> <span className="hidden sm:inline">Add event</span>
-          </Link>
-          <button className={`btn ${editing ? "btn-primary" : "btn-ghost"}`} onClick={onToggleEdit} aria-label={editing ? "Finish customising" : "Customise dashboard"}>
-            {editing ? <Check size={16} /> : <SlidersHorizontal size={16} />}
-            <span className="hidden sm:inline">{editing ? "Done" : "Customise"}</span>
-          </button>
-        </div>
+        <Link href="/calendar" className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-accent shadow-[var(--shadow)]" aria-label="Add an event">
+          <Plus size={16} />
+        </Link>
       </div>
     </section>
   );

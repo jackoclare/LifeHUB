@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="glass sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line px-4 py-6 lg:flex">
         <Link href="/" className="mb-8 flex items-center gap-2.5 px-2">
           <Logo />
-          <span className="font-display text-lg font-semibold tracking-tight">LifeHub</span>
+          <span className="text-lg font-bold tracking-tight">Life<span className="text-accent">Hub</span></span>
         </Link>
 
         <nav className="flex-1 space-y-6 overflow-y-auto" aria-label="Main">
@@ -147,12 +147,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function Logo() {
   return (
-    <span
-      aria-hidden
-      className="grid size-8 place-items-center rounded-[0.65rem] font-display text-[0.8rem] font-black italic tracking-tight text-[#fff4ea] shadow-[0_6px_16px_-6px_#7c3aed]"
-      style={{ background: "linear-gradient(135deg, #0a0c1c 0%, #4c1d95 60%, #ff5e3a 100%)" }}
-    >
-      JC
-    </span>
+    <span aria-hidden className="grid size-8 place-items-center rounded-[0.6rem] text-[0.95rem] font-extrabold text-white shadow-[0_6px_16px_-6px_#0a84ff]" style={{ background: "linear-gradient(160deg, #0a84ff, #5e5ce6)" }}>L</span>
   );
 }

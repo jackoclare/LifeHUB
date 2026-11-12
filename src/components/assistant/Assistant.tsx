@@ -339,6 +339,18 @@ export function Assistant() {
   };
 
   // Close on Escape
+  // Other parts of the app (e.g. the Home search bar) can open the assistant
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const q = (e as CustomEvent<string | undefined>).detail;
+      setOpen(true);
+      if (q) setText(q);
+      setTimeout(() => inputRef.current?.focus(), 250);
+    };
+    window.addEventListener("lifehub-assistant", onOpen);
+    return () => window.removeEventListener("lifehub-assistant", onOpen);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);

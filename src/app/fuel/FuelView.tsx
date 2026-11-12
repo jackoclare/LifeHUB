@@ -2,7 +2,7 @@
 
 import { Clock, Fuel, MapPin, Navigation, Phone, ShoppingCart, TrendingDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { MapView, miles } from "@/components/map/MapView";
+import { MapView, googleDirections, miles } from "@/components/map/MapView";
 import { PlacePicker } from "@/components/weather/WeatherWidgets";
 import { ErrorNote, Sheet, Spinner } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
@@ -280,16 +280,16 @@ export function FuelView() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-2">
-              <a className="btn btn-primary" href={`https://maps.apple.com/?daddr=${sel.lat},${sel.lon}&q=${encodeURIComponent(sel.brand ?? sel.name)}`} target="_blank" rel="noopener noreferrer">
-                <Navigation size={16} /> Directions
+              <a className="btn btn-primary" href={googleDirections(sel)} target="_blank" rel="noopener noreferrer">
+                <Navigation size={16} /> Google Maps
               </a>
               {sel.phone ? (
                 <a className="btn btn-ghost" href={`tel:${sel.phone.replace(/\s/g, "")}`}>
                   <Phone size={16} /> Call
                 </a>
               ) : (
-                <a className="btn btn-ghost" href={`https://www.google.com/maps/search/?api=1&query=${sel.lat},${sel.lon}`} target="_blank" rel="noopener noreferrer">
-                  <MapPin size={16} /> Google Maps
+                <a className="btn btn-ghost" href={`https://maps.apple.com/?daddr=${sel.lat},${sel.lon}`} target="_blank" rel="noopener noreferrer">
+                  <MapPin size={16} /> Apple Maps
                 </a>
               )}
             </div>

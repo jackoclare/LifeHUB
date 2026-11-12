@@ -5,6 +5,15 @@ import { LocateFixed, Navigation2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap, LayerGroup, Marker, TileLayer } from "leaflet";
 
+const TILE_SOURCES = [
+  { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' },
+  { url: "https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, tiles OSM France' },
+  {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors",
+  },
+];
+
 export type MapPoint = { id: string; lat: number; lon: number; color: string; label: string; badge?: string };
 
 /**
@@ -44,6 +53,8 @@ export function MapView({
   const map = useRef<LeafletMap | null>(null);
   const layer = useRef<LayerGroup | null>(null);
   const tiles = useRef<TileLayer | null>(null);
+  const tileSource = useRef(0);
+  const tileErrors = useRef(0);
   const L = useRef<typeof import("leaflet") | null>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -113,11 +124,20 @@ export function MapView({
     const dark = document.documentElement.dataset.theme !== "light";
     tiles.current?.remove();
     tiles.current = leaflet
-      // OpenStreetMap's standard tiles (free, attribution required). Dark mode is a CSS filter on the tile pane.
-      .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      // Free map tiles with automatic fallback if a provider refuses this device. Dark mode is a CSS filter.
+      .tileLayer(TILE_SOURCES[tileSource.current].url, {
         maxZoom: 19,
+        subdomains: "abc",
         className: dark ? "map-tiles-dark" : "",
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        attribution: TILE_SOURCES[tileSource.current].attribution,
+      })
+      .on("tileerror", () => {
+        tileErrors.current++;
+        if (tileErrors.current > 4 && tileSource.current < TILE_SOURCES.length - 1) {
+          tileSource.current++;
+          tileErrors.current = 0;
+          setTiles();
+        }
       })
       .addTo(m);
   }
@@ -255,6 +275,13 @@ export function distanceKm(a: { lat: number; lon: number }, b: { lat: number; lo
   const dLon = ((b.lon - a.lon) * Math.PI) / 180;
   const s = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/** Google Maps directions link (opens the Google Maps app on iPhone if it's installed) */
+export function googleDirections(dest: { lat: number; lon: number }, from?: { lat: number; lon: number } | null) {
+  const q = new URLSearchParams({ api: "1", destination: `${dest.lat},${dest.lon}`, travelmode: "driving" });
+  if (from) q.set("origin", `${from.lat},${from.lon}`);
+  return `https://www.google.com/maps/dir/?${q}`;
 }
 
 /** Compass bearing in degrees from a to b */

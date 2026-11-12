@@ -8,10 +8,10 @@ const body = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap
 const heading = Inter_Tight({ subsets: ["latin"], variable: "--font-heading", display: "swap", weight: ["500", "600", "700", "800"] });
 
 export const metadata: Metadata = {
-  title: { default: "MyLife Hub", template: "%s · MyLife Hub" },
+  title: { default: "LifeHub", template: "%s · LifeHub" },
   description: "Jack's personal hub — bills, calendar, travel, sport, deals and health in one place.",
-  applicationName: "MyLife Hub",
-  appleWebApp: { capable: true, title: "MyLife", statusBarStyle: "black-translucent" },
+  applicationName: "LifeHub",
+  appleWebApp: { capable: true, title: "LifeHub", statusBarStyle: "black-translucent" },
   icons: {
     icon: [{ url: "/icons/icon-192.png?v=jc", sizes: "192x192", type: "image/png" }],
     apple: [{ url: "/icons/apple-touch-icon.png?v=jc", sizes: "180x180" }],
@@ -25,8 +25,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0c0d10" },
-    { media: "(prefers-color-scheme: light)", color: "#f4f2ee" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
   ],
 };
 

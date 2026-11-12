@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { readCache, writeCache } from "./cache";
 
 /**
  * Weather from Open-Meteo (free, no API key, non-commercial use).
@@ -108,6 +109,9 @@ export function useWeather(place: Place | null) {
   useEffect(() => {
     if (!place) return;
     let alive = true;
+    const ckey = `wx:${place.lat.toFixed(2)},${place.lon.toFixed(2)}`;
+    const cached = readCache<Weather>(ckey, 2 * 3600e3);
+    if (cached) setData(cached);
     const load = async () => {
       setLoading(true);
       try {
@@ -122,7 +126,7 @@ export function useWeather(place: Place | null) {
         if (!alive) return;
         if (j.error) throw new Error(j.reason);
         const nowIdx = Math.max(0, (j.hourly.time as string[]).findIndex((t) => t >= j.current.time.slice(0, 13)));
-        setData({
+        const fresh: Weather = {
           current: {
             temp: j.current.temperature_2m,
             feels: j.current.apparent_temperature,
@@ -147,7 +151,9 @@ export function useWeather(place: Place | null) {
             sunrise: j.daily.sunrise[i],
             sunset: j.daily.sunset[i],
           })),
-        });
+        };
+        setData(fresh);
+        writeCache(ckey, fresh);
         setError(null);
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : "Couldn't load the weather");

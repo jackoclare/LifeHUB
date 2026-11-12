@@ -82,7 +82,7 @@ export function SettingsView() {
           <Smartphone size={20} className="mt-0.5 shrink-0 text-accent" />
           <p className="text-muted">
             Open this site in <span className="font-semibold text-ink">Safari</span>, tap the <span className="font-semibold text-ink">Share</span> button,
-            then <span className="font-semibold text-ink">Add to Home Screen</span>. MyLife Hub then opens full-screen like a normal app.
+            then <span className="font-semibold text-ink">Add to Home Screen</span>. LifeHub then opens full-screen like a normal app.
           </p>
         </div>
       </section>

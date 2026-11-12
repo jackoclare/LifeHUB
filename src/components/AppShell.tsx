@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="glass sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line px-4 py-6 lg:flex">
         <Link href="/" className="mb-8 flex items-center gap-2.5 px-2">
           <Logo />
-          <span className="font-display text-lg font-semibold tracking-tight">MyLife Hub</span>
+          <span className="font-display text-lg font-semibold tracking-tight">LifeHub</span>
         </Link>
 
         <nav className="flex-1 space-y-6 overflow-y-auto" aria-label="Main">
@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex h-14 items-center justify-between px-4">
             <Link href="/" className="flex items-center gap-2">
               <Logo />
-              <span className="font-display font-semibold tracking-tight">MyLife</span>
+              <span className="font-display font-semibold tracking-tight">LifeHub</span>
             </Link>
             <ThemeToggle compact />
           </div>

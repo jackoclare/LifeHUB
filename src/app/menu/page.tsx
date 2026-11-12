@@ -8,7 +8,7 @@ export const metadata = { title: "Everything" };
 export default function MenuPage() {
   return (
     <>
-      <PageHeader title="Everything" subtitle="All sections of MyLife Hub." />
+      <PageHeader title="Everything" subtitle="All sections of LifeHub." />
       <div className="space-y-6">
         {groups.map((g) => (
           <section key={g}>

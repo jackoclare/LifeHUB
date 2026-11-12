@@ -18,6 +18,7 @@ import { dueLabel, isOverdue, monthlyEquivalent } from "@/lib/bills";
 import type { Bill } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { usePlace } from "@/lib/weather";
+import { readCache, writeCache } from "@/lib/cache";
 
 function greeting(h: number) {
   if (h < 12) return "Good morning";
@@ -263,9 +264,16 @@ function DealsSummary() {
   const [deals, setDeals] = useState<MiniDeal[] | null>(null);
   useEffect(() => {
     let alive = true;
+    const cached = readCache<MiniDeal[]>("deals:hot:3", 3 * 3600e3);
+    if (cached?.length) setDeals(cached);
     fetch("/api/deals?feed=hot")
       .then((r) => r.json())
-      .then((d) => alive && setDeals((d.deals ?? []).slice(0, 3)))
+      .then((d) => {
+        if (!alive) return;
+        const top = (d.deals ?? []).slice(0, 3);
+        if (top.length) writeCache("deals:hot:3", top);
+        setDeals(top);
+      })
       .catch(() => alive && setDeals([]));
     return () => {
       alive = false;

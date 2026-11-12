@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readCache, writeCache } from "./cache";
 
 export type Headline = { title: string; link: string; summary: string; published: string | null; image: string | null };
 export type Feed = "news" | "uk" | "football" | "sport" | "villa";
@@ -14,11 +15,18 @@ export function useHeadlines(feed: Feed) {
 
   useEffect(() => {
     let alive = true;
+    const cached = readCache<{ items: Headline[]; fetchedAt: string | null }>(`news:${feed}`, 3 * 3600e3);
+    if (cached?.items?.length) {
+      setItems(cached.items);
+      setFetchedAt(cached.fetchedAt);
+      setLoading(false);
+    }
     const load = async () => {
       try {
         const res = await fetch(`/api/news?feed=${feed}`);
         const data = await res.json();
         if (!alive) return;
+        if (data.items?.length) writeCache(`news:${feed}`, { items: data.items, fetchedAt: data.fetchedAt ?? null });
         setItems(data.items ?? []);
         setFetchedAt(data.fetchedAt ?? null);
         setError(data.error ?? null);

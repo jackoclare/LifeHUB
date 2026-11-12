@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     const { data: u } = await admin.auth.getUser(token);
     if (!u?.user) return json({ ok: false, error: "Sign in first" }, 401);
     const { data: subs } = await admin.from("push_subscriptions").select("id,user_id,endpoint,p256dh,auth").eq("user_id", u.user.id);
-    const sent = await sendTo((subs ?? []) as Sub[], { title: "🎉 Notifications are on", body: "MyLife Hub will remind you about bills and kick-offs.", url: "/settings", tag: "test" });
+    const sent = await sendTo((subs ?? []) as Sub[], { title: "🎉 Notifications are on", body: "LifeHub will remind you about bills and kick-offs.", url: "/settings", tag: "test" });
     return json({ ok: true, sent, devices: subs?.length ?? 0 });
   }
 

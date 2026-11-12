@@ -2,7 +2,7 @@
 
 import { Beer, Bookmark, BookmarkCheck, Clock, Coffee, ExternalLink, Landmark, MapPin, Navigation, Phone, Sandwich, Smile, Theater, Trees, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { MapView, distanceKm, miles } from "@/components/map/MapView";
+import { MapView, distanceKm, googleDirections, miles } from "@/components/map/MapView";
 import { PlacePicker } from "@/components/weather/WeatherWidgets";
 import { ErrorNote, Sheet, Spinner } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
@@ -214,8 +214,8 @@ export function ExploreView() {
               </p>
             )}
             <div className="grid grid-cols-2 gap-2">
-              <a className="btn btn-primary" href={`https://maps.apple.com/?daddr=${sel.lat},${sel.lon}&q=${encodeURIComponent(sel.name)}`} target="_blank" rel="noopener noreferrer">
-                <Navigation size={16} /> Directions
+              <a className="btn btn-primary" href={googleDirections(sel)} target="_blank" rel="noopener noreferrer">
+                <Navigation size={16} /> Google Maps
               </a>
               {user ? (
                 <button className="btn btn-ghost" onClick={() => toggleSave(sel)}>

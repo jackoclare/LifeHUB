@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readCache, writeCache } from "./cache";
 
 export type Match = {
   id: string;
@@ -52,10 +53,17 @@ export function useTeams(teams: FavTeam[] = DEFAULT_TEAMS) {
   const key = teams.map((t) => t.id).join(",");
   useEffect(() => {
     let alive = true;
+    const cached = readCache<Record<string, TeamData>>(`teams:${key}`, 6 * 3600e3);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+    }
     Promise.all(teams.map((t) => loadTeam(t.id).then((d) => [t.id, d] as const))).then((pairs) => {
       if (!alive) return;
-      setData(Object.fromEntries(pairs));
+      const fresh = Object.fromEntries(pairs);
+      setData(fresh);
       setLoading(false);
+      if (pairs.every(([, d]) => !d.error)) writeCache(`teams:${key}`, fresh);
     });
     return () => {
       alive = false;

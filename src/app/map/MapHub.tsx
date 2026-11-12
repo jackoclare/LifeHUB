@@ -3,7 +3,7 @@
 import { ArrowUpDown, Bookmark, Clock, Fuel, LocateFixed, MapPin, Navigation, Plane, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapView, distanceKm, miles, type MapPoint } from "@/components/map/MapView";
+import { MapView, distanceKm, googleDirections, miles, type MapPoint } from "@/components/map/MapView";
 import { Sheet } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -330,11 +330,11 @@ export function MapHub() {
               </p>
               <a
                 className="btn btn-primary ml-auto h-10! min-h-0!"
-                href={`https://maps.apple.com/?${trip.start ? `saddr=${trip.start.lat},${trip.start.lon}&` : ""}daddr=${trip.dest.lat},${trip.dest.lon}&dirflg=d`}
+                href={googleDirections(trip.dest, trip.start)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Navigation size={15} /> Start
+                <Navigation size={15} /> Start in Google Maps
               </a>
             </div>
             {trip.note && <p className="mt-1 text-xs text-faint">{trip.note}</p>}
@@ -372,8 +372,8 @@ export function MapHub() {
               {[sel.s.address, sel.s.postcode].filter(Boolean).join(", ")}
               {from ? ` · ${miles(distanceKm(from, sel.s))} away` : ""}
             </p>
-            <a className="btn btn-primary w-full" href={`https://maps.apple.com/?daddr=${sel.s.lat},${sel.s.lon}`} target="_blank" rel="noopener noreferrer">
-              <Navigation size={16} /> Directions
+            <a className="btn btn-primary w-full" href={googleDirections(sel.s)} target="_blank" rel="noopener noreferrer">
+              <Navigation size={16} /> Google Maps
             </a>
           </div>
         )}
@@ -395,8 +395,8 @@ export function MapHub() {
               {sel.p.address ? ` · ${sel.p.address}` : ""}
               {from ? ` · ${miles(distanceKm(from, sel.p))} away` : ""}
             </p>
-            <a className="btn btn-primary w-full" href={`https://maps.apple.com/?daddr=${sel.p.lat},${sel.p.lon}&q=${encodeURIComponent(sel.p.name)}`} target="_blank" rel="noopener noreferrer">
-              <Navigation size={16} /> Directions
+            <a className="btn btn-primary w-full" href={googleDirections(sel.p)} target="_blank" rel="noopener noreferrer">
+              <Navigation size={16} /> Google Maps
             </a>
           </div>
         )}

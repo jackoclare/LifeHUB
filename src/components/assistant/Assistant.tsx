@@ -329,7 +329,7 @@ export function Assistant() {
           <div className="sheet-panel pb-safe relative w-full overflow-hidden rounded-t-[1.8rem] border border-line bg-bg-elevated sm:max-w-lg sm:rounded-[1.8rem]">
             <div className="flex items-center justify-between px-5 pt-4">
               <p className="flex items-center gap-2 text-sm font-semibold">
-                <Sparkles size={16} className="text-accent" /> MyLife assistant
+                <Sparkles size={16} className="text-accent" /> LifeHub assistant
               </p>
               <div className="flex gap-1">
                 <button

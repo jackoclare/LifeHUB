@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "MyLife Hub",
-    short_name: "MyLife",
+    name: "LifeHub",
+    short_name: "LifeHub",
     description: "Bills, calendar, travel, sport, deals and health in one place.",
     start_url: "/",
     scope: "/",

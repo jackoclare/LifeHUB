@@ -124,7 +124,7 @@ export function NotificationSettings() {
                 : status === "off"
                   ? "Bill reminders and kick-off alerts"
                   : status === "needs-install"
-                    ? "Add MyLife to your Home Screen first"
+                    ? "Add LifeHub to your Home Screen first"
                     : status === "denied"
                       ? "Blocked in your phone's settings"
                       : status === "not-configured"
@@ -147,11 +147,11 @@ export function NotificationSettings() {
       {status === "needs-install" && (
         <p className="mt-3 flex items-start gap-2 rounded-xl bg-surface-2 p-3 text-xs text-muted">
           <Share size={14} className="mt-0.5 shrink-0" /> On iPhone, notifications only work from the Home Screen app: open this site in Safari, tap Share → Add to
-          Home Screen, then open MyLife from your Home Screen and come back here.
+          Home Screen, then open LifeHub from your Home Screen and come back here.
         </p>
       )}
       {status === "denied" && (
-        <p className="mt-3 rounded-xl bg-surface-2 p-3 text-xs text-muted">Go to iPhone Settings → Notifications → MyLife and allow notifications, then reopen the app.</p>
+        <p className="mt-3 rounded-xl bg-surface-2 p-3 text-xs text-muted">Go to iPhone Settings → Notifications → LifeHub and allow notifications, then reopen the app.</p>
       )}
 
       {status === "on" && (

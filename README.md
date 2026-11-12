@@ -12,7 +12,7 @@ Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Supabase (Postgres, A
 ## Getting it online (one-time setup)
 
 1. **Vercel:** go to [vercel.com](https://vercel.com), choose **Sign up → Continue with GitHub**, and use the free Hobby plan.
-2. Choose **Add New → Project**, pick the `mylife-hub` repo, then select **Import**.
+2. Choose **Add New → Project**, pick the `LifeHUB` repo, then select **Import**.
 3. Before deploying, open **Environment Variables** and add:
    - `NEXT_PUBLIC_SUPABASE_URL` = `https://peaxepkkuvdemrnrnfwa.supabase.co`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = the publishable key from Supabase → Project Settings → API Keys (it starts `sb_publishable_`)

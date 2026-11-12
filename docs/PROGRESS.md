@@ -4,7 +4,7 @@
 
 | Thing | Value |
 |---|---|
-| GitHub repo | `mylife-hub` (private) |
+| GitHub repo | `jackoclare/LifeHUB` |
 | Supabase project | Jack's Project — ref `peaxepkkuvdemrnrnfwa`, region eu-central-1 (Frankfurt) |
 | Supabase org | Permanent Recruitment Solutions (moved there so Claude can reach it). Kept fully separate from the PRS CRM project. |
 | Hosting | Vercel (free Hobby plan) |

@@ -40,8 +40,8 @@ async function api<T>(path: string, key: string, ttl: number): Promise<{ respons
 }
 
 export async function GET(req: Request) {
-  const key = process.env.API_FOOTBALL_KEY;
-  if (!key) return NextResponse.json({ configured: false, lineups: [] });
+  const key = process.env["API_FOOTBALL_KEY"];
+  if (!key) return NextResponse.json({ configured: false, lineups: [] }, { headers: { "Cache-Control": "no-store" } });
   const sp = new URL(req.url).searchParams;
   const date = sp.get("date") ?? "";
   const home = sp.get("home") ?? "";

@@ -6,6 +6,8 @@ import { NextResponse } from "next/server";
  *   1 request per match day (all fixtures that day) + 1 per match for lineups.
  * Query: ?date=YYYY-MM-DD&home=Aston%20Villa&away=Sunderland
  */
+export const dynamic = "force-dynamic";
+
 const BASE = "https://v3.football.api-sports.io";
 
 const norm = (s: string) =>

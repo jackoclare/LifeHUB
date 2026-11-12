@@ -159,6 +159,21 @@ function WishCard({ item, index, history, hit, onEdit }: { item: WishlistItem; i
           View at {item.retailer || "shop"} <ExternalLink size={14} />
         </a>
       )}
+      {!item.purchased && (
+        <div className={`flex items-center gap-1 border-t border-line px-2 py-1.5 text-xs ${item.url ? "" : "mt-auto"}`}>
+          <span className="px-1 text-faint">Compare:</span>
+          {[
+            ["Google", `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(item.name)}`],
+            ["PriceSpy", `https://pricespy.co.uk/search?search=${encodeURIComponent(item.name)}`],
+            ["Deals", `https://www.hotukdeals.com/search?q=${encodeURIComponent(item.name)}`],
+            ["Amazon", `https://www.amazon.co.uk/s?k=${encodeURIComponent(item.name)}`],
+          ].map(([label, href]) => (
+            <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="rounded-full px-2 py-1.5 font-semibold text-muted hover:bg-surface-2 hover:text-ink">
+              {label}
+            </a>
+          ))}
+        </div>
+      )}
     </article>
   );
 }

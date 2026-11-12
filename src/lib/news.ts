@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 export type Headline = { title: string; link: string; summary: string; published: string | null; image: string | null };
-export type Feed = "news" | "uk" | "football" | "sport";
+export type Feed = "news" | "uk" | "football" | "sport" | "villa";
 
 /** Loads headlines and refreshes them every 10 minutes while the page is open. */
 export function useHeadlines(feed: Feed) {

@@ -81,6 +81,14 @@ function FootballTab() {
 
       <section className="card p-5">
         <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Aston Villa news</h2>
+          <LiveBadge />
+        </div>
+        <HeadlineRotator feed="villa" accent="#7a003c" />
+      </section>
+
+      <section className="card p-5">
+        <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Football headlines</h2>
           <LiveBadge />
         </div>

@@ -20,6 +20,7 @@ export function NewsView() {
             { value: "news", label: "Top stories" },
             { value: "uk", label: "UK" },
             { value: "football", label: "Football" },
+            { value: "villa", label: "Villa" },
             { value: "sport", label: "Sport" },
           ]}
         />

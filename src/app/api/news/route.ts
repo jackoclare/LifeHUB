@@ -11,6 +11,7 @@ const FEEDS = {
   uk: "https://feeds.bbci.co.uk/news/uk/rss.xml",
   football: "https://feeds.bbci.co.uk/sport/football/rss.xml",
   sport: "https://feeds.bbci.co.uk/sport/rss.xml",
+  villa: "https://feeds.bbci.co.uk/sport/football/teams/aston-villa/rss.xml",
 } as const;
 
 export type Headline = {

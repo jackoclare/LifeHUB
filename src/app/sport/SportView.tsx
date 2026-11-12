@@ -1,11 +1,11 @@
 "use client";
 
 import { HeadlineRotator, LiveBadge } from "@/components/news/NewsWidgets";
-import { Crest, FormChips, MatchRow, NextMatch } from "@/components/sport/SportWidgets";
+import { Crest, FormChips, MatchRow, NextMatch, ScoreCard } from "@/components/sport/SportWidgets";
+import { PillTabs } from "@/components/kit";
 import { Spinner } from "@/components/ui";
 import { DEFAULT_TEAMS, countdown, useTeams } from "@/lib/football";
 import { LEAGUES, type Row, sdbTime, ukDateTime, useSportsDb } from "@/lib/sportsdb";
-import { Segmented } from "@/components/ui";
 import { useEffect, useState } from "react";
 
 type Tab = "football" | "f1" | "darts";
@@ -13,14 +13,19 @@ type Tab = "football" | "f1" | "darts";
 export function SportView() {
   const [tab, setTab] = useState<Tab>("football");
   return (
-    <div className="space-y-5">
-      <Segmented<Tab>
+    <div className="theme-sport -mx-4 space-y-5 rounded-[2rem] px-4 py-5 sm:mx-0 sm:px-6">
+      <h2 className="text-[2rem] font-light italic leading-tight tracking-tight text-white/90">
+        Choose your <span className="font-semibold not-italic text-white">game</span>
+      </h2>
+      <PillTabs<Tab>
+        dark
+        accent="#c5f82a"
         value={tab}
         onChange={setTab}
         options={[
-          { value: "football", label: "⚽ Football" },
-          { value: "f1", label: "🏎️ F1" },
-          { value: "darts", label: "🎯 Darts" },
+          { value: "football", label: "Football", icon: "⚽" },
+          { value: "f1", label: "Formula 1", icon: "🏎️" },
+          { value: "darts", label: "Darts", icon: "🎯" },
         ]}
       />
       {tab === "football" ? <FootballTab /> : tab === "f1" ? <EventsTab league={LEAGUES.f1} accent="#ef4444" title="Formula 1" /> : <EventsTab league={LEAGUES.darts} accent="#22c55e" title="PDC Darts" />}
@@ -32,8 +37,25 @@ function FootballTab() {
   const { data, loading } = useTeams(DEFAULT_TEAMS);
   if (loading) return <Spinner label="Loading fixtures" />;
 
+  // Headline cards: the next match (lime), then the latest results
+  const nexts = DEFAULT_TEAMS.map((t) => data[t.id]?.next[0]).filter((m): m is NonNullable<typeof m> => !!m).sort((a, b) => (a.kickoff ?? "").localeCompare(b.kickoff ?? ""));
+  const lasts = DEFAULT_TEAMS.map((t) => data[t.id]?.last[0]).filter((m): m is NonNullable<typeof m> => !!m).sort((a, b) => (b.kickoff ?? "").localeCompare(a.kickoff ?? ""));
+  const seen = new Set<string>();
+  const top = [...nexts.map((m, i) => ({ m, hi: i === 0 })), ...lasts.map((m) => ({ m, hi: false }))].filter(({ m }) => (seen.has(m.id) ? false : (seen.add(m.id), true))).slice(0, 4);
+
   return (
     <div className="space-y-6">
+      <div>
+        <p className="mb-3 text-xl font-semibold text-white">Top events</p>
+        <div className="stagger grid gap-3 md:grid-cols-2">
+          {top.map(({ m, hi }, i) => (
+            <div key={m.id} style={{ "--i": i } as React.CSSProperties}>
+              <ScoreCard m={m} highlight={hi} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="text-xl font-semibold text-white">Your teams</p>
       <div className="stagger grid gap-4 md:grid-cols-2">
         {DEFAULT_TEAMS.map((t, i) => {
           const d = data[t.id];

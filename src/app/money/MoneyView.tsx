@@ -6,7 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
 import { ErrorNote, Field, Sheet, inputClass } from "@/components/ui";
-import { monthlyEquivalent } from "@/lib/bills";
+import { monthlyEquivalent, occurrences } from "@/lib/bills";
+import { BillLogo } from "@/components/BillLogo";
 import { createClient } from "@/lib/supabase/client";
 import type { Bill } from "@/lib/types";
 import { useRows } from "@/lib/useRows";
@@ -19,6 +20,8 @@ export function MoneyView() {
   const bills = useRows<Bill>("bills", [{ column: "next_due_date" }], Boolean(user));
   const goals = useRows<Goal>("savings_goals", [{ column: "created_at" }], Boolean(user));
   const [income, setIncome] = useState<number | null>(null);
+  const [payday, setPayday] = useState<number | null>(null);
+  const [paydayDraft, setPaydayDraft] = useState("");
   const [incomeDraft, setIncomeDraft] = useState("");
   const [editingIncome, setEditingIncome] = useState(false);
   const [goalEdit, setGoalEdit] = useState<Partial<Goal> | null>(null);
@@ -28,9 +31,12 @@ export function MoneyView() {
     if (!user) return;
     createClient()
       .from("finance_profile")
-      .select("monthly_income")
+      .select("monthly_income,payday")
       .maybeSingle()
-      .then(({ data }) => setIncome(data?.monthly_income != null ? Number(data.monthly_income) : null));
+      .then(({ data }) => {
+        setIncome(data?.monthly_income != null ? Number(data.monthly_income) : null);
+        setPayday(data?.payday ?? null);
+      });
   }, [user]);
 
   const active = bills.rows.filter((b) => b.is_active);
@@ -48,18 +54,47 @@ export function MoneyView() {
 
   const saveIncome = async () => {
     const v = incomeDraft ? Number(incomeDraft.replace(/[£,]/g, "")) : null;
-    await createClient().from("finance_profile").upsert({ monthly_income: v, updated_at: new Date().toISOString() });
+    const pd = paydayDraft ? Math.min(31, Math.max(1, Number(paydayDraft))) : null;
+    await createClient().from("finance_profile").upsert({ monthly_income: v, payday: pd, updated_at: new Date().toISOString() });
     setIncome(v);
+    setPayday(pd);
     setEditingIncome(false);
   };
 
   return (
     <div className="space-y-4">
+      {/* Headline: bills this month + payday */}
+      <section className="overflow-hidden rounded-[1.9rem] p-5 text-white shadow-[0_18px_40px_-20px_rgb(201_31_75/0.7)]" style={{ background: "linear-gradient(150deg, #d7264f 0%, #a3123a 100%)" }}>
+        <p className="text-sm text-white/80">Going out this month</p>
+        <p className="num-in mt-1 font-display text-[2.6rem] font-bold leading-none tabular-nums">{gbp(monthlyBills, 2)}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {payday && (
+            <span className="rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold">
+              💷 Payday {(() => {
+                const t = new Date();
+                let p = new Date(t.getFullYear(), t.getMonth(), Math.min(payday, new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate()));
+                if (p < new Date(t.toDateString())) p = new Date(t.getFullYear(), t.getMonth() + 1, Math.min(payday, new Date(t.getFullYear(), t.getMonth() + 2, 0).getDate()));
+                const d = Math.round((p.getTime() - new Date(t.toDateString()).getTime()) / 864e5);
+                return d === 0 ? "today 🎉" : `in ${d} day${d === 1 ? "" : "s"}`;
+              })()}
+            </span>
+          )}
+          {left != null && <span className="rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold">{left >= 0 ? `${gbp(left)} left after bills` : `${gbp(-left)} short`}</span>}
+          {!payday && (
+            <button className="rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold" onClick={() => (setIncomeDraft(income?.toString() ?? ""), setPaydayDraft(""), setEditingIncome(true))}>
+              + Add payday
+            </button>
+          )}
+        </div>
+      </section>
+
+      <UpcomingWeek bills={active} />
+
       {/* Monthly overview */}
       <section className="card p-5">
         <h2 className="mb-4 font-semibold">This month</h2>
         <div className="grid grid-cols-3 gap-3 text-center">
-          <button className="rounded-2xl bg-surface-2 p-3" onClick={() => (setIncomeDraft(income?.toString() ?? ""), setEditingIncome(true))}>
+          <button className="rounded-2xl bg-surface-2 p-3" onClick={() => (setIncomeDraft(income?.toString() ?? ""), setPaydayDraft(payday?.toString() ?? ""), setEditingIncome(true))}>
             <p className="text-xs text-muted">Income</p>
             <p className="num-in font-display text-xl font-bold tabular-nums">{income != null ? gbp(income) : "Add"}</p>
           </button>
@@ -145,7 +180,10 @@ export function MoneyView() {
         <Field label="After tax, per month (£)">
           <input autoFocus className={inputClass} inputMode="decimal" value={incomeDraft} onChange={(e) => setIncomeDraft(e.target.value)} placeholder="e.g. 2200" />
         </Field>
-        <p className="mt-2 text-xs text-muted">Only you can see this. It&apos;s used to work out what&apos;s left after bills.</p>
+        <Field label="Payday (day of the month)" className="mt-3">
+          <input className={inputClass} inputMode="numeric" value={paydayDraft} onChange={(e) => setPaydayDraft(e.target.value)} placeholder="e.g. 28" />
+        </Field>
+        <p className="mt-2 text-xs text-muted">Only you can see this. It&apos;s used to work out what&apos;s left after bills and count down to payday.</p>
         <button className="btn btn-primary mt-4 w-full" onClick={saveIncome}>
           Save
         </button>
@@ -307,6 +345,52 @@ function LoanCalculator() {
         </div>
       </div>
       <p className="mt-2 text-[11px] text-faint">A guide only, using a fixed rate for the whole term. Real offers vary — I&apos;m not a financial adviser, so check the lender&apos;s figures before you commit.</p>
+    </section>
+  );
+}
+
+/** Next 7 days with the bills landing on each one (like a bank app's "Upcoming") */
+function UpcomingWeek({ bills }: { bills: Bill[] }) {
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d.toLocaleDateString("en-CA");
+  });
+  const due = days.map((iso) => ({ iso, items: bills.filter((b) => occurrences(b, iso, iso, 60).length > 0) }));
+  const all = due.flatMap((d) => d.items);
+  const total = all.reduce((s, b) => s + Number(b.amount), 0);
+  return (
+    <section className="card p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold">Upcoming</h2>
+          <p className="mt-0.5 text-sm text-muted">
+            {all.length ? `You have ${all.length} bill${all.length > 1 ? "s" : ""} due in the next 7 days for ${gbp(total, 2)}.` : "Nothing due in the next 7 days."}
+          </p>
+        </div>
+        <Link href="/bills" className="shrink-0 rounded-full border border-line px-3 py-1.5 text-sm font-semibold">
+          See all
+        </Link>
+      </div>
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center">
+        {due.map(({ iso, items }, i) => {
+          const d = new Date(`${iso}T12:00:00`);
+          return (
+            <Link key={iso} href="/bills" className="flex flex-col items-center gap-1 rounded-2xl py-2 transition-colors active:bg-surface-2">
+              <span className={`text-xs ${i === 0 ? "font-bold text-[#d7264f]" : "text-muted"}`}>{d.toLocaleDateString("en-GB", { weekday: "short" })}</span>
+              <span className={`text-lg font-bold ${i === 0 ? "text-[#d7264f]" : ""}`}>{d.getDate()}</span>
+              <span className="flex min-h-8 flex-col items-center -space-y-2">
+                {items.slice(0, 3).map((b) => (
+                  <span key={b.id} className="rounded-full ring-2 ring-[var(--surface)]">
+                    <BillLogo website={b.website} category={b.category} tone="var(--c-money)" size={22} />
+                  </span>
+                ))}
+              </span>
+              {items.length > 0 && <span className="rounded-md bg-[var(--accent-soft)] px-1 text-[10px] font-semibold tabular-nums">{gbp(items.reduce((s, b) => s + Number(b.amount), 0))}</span>}
+            </Link>
+          );
+        })}
+      </div>
     </section>
   );
 }

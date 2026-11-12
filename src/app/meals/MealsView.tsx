@@ -6,6 +6,7 @@ import { guessAisle } from "@/app/shopping/ShoppingView";
 import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
 import { Field, Sheet, inputClass } from "@/components/ui";
+import { DateStrip } from "@/components/kit";
 import { createClient } from "@/lib/supabase/client";
 
 type Slot = "breakfast" | "lunch" | "dinner";
@@ -15,6 +16,41 @@ const SLOTS: { id: Slot; label: string }[] = [
   { id: "lunch", label: "Lunch" },
   { id: "dinner", label: "Dinner" },
 ];
+const CORAL = "#f26b6b";
+const SLOT_ART: Record<Slot, string> = { breakfast: "🍳", lunch: "🥪", dinner: "🍲" };
+/** Everyday meals with their shopping ingredients — used to fill the week automatically */
+const LIBRARY: Record<Slot, { title: string; ingredients: string[] }[]> = {
+  breakfast: [
+    { title: "Porridge with banana", ingredients: ["Porridge oats", "Milk", "Bananas"] },
+    { title: "Scrambled eggs on toast", ingredients: ["Eggs", "Bread", "Butter"] },
+    { title: "Greek yoghurt & berries", ingredients: ["Greek yoghurt", "Frozen berries", "Honey"] },
+    { title: "Bacon sandwich", ingredients: ["Bacon", "Bread", "Brown sauce"] },
+    { title: "Cereal & fruit", ingredients: ["Cereal", "Milk", "Apples"] },
+    { title: "Beans on toast", ingredients: ["Baked beans", "Bread"] },
+    { title: "Full English", ingredients: ["Sausages", "Bacon", "Eggs", "Baked beans", "Mushrooms", "Bread"] },
+  ],
+  lunch: [
+    { title: "Chicken wrap", ingredients: ["Tortilla wraps", "Cooked chicken", "Lettuce", "Mayonnaise"] },
+    { title: "Tomato soup & roll", ingredients: ["Tomato soup", "Bread rolls"] },
+    { title: "Tuna jacket potato", ingredients: ["Baking potatoes", "Tuna", "Sweetcorn", "Cheese"] },
+    { title: "Ham & cheese toastie", ingredients: ["Bread", "Ham", "Cheese"] },
+    { title: "Pasta salad", ingredients: ["Pasta", "Cherry tomatoes", "Cucumber", "Feta"] },
+    { title: "Chicken Caesar salad", ingredients: ["Cooked chicken", "Lettuce", "Caesar dressing", "Croutons"] },
+    { title: "Leftovers", ingredients: [] },
+  ],
+  dinner: [
+    { title: "Spaghetti bolognese", ingredients: ["Beef mince", "Spaghetti", "Chopped tomatoes", "Onions", "Garlic"] },
+    { title: "Chicken curry & rice", ingredients: ["Chicken breasts", "Curry paste", "Coconut milk", "Rice", "Onions"] },
+    { title: "Chicken fajitas", ingredients: ["Chicken breasts", "Peppers", "Onions", "Tortilla wraps", "Fajita seasoning", "Sour cream"] },
+    { title: "Sunday roast", ingredients: ["Whole chicken", "Potatoes", "Carrots", "Broccoli", "Gravy granules"] },
+    { title: "Fish, chips & peas", ingredients: ["Breaded fish", "Oven chips", "Frozen peas"] },
+    { title: "Stir fry", ingredients: ["Chicken breasts", "Stir fry vegetables", "Egg noodles", "Soy sauce"] },
+    { title: "Chilli con carne", ingredients: ["Beef mince", "Kidney beans", "Chopped tomatoes", "Rice", "Chilli powder"] },
+    { title: "Sausage & mash", ingredients: ["Sausages", "Potatoes", "Gravy granules", "Frozen peas"] },
+    { title: "Homemade burgers", ingredients: ["Beef burgers", "Burger buns", "Cheese slices", "Lettuce", "Oven chips"] },
+    { title: "Pasta bake", ingredients: ["Pasta", "Pasta bake sauce", "Cheese", "Cooked chicken"] },
+  ],
+};
 const QUICK = ["Spag bol", "Chicken curry", "Fajitas", "Roast dinner", "Fish & chips", "Stir fry", "Chilli con carne", "Pasta bake", "Burgers", "Jacket potatoes", "Omelette", "Beans on toast"];
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -30,6 +66,7 @@ export function MealsView() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [edit, setEdit] = useState<{ day: string; slot: Slot; meal?: Meal } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [selDay, setSelDay] = useState(() => iso(new Date()));
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)), [start]);
   const load = useCallback(async () => {
@@ -59,13 +96,34 @@ export function MealsView() {
   };
 
   const todayIso = iso(new Date());
+  const dayIsos = days.map(iso);
+  const sel = dayIsos.includes(selDay) ? selDay : dayIsos.includes(todayIso) ? todayIso : dayIsos[0];
+
+  const autoFill = async () => {
+    const rows: { day: string; slot: Slot; title: string; ingredients: string[] }[] = [];
+    const used = new Set(meals.map((m) => m.title));
+    for (const di of dayIsos) {
+      for (const sl of SLOTS) {
+        if (meals.some((m) => m.day === di && m.slot === sl.id)) continue;
+        const pool = LIBRARY[sl.id].filter((x) => !used.has(x.title));
+        const pick = (pool.length ? pool : LIBRARY[sl.id])[Math.floor(Math.random() * (pool.length || LIBRARY[sl.id].length))];
+        used.add(pick.title);
+        rows.push({ day: di, slot: sl.id, title: pick.title, ingredients: pick.ingredients });
+      }
+    }
+    if (!rows.length) return setMsg("Your week is already full — tap a meal to change it.");
+    await createClient().from("meal_plan").insert(rows);
+    setMsg(`Planned ${rows.length} meals. Tap any to swap it.`);
+    load();
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5" style={{ "--accent": CORAL, "--accent-soft": "rgb(242 107 107 / 0.12)" } as React.CSSProperties}>
       <div className="flex items-center justify-between">
         <button className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow)]" aria-label="Previous week" onClick={() => setStart((s) => new Date(s.getFullYear(), s.getMonth(), s.getDate() - 7))}>
           <ChevronLeft size={18} />
         </button>
-        <p className="font-semibold">
+        <p className="text-lg font-bold">
           {days[0].toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
         </p>
         <button className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow)]" aria-label="Next week" onClick={() => setStart((s) => new Date(s.getFullYear(), s.getMonth(), s.getDate() + 7))}>
@@ -73,31 +131,46 @@ export function MealsView() {
         </button>
       </div>
 
-      <div className="stagger space-y-3">
-        {days.map((d, i) => {
-          const di = iso(d);
+      <DateStrip
+        days={dayIsos}
+        value={sel}
+        onChange={setSelDay}
+        accent={CORAL}
+        dots={Object.fromEntries(dayIsos.map((d) => [d, meals.filter((m) => m.day === d).map(() => CORAL)]))}
+      />
+
+      <div key={sel} className="stagger space-y-3">
+        {SLOTS.map((sl, i) => {
+          const m = meals.find((x) => x.day === sel && x.slot === sl.id);
           return (
-            <section key={di} className={`card p-4 ${di === todayIso ? "ring-2 ring-accent" : ""}`} style={{ "--i": i } as React.CSSProperties}>
-              <p className="mb-2 text-sm font-semibold">
-                {d.toLocaleDateString("en-GB", { weekday: "long" })} <span className="font-normal text-muted">{d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {SLOTS.map((s) => {
-                  const m = meals.find((x) => x.day === di && x.slot === s.id);
-                  return (
-                    <button key={s.id} onClick={() => setEdit({ day: di, slot: s.id, meal: m })} className={`min-h-16 rounded-xl p-2 text-left transition-transform active:scale-95 ${m ? "bg-accent-soft" : "border border-dashed border-line"}`}>
-                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-faint">{s.label}</span>
-                      <span className={`block text-sm leading-tight ${m ? "font-medium" : "text-faint"}`}>{m?.title ?? "+ Add"}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+            <button
+              key={sl.id}
+              onClick={() => setEdit({ day: sel, slot: sl.id, meal: m })}
+              style={{ "--i": i } as React.CSSProperties}
+              className={`flex w-full items-stretch overflow-hidden rounded-[1.6rem] bg-surface text-left transition-transform duration-300 active:scale-[0.98] ${m ? "shadow-[0_14px_34px_-18px_rgb(0_0_0/0.35)]" : "shadow-[var(--shadow)]"}`}
+            >
+              <span className="grid w-24 shrink-0 place-items-center border-r border-line text-4xl">{SLOT_ART[sl.id]}</span>
+              <span className="min-w-0 flex-1 p-4">
+                <span className="inline-block rounded-md px-2 py-0.5 text-xs font-semibold" style={{ background: "var(--accent-soft)", color: CORAL }}>
+                  {sl.label}
+                </span>
+                <span className={`mt-1.5 block truncate text-lg font-bold ${m ? "" : "text-faint"}`}>{m?.title ?? "Nothing planned"}</span>
+                <span className="block truncate text-sm text-muted">{m ? (m.ingredients.length ? `${m.ingredients.length} ingredients` : "No shopping needed") : "Tap to add a meal"}</span>
+              </span>
+              <span className="grid w-12 shrink-0 place-items-start pt-4">
+                <span className={`grid size-8 place-items-center rounded-full text-lg leading-none ${m ? "border-2 text-[var(--accent)]" : "text-white"}`} style={m ? { borderColor: CORAL } : { background: CORAL }}>
+                  {m ? "✎" : "+"}
+                </span>
+              </span>
+            </button>
           );
         })}
       </div>
 
-      <button className="btn btn-primary w-full" onClick={toShopping}>
+      <button className="btn w-full text-white" style={{ background: CORAL, boxShadow: `0 14px 30px -14px ${CORAL}` }} onClick={autoFill}>
+        Generate meal plan automatically
+      </button>
+      <button className="btn btn-ghost w-full" onClick={toShopping}>
         <ShoppingBasket size={16} /> Add this week&apos;s ingredients to my shopping list
       </button>
       {msg && <p className="text-center text-sm text-muted">{msg}</p>}

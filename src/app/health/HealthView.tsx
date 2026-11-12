@@ -1,12 +1,13 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Copy, Flame, Footprints, Loader2, Plus, Search, Timer, Trash2, Watch } from "lucide-react";
+import { Copy, Flame, Footprints, Loader2, Plus, Search, Timer, Trash2, Watch } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
 import { Sheet } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import type { Food } from "@/app/api/food/route";
+import { DateStrip, daysFrom } from "@/components/kit";
 
 type Meal = "breakfast" | "lunch" | "dinner" | "snack";
 const MEALS: { id: Meal; label: string; emoji: string }[] = [
@@ -103,20 +104,7 @@ export function HealthView() {
   return (
     <div className="space-y-5">
       {/* Day picker */}
-      <div className="flex items-center justify-between">
-        <button className="grid size-10 place-items-center rounded-full bg-surface text-muted shadow-[var(--shadow)]" aria-label="Previous day" onClick={() => setDate((d) => shift(d, -1))}>
-          <ChevronLeft size={18} />
-        </button>
-        <p className="font-semibold">{dayLabel(date)}</p>
-        <button
-          className="grid size-10 place-items-center rounded-full bg-surface text-muted shadow-[var(--shadow)] disabled:opacity-30"
-          aria-label="Next day"
-          disabled={date >= ukToday()}
-          onClick={() => setDate((d) => shift(d, 1))}
-        >
-          <ChevronRight size={18} />
-        </button>
-      </div>
+      <DateStrip days={daysFrom(ukToday(), 1, 13)} value={date} onChange={setDate} accent="var(--c-health)" />
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Activity */}

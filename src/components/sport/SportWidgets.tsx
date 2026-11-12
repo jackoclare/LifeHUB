@@ -104,3 +104,59 @@ export function MatchRow({ m, team }: { m: Match; team: string }) {
     </li>
   );
 }
+
+/** Big scoreboard card (lime for the headline match, dark for the rest) */
+export function ScoreCard({ m, highlight = false, label }: { m: Match; highlight?: boolean; label?: string }) {
+  const now = useNow();
+  const played = m.homeScore != null;
+  const cd = countdown(m.kickoff, now);
+  const live = cd === "Playing now";
+  const status = live ? "Live" : played ? "Full time" : "Upcoming";
+  const short = (n: string) => n.replace(/^(AFC|FC) /, "").replace(/ (FC|AFC)$/, "");
+  const crest = (src: string | null, name: string) => (
+    <span className={`grid size-[4.5rem] place-items-center rounded-full ${highlight ? "bg-white" : "bg-white/[0.08]"} shadow-lg`}>
+      <Crest src={src} alt={name} size={46} />
+    </span>
+  );
+  return (
+    <Link
+      href={`/sport/match/${m.id}`}
+      className={`relative block overflow-hidden rounded-[1.9rem] p-5 transition-transform duration-300 active:scale-[0.98] ${highlight ? "text-[#0b0d07]" : "bg-[#1b1e18] text-white"}`}
+      style={highlight ? { background: "linear-gradient(160deg, #d4ff3a, #b6f000)" } : undefined}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p className="truncate text-lg font-bold">{label ?? m.league ?? "Football"}</p>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${highlight ? "bg-[#0b0d07] text-white" : "bg-white/10 text-white/80"} ${live ? "animate-pulse" : ""}`}>
+          {live ? "● Live" : status}
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <div className="flex flex-col items-center gap-2 text-center">
+          {crest(m.homeBadge, m.home)}
+          <span className="w-full truncate text-sm font-bold uppercase tracking-wide">{short(m.home)}</span>
+        </div>
+        <div className="text-center">
+          {played ? (
+            <p className="font-display text-4xl font-bold tabular-nums tracking-tight">
+              {m.homeScore} : {m.awayScore}
+            </p>
+          ) : (
+            <p className="font-display text-2xl font-bold tabular-nums">
+              {m.kickoff ? new Date(m.kickoff).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }) : "TBC"}
+            </p>
+          )}
+          <p className={`mt-1 text-xs font-semibold uppercase ${highlight ? "text-black/60" : "text-white/50"}`}>
+            {played ? (m.kickoff ? new Date(m.kickoff).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "FT") : cd && !live ? `in ${cd}` : m.kickoff ? new Date(m.kickoff).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : ""}
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-2 text-center">
+          {crest(m.awayBadge, m.away)}
+          <span className="w-full truncate text-sm font-bold uppercase tracking-wide">{short(m.away)}</span>
+        </div>
+      </div>
+      <p className={`mt-4 flex items-center justify-center gap-1 text-xs font-semibold ${highlight ? "text-black/70" : "text-[#c5f82a]"}`}>
+        Lineups & match details <ChevronRight size={13} />
+      </p>
+    </Link>
+  );
+}

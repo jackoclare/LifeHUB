@@ -12,7 +12,7 @@ export type Intent =
   | { kind: "nextMatch"; team: "villa" | "england" | "any" }
   | { kind: "billsDue" }
   | { kind: "billsTotal" }
-  | { kind: "directions"; dest: string }
+  | { kind: "directions"; dest: string; from?: string }
   | { kind: "fuel"; fuel: "E10" | "E5" | "B7_Standard" }
   | { kind: "help" }
   | { kind: "unknown"; text: string };
@@ -197,6 +197,11 @@ export function parse(input: string, now = new Date()): Intent {
   const dir =
     t.match(/^(?:please )?(?:take me|directions|navigate|drive|route|sat ?nav|get me|guide me)(?: me)?(?: to| over to| down to)? (?:the )?(.+?)[?.!]*$/) ??
     t.match(/how (?:long|far)(?: is it| will it take| does it take)?(?: me)?(?: to (?:get|drive))? to (?:the )?(.+?)[?.!]*$/);
+  const fromTo = t.match(/^(?:.*?\b)?(?:directions|route|drive|take me|get me|how (?:long|far)(?: is it)?)?\s*from (.+?) to (.+?)[?.!]*$/);
+  if (fromTo && fromTo[1].trim() && fromTo[2].trim()) {
+    const f = fromTo[1].trim();
+    return { kind: "directions", dest: fromTo[2].replace(/^the /, "").trim(), from: /^(here|my location|current location|where i am)$/.test(f) ? undefined : f };
+  }
   if (dir) {
     const dest = dir[1].replace(/\b(please|from here|now)\b/g, "").trim();
     const isPage = PAGES.some(([re]) => re.test(dest)) && dest.split(" ").length <= 2 && !/\b(tesco|asda|aldi|lidl|station|park|road|street|hospital|airport)\b/.test(dest);

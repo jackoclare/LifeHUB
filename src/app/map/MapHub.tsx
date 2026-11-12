@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Clock, Fuel, Navigation, Plane, Search, X } from "lucide-react";
+import { ArrowUpDown, Bookmark, Clock, Fuel, LocateFixed, MapPin, Navigation, Plane, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapView, distanceKm, miles, type MapPoint } from "@/components/map/MapView";
@@ -29,7 +29,7 @@ type Sel = { kind: "fuel"; s: Station } | { kind: "holiday"; d: (typeof DESTINAT
 
 const UK = { lat: 52.6, lon: -1.6 };
 
-type Trip = { dest: { name: string; address: string; lat: number; lon: number }; minutes: number | null; miles: number; line: [number, number][] | null; note?: string };
+type Trip = { dest: { name: string; address: string; lat: number; lon: number }; start: { name: string; address: string; lat: number; lon: number } | null; minutes: number | null; miles: number; line: [number, number][] | null; note?: string };
 
 /** Best guess at where you are right now: live GPS (quick), else your saved location */
 export function currentPosition(fallback: { lat: number; lon: number } | null): Promise<{ lat: number; lon: number } | null> {
@@ -60,6 +60,8 @@ export function MapHub() {
   const [tripBusy, setTripBusy] = useState(false);
   const [tripError, setTripError] = useState<string | null>(null);
   const [whereTo, setWhereTo] = useState("");
+  const [fromText, setFromText] = useState("");
+  const [fromCurrent, setFromCurrent] = useState(true);
 
   const go = useCallback(
     async (params: Record<string, string>) => {
@@ -89,10 +91,16 @@ export function MapHub() {
 
   // Opened from the assistant: /map?go=tesco%20extra
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("go");
+    const sp = new URLSearchParams(window.location.search);
+    const q = sp.get("go");
+    const f = sp.get("from");
     if (q) {
       setWhereTo(q);
-      go({ q });
+      if (f) {
+        setFromCurrent(false);
+        setFromText(f);
+      }
+      go(f ? { q, from: f } : { q });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -148,6 +156,7 @@ export function MapHub() {
     if (layers.has("fuel")) out.push(...stations.slice(0, 120).map((s) => ({ id: `f:${s.node_id}`, lat: s.lat, lon: s.lon, color: fuelColor(s.price), label: s.brand ?? s.name, badge: Number(s.price).toFixed(1) })));
     if (layers.has("holidays")) out.push(...DESTINATIONS.map((d) => ({ id: `h:${d.code}`, lat: d.lat, lon: d.lon, color: "#0ea5e9", label: d.city, badge: d.code })));
     if (layers.has("saved")) out.push(...saved.rows.map((p) => ({ id: `s:${p.id}`, lat: p.lat, lon: p.lon, color: "#f97316", label: p.name })));
+    if (trip?.start) out.push({ id: "t:start", lat: trip.start.lat, lon: trip.start.lon, color: "#22c55e", label: trip.start.name, badge: "A" });
     if (trip) out.push({ id: "t:dest", lat: trip.dest.lat, lon: trip.dest.lon, color: "#ef4444", label: trip.dest.name, badge: "🏁" });
     return out;
   }, [layers, stations, saved.rows, fuelColor, trip]);
@@ -173,25 +182,83 @@ export function MapHub() {
   return (
     <div className="space-y-3">
       <form
-        className="flex gap-2"
+        className="card space-y-2 p-3"
         onSubmit={(e) => {
           e.preventDefault();
-          if (whereTo.trim()) go({ q: whereTo.trim() });
+          if (!whereTo.trim()) return;
+          go(fromCurrent || !fromText.trim() ? { q: whereTo.trim() } : { q: whereTo.trim(), from: fromText.trim() });
         }}
       >
-        <label className="flex min-h-11 flex-1 items-center gap-2 rounded-full border border-line bg-bg-elevated px-4 focus-within:border-accent">
-          <Search size={16} className="shrink-0 text-faint" />
-          <input
-            value={whereTo}
-            onChange={(e) => setWhereTo(e.target.value)}
-            placeholder="Where to? e.g. Tesco Extra, B90 4RT, Villa Park"
-            enterKeyHint="go"
-            className="w-full bg-transparent text-base outline-none"
-            aria-label="Where to?"
-          />
-        </label>
-        <button className="btn btn-primary shrink-0 rounded-full!" disabled={tripBusy || !whereTo.trim()}>
-          <Navigation size={16} /> {tripBusy ? "…" : "Go"}
+        <div className="flex items-center gap-2">
+          <div className="flex flex-1 flex-col gap-2">
+            {/* From */}
+            <label className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-bg px-3 focus-within:border-accent">
+              <span className="w-9 shrink-0 text-xs font-semibold text-faint">From</span>
+              {fromCurrent ? (
+                <button
+                  type="button"
+                  onClick={() => setFromCurrent(false)}
+                  className="flex flex-1 items-center gap-1.5 text-left text-base font-medium text-accent"
+                  aria-label="Change start: currently your location"
+                >
+                  <LocateFixed size={16} /> Current location
+                </button>
+              ) : (
+                <>
+                  <input
+                    autoFocus
+                    value={fromText}
+                    onChange={(e) => setFromText(e.target.value)}
+                    placeholder="Start — place or postcode"
+                    className="w-full bg-transparent text-base outline-none"
+                    aria-label="From"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => (setFromCurrent(true), setFromText(""))}
+                    className="flex shrink-0 items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent"
+                  >
+                    <LocateFixed size={13} /> Current
+                  </button>
+                </>
+              )}
+            </label>
+            {/* To */}
+            <label className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-bg px-3 focus-within:border-accent">
+              <span className="w-9 shrink-0 text-xs font-semibold text-faint">To</span>
+              <MapPin size={16} className="shrink-0 text-red-400" />
+              <input
+                value={whereTo}
+                onChange={(e) => setWhereTo(e.target.value)}
+                placeholder="Tesco Extra, B90 4RT, Villa Park…"
+                enterKeyHint="go"
+                className="w-full bg-transparent text-base outline-none"
+                aria-label="To"
+              />
+            </label>
+          </div>
+          <button
+            type="button"
+            aria-label="Swap start and destination"
+            disabled={fromCurrent && !whereTo}
+            onClick={() => {
+              if (fromCurrent) {
+                setFromText(whereTo);
+                setWhereTo("");
+                setFromCurrent(false);
+              } else {
+                const f = fromText;
+                setFromText(whereTo);
+                setWhereTo(f);
+              }
+            }}
+            className="grid size-10 shrink-0 place-items-center rounded-full text-faint hover:bg-surface-2 hover:text-ink disabled:opacity-30"
+          >
+            <ArrowUpDown size={18} />
+          </button>
+        </div>
+        <button className="btn btn-primary w-full" disabled={tripBusy || !whereTo.trim() || (!fromCurrent && !fromText.trim())}>
+          <Navigation size={16} /> {tripBusy ? "Planning route…" : "Get directions"}
         </button>
       </form>
       {tripError && <p className="text-sm text-red-400">{tripError}</p>}
@@ -243,10 +310,11 @@ export function MapHub() {
           <div className="absolute inset-x-3 top-3 z-[500] mr-14 rounded-2xl bg-bg-elevated/95 p-3 shadow-xl backdrop-blur sm:right-auto sm:w-96">
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
+                {trip.start && <p className="truncate text-xs text-muted">From {trip.start.name}</p>}
                 <p className="truncate font-semibold">{trip.dest.name}</p>
                 <p className="truncate text-xs text-muted">{trip.dest.address}</p>
               </div>
-              <button aria-label="Clear route" className="grid size-8 shrink-0 place-items-center rounded-full text-faint hover:text-ink" onClick={() => (setTrip(null), setWhereTo(""))}>
+              <button aria-label="Clear route" className="grid size-8 shrink-0 place-items-center rounded-full text-faint hover:text-ink" onClick={() => (setTrip(null), setWhereTo(""), setFromCurrent(true), setFromText(""))}>
                 <X size={16} />
               </button>
             </div>
@@ -258,7 +326,7 @@ export function MapHub() {
               </p>
               <a
                 className="btn btn-primary ml-auto h-10! min-h-0!"
-                href={`https://maps.apple.com/?daddr=${trip.dest.lat},${trip.dest.lon}&dirflg=d`}
+                href={`https://maps.apple.com/?${trip.start ? `saddr=${trip.start.lat},${trip.start.lon}&` : ""}daddr=${trip.dest.lat},${trip.dest.lon}&dirflg=d`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

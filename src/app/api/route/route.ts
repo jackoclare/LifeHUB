@@ -62,7 +62,21 @@ export async function GET(req: Request) {
   const lat = Number(u.searchParams.get("lat"));
   const lon = Number(u.searchParams.get("lon"));
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return NextResponse.json({ error: "Need your location" }, { status: 400 });
-  const from = { lat, lon };
+  let from = { lat, lon };
+  let start: Hit | null = null;
+  // Optional typed start point ("from"), searched near the user
+  const fromQ = (u.searchParams.get("from") ?? "").trim().slice(0, 120);
+  if (fromQ) {
+    try {
+      const hits = (await search(fromQ, lat, lon)).filter((h) => Number.isFinite(h.lat) && km(from, h) < 400);
+      hits.sort((a, b) => km(from, a) - km(from, b));
+      start = hits[0] ?? null;
+    } catch {
+      return NextResponse.json({ error: "Place search isn't responding — try again" }, { status: 502 });
+    }
+    if (!start) return NextResponse.json({ error: `I couldn't find "${fromQ}"` }, { status: 404 });
+    from = { lat: start.lat, lon: start.lon };
+  }
 
   let dest: Hit | null = null;
   const toLat = Number(u.searchParams.get("toLat"));
@@ -83,7 +97,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${lon},${lat};${dest.lon},${dest.lat}?overview=full&geometries=geojson`, {
+    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${dest.lon},${dest.lat}?overview=full&geometries=geojson`, {
       headers: { "User-Agent": UA },
       cache: "no-store",
       signal: AbortSignal.timeout(10000),
@@ -93,6 +107,7 @@ export async function GET(req: Request) {
     if (!route) throw new Error("no route");
     return NextResponse.json({
       dest,
+      start,
       minutes: Math.max(1, Math.round(route.duration / 60)),
       miles: Math.round((route.distance / 1609.34) * 10) / 10,
       line: (route.geometry.coordinates as [number, number][]).map(([x, y]) => [y, x]),
@@ -100,6 +115,6 @@ export async function GET(req: Request) {
   } catch {
     // Route service down: still return the destination with a straight-line estimate
     const d = km(from, dest) * 0.621371;
-    return NextResponse.json({ dest, minutes: null, miles: Math.round(d * 10) / 10, line: null, note: "Couldn't get a driving route — showing distance as the crow flies" });
+    return NextResponse.json({ dest, start, minutes: null, miles: Math.round(d * 10) / 10, line: null, note: "Couldn't get a driving route — showing distance as the crow flies" });
   }
 }

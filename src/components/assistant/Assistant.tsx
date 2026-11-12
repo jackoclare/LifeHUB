@@ -189,15 +189,18 @@ export function Assistant() {
           case "directions": {
             const pos = await currentPosition(readPlace());
             if (!pos) return respond({ ok: false, text: "I need your location — allow location access and ask again." });
-            const r = await fetch(`/api/route?${new URLSearchParams({ q: intent.dest, lat: String(pos.lat), lon: String(pos.lon) })}`).then((x) => x.json());
+            const params: Record<string, string> = { q: intent.dest, lat: String(pos.lat), lon: String(pos.lon) };
+            if (intent.from) params.from = intent.from;
+            const r = await fetch(`/api/route?${new URLSearchParams(params)}`).then((x) => x.json());
+            const mapUrl = `/map?go=${encodeURIComponent(intent.dest)}${intent.from ? `&from=${encodeURIComponent(intent.from)}` : ""}`;
             if (r.error) return respond({ ok: false, text: r.error });
             const time = r.minutes == null ? null : r.minutes >= 60 ? `${Math.floor(r.minutes / 60)} hour${r.minutes >= 120 ? "s" : ""} ${r.minutes % 60} minutes` : `${r.minutes} minutes`;
             respond({
               ok: true,
-              text: `${r.dest.name}${r.dest.address ? `, ${r.dest.address.split(",")[0]}` : ""} is ${time ? `about ${time} away` : `${r.miles} miles away`} — ${r.miles} miles. Here's the route.`,
-              link: { href: `/map?go=${encodeURIComponent(intent.dest)}`, label: "Show on map" },
+              text: `${r.start ? `From ${r.start.name}, ` : ""}${r.dest.name}${r.dest.address ? `, ${r.dest.address.split(",")[0]}` : ""} is ${time ? `about ${time} away` : `${r.miles} miles away`} — ${r.miles} miles. Here's the route.`,
+              link: { href: mapUrl, label: "Show on map" },
             });
-            router.push(`/map?go=${encodeURIComponent(intent.dest)}`);
+            router.push(mapUrl);
             setTimeout(() => setOpen(false), 2500);
             break;
           }

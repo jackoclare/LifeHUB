@@ -1,6 +1,7 @@
 "use client";
 
-import { MapPin, Trophy } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, MapPin, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type Match, type TeamData, countdown, kickoffLabel, outcome } from "@/lib/football";
 
@@ -32,7 +33,7 @@ export function NextMatch({ data, compact = false }: { data: TeamData; compact?:
   if (!m) return <p className="text-sm text-muted">No upcoming fixture listed for {data.team.name ?? "this team"}.</p>;
   const cd = countdown(m.kickoff, now);
   return (
-    <div className={compact ? "" : "rounded-2xl bg-surface-2/70 p-4"}>
+    <Link href={`/sport/match/${m.id}`} className={`block rounded-2xl transition-colors hover:bg-surface-2 ${compact ? "-m-1 p-1" : "bg-surface-2/70 p-4"}`}>
       <div className="flex items-center justify-between gap-2 text-[0.68rem] font-semibold uppercase tracking-wider text-faint">
         <span className="truncate">{m.league}</span>
         {cd && <span className={`shrink-0 rounded-full px-2 py-0.5 ${cd === "Playing now" ? "bg-red-500/15 text-red-400" : "bg-accent-soft text-accent"}`}>{cd === "Playing now" ? "● LIVE" : `in ${cd}`}</span>}
@@ -54,7 +55,10 @@ export function NextMatch({ data, compact = false }: { data: TeamData; compact?:
           <MapPin size={11} /> {m.venue}
         </p>
       )}
-    </div>
+      <p className="mt-2 flex items-center justify-center gap-0.5 text-[0.7rem] font-semibold text-accent">
+        Match details & lineups <ChevronRight size={12} />
+      </p>
+    </Link>
   );
 }
 
@@ -79,7 +83,8 @@ export function MatchRow({ m, team }: { m: Match; team: string }) {
   const r = outcome(m, team);
   const played = m.homeScore != null;
   return (
-    <li className="flex items-center gap-3 py-2.5">
+    <li>
+      <Link href={`/sport/match/${m.id}`} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-surface-2">
       <span className="w-20 shrink-0 text-xs text-muted">{m.kickoff ? new Date(m.kickoff).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : m.date}</span>
       <span className="flex min-w-0 flex-1 items-center justify-end gap-2 text-right text-sm">
         <span className={`truncate ${m.home === team ? "font-semibold" : ""}`}>{m.home}</span>
@@ -95,6 +100,7 @@ export function MatchRow({ m, team }: { m: Match; team: string }) {
         <Crest src={m.awayBadge} alt="" size={20} />
         <span className={`truncate ${m.away === team ? "font-semibold" : ""}`}>{m.away}</span>
       </span>
+      </Link>
     </li>
   );
 }

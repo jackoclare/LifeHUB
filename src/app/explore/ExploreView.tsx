@@ -192,7 +192,7 @@ export function ExploreView() {
         </div>
       </div>
       <p className="text-xs text-faint">
-        Places from OpenStreetMap (© OpenStreetMap contributors). OSM doesn&apos;t include ratings, reviews or offers — those need a paid provider, which I&apos;ll only add if you
+        Places from Geoapify and OpenStreetMap (© OpenStreetMap contributors). OSM doesn&apos;t include ratings, reviews or offers — those need a paid provider, which I&apos;ll only add if you
         want.
       </p>
 

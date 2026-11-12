@@ -91,7 +91,7 @@ export function Dashboard() {
               {visible
                 .filter((c) => LIVE.has(c.id))
                 .map((c, i) => (
-                  <DashCard key={c.id} card={c} index={i} wholeLink={c.id !== "news" && c.id !== "sport-news" && c.id !== "weather"}>
+                  <DashCard key={c.id} card={c} index={i} wholeLink={!["news", "sport-news", "weather", "football"].includes(c.id)}>
                     {c.id === "football" ? (
                       <FootballSummary />
                     ) : c.id === "weather" ? (

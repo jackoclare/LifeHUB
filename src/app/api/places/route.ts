@@ -35,6 +35,66 @@ export type Place = {
   cuisine: string | null;
 };
 
+/** Geoapify categories (primary + broader fallback if a category name is rejected). */
+const GEO: Record<Cat, [string, string]> = {
+  restaurants: ["catering.restaurant", "catering.restaurant"],
+  pubs: ["catering.pub,catering.bar", "catering.pub"],
+  cafes: ["catering.cafe", "catering.cafe"],
+  takeaway: ["catering.fast_food", "catering.fast_food"],
+  attractions: ["tourism.attraction,tourism.sights,entertainment.museum,entertainment.zoo,entertainment.aquarium,entertainment.theme_park", "tourism"],
+  activities: ["entertainment.bowling_alley,entertainment.escape_game,entertainment.miniature_golf,entertainment.water_park,entertainment.activity_park,entertainment.amusement_arcade", "entertainment"],
+  entertainment: ["entertainment.cinema,entertainment.culture.theatre,entertainment.culture.arts_centre,adult.nightclub", "entertainment.cinema"],
+  outdoors: ["leisure.park", "leisure"],
+};
+
+type GeoFeature = {
+  properties: {
+    name?: string;
+    lat: number;
+    lon: number;
+    formatted?: string;
+    address_line2?: string;
+    categories?: string[];
+    opening_hours?: string;
+    website?: string;
+    contact?: { phone?: string };
+    catering?: { cuisine?: string };
+    place_id: string;
+    datasource?: { raw?: Record<string, string | number> };
+  };
+};
+
+async function fromGeoapify(key: string, lat: number, lon: number, cat: Cat, radius: number): Promise<Place[]> {
+  for (const cats of GEO[cat]) {
+    const url = `https://api.geoapify.com/v2/places?categories=${cats}&filter=circle:${lon},${lat},${radius}&bias=proximity:${lon},${lat}&limit=100&apiKey=${key}`;
+    const res = await fetch(url, { next: { revalidate: 86400 }, signal: AbortSignal.timeout(12000) });
+    if (res.status === 400) continue; // unknown category — try the broader one
+    if (!res.ok) throw new Error(`Geoapify ${res.status}`);
+    const data = (await res.json()) as { features: GeoFeature[] };
+    return data.features
+      .filter((f) => f.properties.name)
+      .map((f) => {
+        const p = f.properties;
+        const raw = p.datasource?.raw ?? {};
+        const kind = (p.categories ?? []).filter((c) => c.split(".").length >= 2).sort((a, b) => b.length - a.length)[0]?.split(".").pop() ?? "";
+        return {
+          id: raw.osm_id ? `${raw.osm_type === "w" ? "way" : raw.osm_type === "r" ? "relation" : "node"}/${raw.osm_id}` : `geo/${p.place_id}`,
+          name: p.name!,
+          category: cat,
+          kind: kind.replace(/_/g, " "),
+          lat: p.lat,
+          lon: p.lon,
+          address: p.address_line2 ?? p.formatted ?? null,
+          openingHours: p.opening_hours ?? (raw.opening_hours as string) ?? null,
+          website: p.website ?? (raw.website as string) ?? null,
+          phone: p.contact?.phone ?? (raw.phone as string) ?? null,
+          cuisine: p.catering?.cuisine ? p.catering.cuisine.replace(/_/g, " ").replace(/;/g, ", ") : null,
+        };
+      });
+  }
+  return [];
+}
+
 export async function GET(req: Request) {
   const sp = new URL(req.url).searchParams;
   const lat = Number(sp.get("lat"));
@@ -43,6 +103,15 @@ export async function GET(req: Request) {
   const radius = Math.min(Math.max(Number(sp.get("radius") ?? 2000), 300), 8000);
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || !(cat in CATEGORIES)) {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
+  }
+  const geoKey = process.env.GEOAPIFY_KEY;
+  if (geoKey) {
+    try {
+      const places = await fromGeoapify(geoKey, lat, lon, cat, radius);
+      return NextResponse.json({ source: "Geoapify / OpenStreetMap contributors", places }, { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" } });
+    } catch (e) {
+      console.error("[places] Geoapify failed, falling back to Overpass", (e as Error).message);
+    }
   }
   // round so nearby requests share the cache
   const rlat = lat.toFixed(3);

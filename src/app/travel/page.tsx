@@ -1,12 +1,14 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { PageHeader } from "@/components/PageHeader";
+import { findSection } from "@/lib/nav";
+import { TravelView } from "./TravelView";
 
 export const metadata = { title: "Travel" };
 
-export default function Page() {
+export default function TravelPage() {
   return (
-    <ComingSoon
-      href="/travel"
-      plans={["Interactive map — Spain, France, Italy, Greece, Portugal first", "Ten cheapest real options per search", "Flexible dates and trip lengths", "Saved destinations and price alerts", "Booked trips added to your calendar"]}
-    />
+    <>
+      <PageHeader section={findSection("/travel")} subtitle="Pick a destination, check the weather and search flights, hotels and holidays." />
+      <TravelView />
+    </>
   );
 }

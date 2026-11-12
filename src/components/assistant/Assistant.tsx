@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUp, Check, Mic, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { currentPosition } from "@/app/map/MapHub";
 import { createClient } from "@/lib/supabase/client";
 import { type Intent, parse } from "@/lib/assistant";
 import { guessAisle } from "@/app/shopping/ShoppingView";
@@ -16,7 +17,7 @@ import type { Bill } from "@/lib/types";
 
 type Reply = { text: string; ok: boolean; link?: { href: string; label: string }; lines?: string[] };
 
-const EXAMPLES = ["Add milk and 2 loaves of bread to the shopping list", "Dentist Friday at 3pm", "Remind me to call mum tomorrow at 6pm", "When's the next Villa game?", "What bills are due this week?", "Where's the cheapest diesel?", "Show me the weather"];
+const EXAMPLES = ["Add milk and 2 loaves of bread to the shopping list", "Dentist Friday at 3pm", "Remind me to call mum tomorrow at 6pm", "When's the next Villa game?", "What bills are due this week?", "Where's the cheapest diesel?", "Take me to Tesco Extra", "Show me the weather"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SR = any;
@@ -183,6 +184,21 @@ export function Assistant() {
                 link: { href: "/bills", label: "Open bills" },
               });
             }
+            break;
+          }
+          case "directions": {
+            const pos = await currentPosition(readPlace());
+            if (!pos) return respond({ ok: false, text: "I need your location — allow location access and ask again." });
+            const r = await fetch(`/api/route?${new URLSearchParams({ q: intent.dest, lat: String(pos.lat), lon: String(pos.lon) })}`).then((x) => x.json());
+            if (r.error) return respond({ ok: false, text: r.error });
+            const time = r.minutes == null ? null : r.minutes >= 60 ? `${Math.floor(r.minutes / 60)} hour${r.minutes >= 120 ? "s" : ""} ${r.minutes % 60} minutes` : `${r.minutes} minutes`;
+            respond({
+              ok: true,
+              text: `${r.dest.name}${r.dest.address ? `, ${r.dest.address.split(",")[0]}` : ""} is ${time ? `about ${time} away` : `${r.miles} miles away`} — ${r.miles} miles. Here's the route.`,
+              link: { href: `/map?go=${encodeURIComponent(intent.dest)}`, label: "Show on map" },
+            });
+            router.push(`/map?go=${encodeURIComponent(intent.dest)}`);
+            setTimeout(() => setOpen(false), 2500);
             break;
           }
           case "fuel": {

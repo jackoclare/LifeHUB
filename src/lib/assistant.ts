@@ -12,6 +12,7 @@ export type Intent =
   | { kind: "nextMatch"; team: "villa" | "england" | "any" }
   | { kind: "billsDue" }
   | { kind: "billsTotal" }
+  | { kind: "directions"; dest: string }
   | { kind: "fuel"; fuel: "E10" | "E5" | "B7_Standard" }
   | { kind: "help" }
   | { kind: "unknown"; text: string };
@@ -191,6 +192,16 @@ export function parse(input: string, now = new Date()): Intent {
   }
   if (/how much.*(bills?|spend|pay)|bills? total|total.*bills?/.test(t)) return { kind: "billsTotal" };
   if (/(what|which|any).*(bills?).*(due|coming|owe)|bills? (due|this week)/.test(t)) return { kind: "billsDue" };
+
+  // Directions: "take me to Tesco Extra", "how long to get to Villa Park", "directions to B90 4RT"
+  const dir =
+    t.match(/^(?:please )?(?:take me|directions|navigate|drive|route|sat ?nav|get me|guide me)(?: me)?(?: to| over to| down to)? (?:the )?(.+?)[?.!]*$/) ??
+    t.match(/how (?:long|far)(?: is it| will it take| does it take)?(?: me)?(?: to (?:get|drive))? to (?:the )?(.+?)[?.!]*$/);
+  if (dir) {
+    const dest = dir[1].replace(/\b(please|from here|now)\b/g, "").trim();
+    const isPage = PAGES.some(([re]) => re.test(dest)) && dest.split(" ").length <= 2 && !/\b(tesco|asda|aldi|lidl|station|park|road|street|hospital|airport)\b/.test(dest);
+    if (dest && !isPage) return { kind: "directions", dest };
+  }
 
   // Navigation
   if (/^(show|open|go to|take me to|see|view|display|let me see)\b|^(my )?\w+( page)?$/.test(t) || /\bshow me\b/.test(t)) {

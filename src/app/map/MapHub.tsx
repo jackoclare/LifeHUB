@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Fuel, Navigation, Plane } from "lucide-react";
+import { Bookmark, Clock, Fuel, Navigation, Plane, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapView, distanceKm, miles, type MapPoint } from "@/components/map/MapView";
@@ -29,6 +29,20 @@ type Sel = { kind: "fuel"; s: Station } | { kind: "holiday"; d: (typeof DESTINAT
 
 const UK = { lat: 52.6, lon: -1.6 };
 
+type Trip = { dest: { name: string; address: string; lat: number; lon: number }; minutes: number | null; miles: number; line: [number, number][] | null; note?: string };
+
+/** Best guess at where you are right now: live GPS (quick), else your saved location */
+export function currentPosition(fallback: { lat: number; lon: number } | null): Promise<{ lat: number; lon: number } | null> {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) return resolve(fallback);
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      () => resolve(fallback),
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 },
+    );
+  });
+}
+
 export function MapHub() {
   const { place } = usePlace();
   const { user } = useAuth();
@@ -42,6 +56,46 @@ export function MapHub() {
   const [zoom, setZoom] = useState(place ? 12 : 6);
   const saved = useRows<Saved>("saved_places", [{ column: "created_at", ascending: false }], Boolean(user) && layers.has("saved"));
   const seq = useRef(0);
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [tripBusy, setTripBusy] = useState(false);
+  const [tripError, setTripError] = useState<string | null>(null);
+  const [whereTo, setWhereTo] = useState("");
+
+  const go = useCallback(
+    async (params: Record<string, string>) => {
+      setTripBusy(true);
+      setTripError(null);
+      const pos = await currentPosition(me ?? place ?? null);
+      if (!pos) {
+        setTripBusy(false);
+        return setTripError("I need your location — allow location access or set it on the weather card.");
+      }
+      const qs = new URLSearchParams({ lat: String(pos.lat), lon: String(pos.lon), ...params });
+      try {
+        const r = await fetch(`/api/route?${qs}`);
+        const j = await r.json();
+        if (j.error) setTripError(j.error);
+        else {
+          setTrip(j as Trip);
+          setSelected(null);
+        }
+      } catch {
+        setTripError("Couldn't plan the route — check your signal.");
+      }
+      setTripBusy(false);
+    },
+    [me, place],
+  );
+
+  // Opened from the assistant: /map?go=tesco%20extra
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("go");
+    if (q) {
+      setWhereTo(q);
+      go({ q });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (place) setFocus(place);
@@ -94,8 +148,9 @@ export function MapHub() {
     if (layers.has("fuel")) out.push(...stations.slice(0, 120).map((s) => ({ id: `f:${s.node_id}`, lat: s.lat, lon: s.lon, color: fuelColor(s.price), label: s.brand ?? s.name, badge: Number(s.price).toFixed(1) })));
     if (layers.has("holidays")) out.push(...DESTINATIONS.map((d) => ({ id: `h:${d.code}`, lat: d.lat, lon: d.lon, color: "#0ea5e9", label: d.city, badge: d.code })));
     if (layers.has("saved")) out.push(...saved.rows.map((p) => ({ id: `s:${p.id}`, lat: p.lat, lon: p.lon, color: "#f97316", label: p.name })));
+    if (trip) out.push({ id: "t:dest", lat: trip.dest.lat, lon: trip.dest.lon, color: "#ef4444", label: trip.dest.name, badge: "🏁" });
     return out;
-  }, [layers, stations, saved.rows, fuelColor]);
+  }, [layers, stations, saved.rows, fuelColor, trip]);
 
   const sel: Sel | null = useMemo(() => {
     if (!selected) return null;
@@ -117,6 +172,30 @@ export function MapHub() {
 
   return (
     <div className="space-y-3">
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (whereTo.trim()) go({ q: whereTo.trim() });
+        }}
+      >
+        <label className="flex min-h-11 flex-1 items-center gap-2 rounded-full border border-line bg-bg-elevated px-4 focus-within:border-accent">
+          <Search size={16} className="shrink-0 text-faint" />
+          <input
+            value={whereTo}
+            onChange={(e) => setWhereTo(e.target.value)}
+            placeholder="Where to? e.g. Tesco Extra, B90 4RT, Villa Park"
+            enterKeyHint="go"
+            className="w-full bg-transparent text-base outline-none"
+            aria-label="Where to?"
+          />
+        </label>
+        <button className="btn btn-primary shrink-0 rounded-full!" disabled={tripBusy || !whereTo.trim()}>
+          <Navigation size={16} /> {tripBusy ? "…" : "Go"}
+        </button>
+      </form>
+      {tripError && <p className="text-sm text-red-400">{tripError}</p>}
+
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
         {LAYERS.filter((l) => l.id !== "saved" || user).map((l) => {
           const Icon = l.icon;
@@ -158,7 +237,38 @@ export function MapHub() {
           onView={setView}
           onLocation={setMe}
           points={points}
+          route={trip?.line ?? null}
         />
+        {trip && (
+          <div className="absolute inset-x-3 top-3 z-[500] mr-14 rounded-2xl bg-bg-elevated/95 p-3 shadow-xl backdrop-blur sm:right-auto sm:w-96">
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">{trip.dest.name}</p>
+                <p className="truncate text-xs text-muted">{trip.dest.address}</p>
+              </div>
+              <button aria-label="Clear route" className="grid size-8 shrink-0 place-items-center rounded-full text-faint hover:text-ink" onClick={() => (setTrip(null), setWhereTo(""))}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="mt-2 flex items-center gap-3">
+              <p className="flex items-baseline gap-1.5">
+                <Clock size={15} className="self-center text-accent" />
+                <span className="font-display text-2xl font-semibold">{trip.minutes != null ? (trip.minutes >= 60 ? `${Math.floor(trip.minutes / 60)} hr ${trip.minutes % 60} min` : `${trip.minutes} min`) : "—"}</span>
+                <span className="text-sm text-muted">{trip.miles} mi</span>
+              </p>
+              <a
+                className="btn btn-primary ml-auto h-10! min-h-0!"
+                href={`https://maps.apple.com/?daddr=${trip.dest.lat},${trip.dest.lon}&dirflg=d`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Navigation size={15} /> Start
+              </a>
+            </div>
+            {trip.note && <p className="mt-1 text-xs text-faint">{trip.note}</p>}
+            {trip.minutes != null && <p className="mt-1 text-[11px] text-faint">Typical drive time without live traffic · tap ◎ to follow yourself</p>}
+          </div>
+        )}
         {layers.has("fuel") && view && (
           <div className="pointer-events-none absolute bottom-3 left-3 z-[500] max-w-[70%]">
             {view.zoom < 10 ? (

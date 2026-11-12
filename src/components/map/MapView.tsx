@@ -22,6 +22,7 @@ export function MapView({
   live = false,
   onView,
   onLocation,
+  route,
 }: {
   points: MapPoint[];
   center: { lat: number; lon: number };
@@ -36,6 +37,8 @@ export function MapView({
   onView?: (v: { lat: number; lon: number; radiusKm: number; zoom: number }) => void;
   /** Called with each live GPS fix while following */
   onLocation?: (p: { lat: number; lon: number }) => void;
+  /** A driving route to draw ([lat, lon] pairs); the map zooms to fit it */
+  route?: [number, number][] | null;
 }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<LeafletMap | null>(null);
@@ -55,6 +58,9 @@ export function MapView({
   const navMarker = useRef<Marker | null>(null);
   const lastFix = useRef<{ lat: number; lon: number } | null>(null);
   const heading = useRef(0);
+  const routeLayer = useRef<LayerGroup | null>(null);
+  const routeRef = useRef(route);
+  routeRef.current = route;
 
   // create the map once
   useEffect(() => {
@@ -86,6 +92,7 @@ export function MapView({
       emit();
       setTiles();
       drawPoints();
+      drawRoute();
     })();
     const obs = new MutationObserver(() => setTiles());
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
@@ -139,6 +146,26 @@ export function MapView({
         .addTo(lg);
     }
   }
+
+  function drawRoute() {
+    const leaflet = L.current;
+    const m = map.current;
+    if (!leaflet || !m) return;
+    routeLayer.current?.remove();
+    routeLayer.current = null;
+    const r = routeRef.current;
+    if (!r || r.length < 2) return;
+    const g = leaflet.layerGroup().addTo(m);
+    leaflet.polyline(r, { color: "#ffffff", weight: 10, opacity: 0.9, lineCap: "round", lineJoin: "round" }).addTo(g);
+    leaflet.polyline(r, { color: "#3b82f6", weight: 6, opacity: 1, lineCap: "round", lineJoin: "round" }).addTo(g);
+    routeLayer.current = g;
+    if (!followRef.current) m.fitBounds(leaflet.latLngBounds(r), { padding: [50, 50] });
+  }
+
+  useEffect(() => {
+    drawRoute();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route]);
 
   useEffect(() => {
     drawPoints();

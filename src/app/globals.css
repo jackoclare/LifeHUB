@@ -6,14 +6,14 @@
 /* ---------- Design tokens ---------- */
 :root {
   /* Light theme */
-  --bg: #f4f2ee;
+  --bg: #f5f5f7;
   --bg-elevated: #ffffff;
   --surface: #ffffff;
-  --surface-2: #efece6;
-  --border: rgb(20 18 14 / 0.08);
-  --text: #16140f;
-  --text-muted: #6b665c;
-  --text-faint: #9a9488;
+  --surface-2: #f0f0f3;
+  --border: rgb(10 10 15 / 0.09);
+  --text: #0a0a0c;
+  --text-muted: #5b5b66;
+  --text-faint: #8e8e99;
   --accent: #e8572f;
   --accent-soft: rgb(232 87 47 / 0.12);
   --ring: rgb(232 87 47 / 0.45);
@@ -31,18 +31,18 @@
 }
 
 [data-theme="dark"] {
-  --bg: #0c0d10;
-  --bg-elevated: #121318;
-  --surface: #16181e;
-  --surface-2: #1d2027;
-  --border: rgb(255 255 255 / 0.07);
-  --text: #f3f1ec;
-  --text-muted: #a19d94;
-  --text-faint: #6c6961;
+  --bg: #09090b;
+  --bg-elevated: #0f0f12;
+  --surface: #141417;
+  --surface-2: #1c1c21;
+  --border: rgb(255 255 255 / 0.085);
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-faint: #71717a;
   --accent: #ff6b3d;
   --accent-soft: rgb(255 107 61 / 0.14);
   --ring: rgb(255 107 61 / 0.5);
-  --shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  --shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 28px -14px rgb(0 0 0 / 0.7);
 
   --c-money: #4ade9a;
   --c-travel: #60a5fa;
@@ -88,8 +88,11 @@ html[data-theme="dark"] {
 body {
   min-height: 100dvh;
   font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv11";
+  font-feature-settings: "cv11", "ss01", "ss03";
+  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Smooth theme changes, without animating on first paint */
@@ -141,12 +144,12 @@ html.theme-ready .card {
   width: 60vmax;
   height: 60vmax;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.18;
+  filter: blur(90px);
+  opacity: 0.11;
   will-change: transform;
 }
 [data-theme="light"] .aurora span {
-  opacity: 0.14;
+  opacity: 0.08;
 }
 .aurora span:nth-child(1) {
   background: var(--accent);
@@ -543,11 +546,21 @@ html.theme-ready .card {
 }
 
 /* ---------- Reusable pieces ---------- */
+h1,
+h2,
+h3,
+.font-display {
+  letter-spacing: -0.022em;
+}
+.tabular-nums {
+  font-feature-settings: "tnum", "cv11";
+}
+
 @layer components {
   .card {
-    background: color-mix(in srgb, var(--surface) 86%, transparent);
-    -webkit-backdrop-filter: blur(18px) saturate(1.3);
-    backdrop-filter: blur(18px) saturate(1.3);
+    background: color-mix(in srgb, var(--surface) 96%, transparent);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow);
@@ -563,6 +576,7 @@ html.theme-ready .card {
     letter-spacing: 0.01em;
     background: var(--surface-2);
     color: var(--text-muted);
+    box-shadow: inset 0 0 0 1px var(--border);
   }
   .btn {
     display: inline-flex;
@@ -586,6 +600,10 @@ html.theme-ready .card {
   .btn-ghost {
     background: var(--surface-2);
     color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .btn-primary {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 6px 16px -8px var(--accent);
   }
   .icon-tile {
     display: grid;
@@ -593,8 +611,9 @@ html.theme-ready .card {
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 0.8rem;
-    background: color-mix(in srgb, var(--tile) 16%, transparent);
-    color: var(--tile);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--tile) 100%, white 12%), color-mix(in srgb, var(--tile) 100%, black 18%));
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 4px 12px -4px color-mix(in srgb, var(--tile) 70%, transparent);
     transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
   }
 }

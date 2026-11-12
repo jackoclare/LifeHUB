@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Space_Grotesk } from "next/font/google";
+import { Inter, Inter_Tight } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import { AuthProvider } from "@/components/AuthProvider";
 import "./globals.css";
 
-const body = Manrope({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-const heading = Space_Grotesk({ subsets: ["latin"], variable: "--font-heading", display: "swap" });
+const body = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+const heading = Inter_Tight({ subsets: ["latin"], variable: "--font-heading", display: "swap", weight: ["500", "600", "700", "800"] });
 
 export const metadata: Metadata = {
   title: { default: "MyLife Hub", template: "%s · MyLife Hub" },

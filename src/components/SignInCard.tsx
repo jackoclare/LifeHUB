@@ -15,11 +15,21 @@ export function SignInCard({ reason }: { reason?: string }) {
     setPinBusy(true);
     setPinError(null);
     try {
-      const res = await fetch("/api/unlock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin }) });
+      // PIN is checked by the Supabase `unlock` function, which returns a one-time sign-in token on success
+      const supabase = createClient();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/unlock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "" },
+        body: JSON.stringify({ pin }),
+      });
       const data = await res.json().catch(() => ({}));
-      if (data.ok) {
-        window.location.reload();
-        return;
+      if (data.ok && data.token_hash) {
+        const { error } = await supabase.auth.verifyOtp({ type: "magiclink", token_hash: data.token_hash });
+        if (!error) {
+          window.location.reload();
+          return;
+        }
+        data.reason = "server_error";
       }
       if (data.reason === "locked") {
         const until = data.locked_until ? new Date(data.locked_until).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "later";

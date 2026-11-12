@@ -33,6 +33,8 @@ export function Assistant() {
   const [canListen, setCanListen] = useState(false);
   const recRef = useRef<SR>(null);
   const finalRef = useRef("");
+  const heardRef = useRef("");
+  const [hint, setHint] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -189,12 +191,14 @@ export function Assistant() {
       recRef.current?.stop();
       return;
     }
-    window.speechSynthesis?.cancel();
+    primeSpeech();
+    setHint(null);
     const rec = new Rec();
     rec.lang = "en-GB";
     rec.interimResults = true;
     rec.continuous = false;
     finalRef.current = "";
+    heardRef.current = "";
     rec.onresult = (e: SR) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -202,19 +206,34 @@ export function Assistant() {
         if (r.isFinal) finalRef.current += r[0].transcript;
         else interim += r[0].transcript;
       }
-      setText((finalRef.current + interim).trim());
+      heardRef.current = (finalRef.current + interim).trim();
+      setText(heardRef.current);
     };
-    rec.onerror = () => setListening(false);
+    rec.onerror = (e: SR) => {
+      setListening(false);
+      const code = String(e?.error ?? "");
+      if (code === "no-speech" || code === "aborted") setHint("I didn't hear anything — tap the mic and try again.");
+      else if (code === "not-allowed" || code === "service-not-allowed")
+        setHint("The microphone is blocked here. On iPhone: Settings → Apps → Safari → Microphone → Allow, or type below and use the 🎤 on your keyboard.");
+      else if (code === "network") setHint("Speech recognition needs an internet connection — try again, or type below.");
+      else setHint("Voice didn't work that time — type below, or use the 🎤 on your keyboard.");
+    };
     rec.onend = () => {
       setListening(false);
-      const said = finalRef.current.trim();
+      // Safari often ends without marking a result as final, so fall back to everything heard
+      const said = (finalRef.current.trim() || heardRef.current).trim();
       if (said) run(said);
     };
     recRef.current = rec;
     setReply(null);
     setText("");
     setListening(true);
-    rec.start();
+    try {
+      rec.start();
+    } catch {
+      setListening(false);
+      setHint("Voice isn't available here — type below, or use the 🎤 on your keyboard.");
+    }
   };
 
   // Close on Escape
@@ -281,7 +300,7 @@ export function Assistant() {
                 </span>
               </button>
               <p className="mt-4 min-h-6 text-center text-sm text-muted" aria-live="polite">
-                {listening ? "Listening…" : busy ? "Working on it…" : canListen ? "Tap the mic and speak" : "Type below — or tap the 🎤 on your keyboard to speak"}
+                {listening ? "Listening… tap again when you've finished" : busy ? "Working on it…" : hint ? hint : canListen ? "Tap the mic and speak" : "Type below — or tap the 🎤 on your keyboard to speak"}
               </p>
               {text && <p className="mt-1 max-w-sm text-center font-display text-lg font-semibold leading-snug">“{text}”</p>}
             </div>
@@ -319,7 +338,7 @@ export function Assistant() {
                 !text && (
                   <div className="flex flex-wrap justify-center gap-2">
                     {EXAMPLES.slice(0, 4).map((ex) => (
-                      <button key={ex} className="chip min-h-9 px-3!" onClick={() => (setText(ex), run(ex))}>
+                      <button key={ex} className="chip min-h-9 px-3!" onClick={() => (primeSpeech(), setText(ex), run(ex))}>
                         {ex}
                       </button>
                     ))}
@@ -333,6 +352,7 @@ export function Assistant() {
               className="mt-4 flex gap-2 border-t border-line p-4"
               onSubmit={(e) => {
                 e.preventDefault();
+                primeSpeech();
                 run(text);
               }}
             >
@@ -364,3 +384,16 @@ const fmtTime = (t: string) => {
   return m ? `${h12}:${String(m).padStart(2, "0")}${ap}` : `${h12}${ap}`;
 };
 const listJoin = (a: string[]) => (a.length <= 1 ? (a[0] ?? "") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`);
+
+// iOS only lets a page speak if speech was started inside a tap — speak a silent utterance on tap to unlock it
+function primeSpeech() {
+  try {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+  } catch {
+    /* ignore */
+  }
+}

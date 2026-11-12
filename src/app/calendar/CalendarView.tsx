@@ -138,19 +138,32 @@ export function CalendarView() {
           ) : (
             <ul key={selected} className="stagger mt-4 space-y-2">
               {dayEvents.map((e, i) => (
-                <li key={e.id} style={{ "--i": i } as React.CSSProperties} className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5">
+                <li key={e.id} style={{ "--i": i } as React.CSSProperties}>
+                  {e.readOnly ? (
+                    <Link
+                      href={e.kind === "bill" ? "/bills" : e.id.startsWith("match-") ? `/sport/match/${e.id.slice(6)}` : "/sport"}
+                      className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5 transition-colors hover:brightness-110 active:scale-[0.99]"
+                      aria-label={`Open ${e.title}`}
+                    >
+                      <span className="h-8 w-1 rounded-full" style={{ background: kindInfo[e.kind].color }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{e.title}</p>
+                        <p className="text-xs text-muted">
+                          {e.kind === "bill" ? money(e.amount) : (e.time ?? "All day")} · {e.kind === "football" ? "Lineups & match details" : kindInfo[e.kind].label}
+                        </p>
+                      </div>
+                      <ChevronRight size={16} className="shrink-0 text-faint" />
+                    </Link>
+                  ) : (
+                  <div className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5">
                   <span className="h-8 w-1 rounded-full" style={{ background: kindInfo[e.kind].color }} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{e.title}</p>
                     <p className="text-xs text-muted">
-                      {e.kind === "bill" ? money(e.amount) : (e.time ?? "All day")} · {kindInfo[e.kind].label}
+                      {e.time ?? "All day"} · {kindInfo[e.kind].label}
                     </p>
                   </div>
-                  {e.readOnly ? (
-                    <Link href={e.kind === "bill" ? "/bills" : "/sport"} className="grid size-10 place-items-center rounded-full text-faint hover:text-ink" aria-label={`Open ${e.title}`}>
-                      <ChevronRight size={16} />
-                    </Link>
-                  ) : (
+                  {(
                     <button
                       onClick={async () => setErr(await remove(e.id))}
                       className="grid size-10 place-items-center rounded-full text-faint hover:text-ink"
@@ -158,6 +171,8 @@ export function CalendarView() {
                     >
                       <Trash2 size={16} />
                     </button>
+                  )}
+                  </div>
                   )}
                 </li>
               ))}

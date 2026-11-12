@@ -91,7 +91,7 @@ export function Dashboard() {
               {visible
                 .filter((c) => LIVE.has(c.id))
                 .map((c, i) => (
-                  <DashCard key={c.id} card={c} index={i} wholeLink={!["news", "sport-news", "weather", "football"].includes(c.id)}>
+                  <DashCard key={c.id} card={c} index={i} wholeLink={!["news", "sport-news", "weather", "football", "calendar", "reminders"].includes(c.id)}>
                     {c.id === "football" ? (
                       <FootballSummary />
                     ) : c.id === "weather" ? (
@@ -157,7 +157,7 @@ function Hero({ now, next, editing, onToggleEdit }: { now: Date | null; next?: R
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <Link href="/calendar" className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-xl bg-surface-2/80 px-3.5 py-2 text-sm transition-colors hover:bg-surface-2">
+        <Link href={next?.id.startsWith("match-") ? `/sport/match/${next.id.slice(6)}` : next?.kind === "bill" ? "/bills" : "/calendar"} className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-xl bg-surface-2/80 px-3.5 py-2 text-sm transition-colors hover:bg-surface-2">
           <CalendarDays size={16} className="shrink-0 text-accent" />
           {next ? (
             <span className="truncate">
@@ -257,13 +257,17 @@ function FootballSummary() {
       {first && <NextMatch data={first} compact />}
       {teams.slice(1).map((d) =>
         d.next[0] ? (
-          <p key={d.team.id} className="flex items-center gap-2 border-t border-line pt-2 text-xs text-muted">
+          <Link
+            key={d.team.id}
+            href={`/sport/match/${d.next[0].id}`}
+            className="-mx-1 flex min-h-11 items-center gap-2 rounded-xl border-t border-line px-1 pt-2 text-xs text-muted transition-colors hover:bg-surface-2 active:scale-[0.99]"
+          >
             <Crest src={d.team.badge} alt="" size={18} />
-            <span className="min-w-0 flex-1 truncate">
+            <span className="min-w-0 flex-1 truncate font-medium text-ink">
               {d.next[0].home} v {d.next[0].away}
             </span>
             <span className="shrink-0">{kickoffLabel(d.next[0])}</span>
-          </p>
+          </Link>
         ) : null,
       )}
     </div>
@@ -302,7 +306,11 @@ function EventList({ items, empty }: { items: ReturnType<typeof upcoming>; empty
         const d = fromISODate(e.date);
         const color = kindInfo[e.kind].color;
         return (
-          <li key={e.id} className="flex items-center gap-3 rounded-xl px-1 py-1">
+          <li key={e.id}>
+            <Link
+              href={e.id.startsWith("match-") ? `/sport/match/${e.id.slice(6)}` : e.kind === "bill" ? "/bills" : "/calendar"}
+              className="-mx-1 flex items-center gap-3 rounded-xl px-1 py-1 transition-colors hover:bg-surface-2 active:scale-[0.99]"
+            >
             <span
               className="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl leading-none"
               style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
@@ -317,6 +325,7 @@ function EventList({ items, empty }: { items: ReturnType<typeof upcoming>; empty
                 {e.time ? ` · ${e.time}` : ""} · {e.kind === "bill" && e.amount != null ? money(e.amount) : kindInfo[e.kind].label}
               </span>
             </span>
+            </Link>
           </li>
         );
       })}

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
 import { metRegion } from "@/components/weather/WeatherWidgets";
-import { useCalendarEvents } from "@/lib/calendar";
+import { upcoming, useCalendarEvents } from "@/lib/calendar";
 import { createClient } from "@/lib/supabase/client";
 import { usePlace } from "@/lib/weather";
 
@@ -74,7 +74,9 @@ export function useAlerts() {
 
   return useMemo(() => {
     const fromCalendar: Alert[] = [];
+    const stillToCome = new Set(upcoming(events, 60).map((e) => e.id));
     for (const e of events) {
+      if (e.kind !== "bill" && !stillToCome.has(e.id)) continue; // finished matches/reminders drop off
       const d = daysUntil(e.date);
       if (e.kind === "bill" && d <= 7) fromCalendar.push({ id: `cal-${e.id}`, emoji: "💷", title: `${e.title}${e.amount != null ? ` — £${Number(e.amount).toFixed(2)}` : ""}`, detail: `Bill ${when(d).toLowerCase()}`, days: d, href: "/bills" });
       else if (e.kind === "reminder" && d >= 0 && d <= 3) fromCalendar.push({ id: `cal-${e.id}`, emoji: "🔔", title: e.title, detail: `${when(d)}${e.time ? ` at ${e.time}` : ""}`, days: d, href: "/calendar" });

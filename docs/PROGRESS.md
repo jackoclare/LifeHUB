@@ -38,8 +38,11 @@
 - [x] Bills: add/edit/delete, 8 frequencies, mark paid / undo, overdue, totals, sortable spreadsheet, 12-month + category charts, company logos
 - [x] Shopping lists: multiple lists, aisle auto-sorting, big tick buttons, quantities, prices, running total, "often bought"
 - [x] Wish list: priority, price vs target, price history sparkline, links, images, bought filter
-- [ ] Jack creates his account → Claude imports his bills from his bills sheet
-- [ ] After Jack's account exists: turn off new sign-ups in Supabase so nobody else can register
+- [x] Jack created his account; 8 bills imported from his bills sheet (IWNL paused: no amount/day on the sheet)
+- [x] PIN unlock: per-person PIN (bcrypt), server-checked, lock-out after 5 wrong tries; set in Settings
+- [ ] Jack pastes SUPABASE_SECRET_KEY into Vercel (needed for PIN unlock), then redeploy
+- [x] Live news: BBC RSS (top, UK, football, sport) — scrolling ticker, rotating headline cards, /news page
+- Sign-ups stay open: Jack may add accounts for other people later (each sees only their own data)
 
 ## Later phases
 
@@ -52,4 +55,5 @@
 
 - 12 Nov: Calendar added to Phase 1 as a core section. Bills (Phase 2) and favourite-team fixtures (Phase 4) will feed into it automatically.
 - 12 Nov: Vercel account is the free Hobby plan (its name is "Permanent Recruitment Solutions" but it is personal). No paid plans needed.
+- 12 Nov: Jack chose a PIN instead of email/password for everyday unlocking.
 - 12 Nov: Until sign-in exists, dashboard layout and calendar events are stored on each device only.

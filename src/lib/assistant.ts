@@ -13,6 +13,8 @@ export type Intent =
   | { kind: "billsDue" }
   | { kind: "billsTotal" }
   | { kind: "directions"; dest: string; from?: string }
+  | { kind: "carDue"; what: "mot" | "tax" | "insurance" | "service" | "all" }
+  | { kind: "findDoc"; q: string }
   | { kind: "fuel"; fuel: "E10" | "E5" | "B7_Standard" }
   | { kind: "help" }
   | { kind: "unknown"; text: string };
@@ -34,6 +36,9 @@ const PAGES: [RegExp, string, string][] = [
   [/\bdarts\b/, "/sport", "Sport"],
   [/\bsport\b|\bfootball\b|\bfixtures?\b|\bscores?\b|\btable\b/, "/sport", "Sport"],
   [/\bmaps?\b|\bsat ?nav\b/, "/map", "Map"],
+  [/\b(car|cars|vehicles?|mot)\b/, "/car", "Car"],
+  [/\b(documents?|docs|wallet)\b/, "/documents", "Documents"],
+  [/\b(alerts?|notifications?)\b/, "/alerts", "Alerts"],
   [/\btravel\b|\bholidays?\b|\bflights?\b/, "/travel", "Travel"],
   [/\bexplore\b|\brestaurants?\b|\bpubs?\b|\bcaf(e|é)s?\b|\bthings to do\b/, "/explore", "Explore"],
   [/\bfuel\b|\bpetrol\b|\bdiesel\b/, "/fuel", "Fuel"],
@@ -47,13 +52,17 @@ export function parseDate(text: string, now = new Date()): string | null {
   const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if (/\btoday\b|\btonight\b/.test(t)) return iso(base);
   if (/\btomorrow\b/.test(t)) return iso(new Date(base.getTime() + 86400000));
-  const inDays = t.match(/\bin (\d+|a|one|two|three|four|five|six|seven) (day|week)s?\b/);
+  const inDays = t.match(/\bin (\d+|a|one|two|three|four|five|six|seven) (day|week|month)s?\b/);
   if (inDays) {
     const n = NUMBERS[inDays[1]] ?? Number(inDays[1]);
     const d = new Date(base);
-    d.setDate(d.getDate() + n * (inDays[2] === "week" ? 7 : 1));
+    if (inDays[2] === "month") d.setMonth(d.getMonth() + n);
+    else d.setDate(d.getDate() + n * (inDays[2] === "week" ? 7 : 1));
     return iso(d);
   }
+  if (/\bnext month\b/.test(t)) return iso(new Date(base.getFullYear(), base.getMonth() + 1, Math.min(base.getDate(), 28)));
+  if (/\bnext week\b/.test(t)) return iso(new Date(base.getTime() + 7 * 86400000));
+  if (/\bnext year\b/.test(t)) return iso(new Date(base.getFullYear() + 1, base.getMonth(), base.getDate()));
   const wd = t.match(/\b(next |this )?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
   if (wd) {
     const target = WEEKDAYS.indexOf(wd[2]);
@@ -113,7 +122,8 @@ export function parseTime(text: string): string | null {
 function stripWhen(s: string) {
   return s
     .replace(/\b(on |for |this |next )?(today|tonight|tomorrow|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/gi, "")
-    .replace(/\bin (\d+|a|one|two|three|four|five|six|seven) (day|week)s?\b/gi, "")
+    .replace(/\bin (\d+|a|one|two|three|four|five|six|seven) (day|week|month)s?\b/gi, "")
+    .replace(/\bnext (week|month|year)\b/gi, "")
     .replace(/\b(on )?(the )?\d{1,2}(st|nd|rd|th)?( of)? (jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\b/gi, "")
     .replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]* \d{1,2}(st|nd|rd|th)?\b/gi, "")
     .replace(/\b(on )?the \d{1,2}(st|nd|rd|th)\b/gi, "")
@@ -192,6 +202,16 @@ export function parse(input: string, now = new Date()): Intent {
   }
   if (/how much.*(bills?|spend|pay)|bills? total|total.*bills?/.test(t)) return { kind: "billsTotal" };
   if (/(what|which|any).*(bills?).*(due|coming|owe)|bills? (due|this week)/.test(t)) return { kind: "billsDue" };
+
+  // Car: "when's my MOT due", "is my car taxed", "when does my car insurance run out"
+  if (/\b(mot|road tax|car tax|taxed|car insurance|insurance|service|servicing)\b/.test(t) && /\b(when|due|expire|expires|run out|renew|next|is my|taxed)\b/.test(t) && !/\b(add|remind me)\b/.test(t)) {
+    const what = /\bmot\b/.test(t) ? "mot" : /\btax/.test(t) ? "tax" : /insurance/.test(t) ? "insurance" : /servic/.test(t) ? "service" : "all";
+    // "insurance" alone could be a document — car words or MOT/tax make it the car
+    if (what !== "insurance" || /\bcar\b|\bvan\b/.test(t)) return { kind: "carDue", what };
+  }
+  // Documents: "find my holiday booking", "when does my insurance expire", "show my warranty"
+  const doc = t.match(/^(?:find|show|open|where(?:'s| is)) (?:me )?(?:my )?(.+?)(?: document| doc| file)?[?.!]*$/) ?? t.match(/when does (?:my )?(.+?) (?:expire|run out|end)/);
+  if (doc && /\b(insurance|warranty|booking|receipt|certificate|passport|policy|document|doc|ticket|contract|licence|license)\b/.test(doc[1])) return { kind: "findDoc", q: doc[1] };
 
   // Directions: "take me to Tesco Extra", "how long to get to Villa Park", "directions to B90 4RT"
   const dir =

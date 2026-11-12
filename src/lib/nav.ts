@@ -5,7 +5,6 @@ import {
   Fuel,
   Gift,
   House,
-  LayoutGrid,
   MapPinned,
   Newspaper,
   Plane,
@@ -15,7 +14,7 @@ import {
   Tag,
   Trophy,
   Tv,
-  type LucideIcon, Map as MapIcon, Sparkles as SparklesIcon } from "lucide-react";
+  type LucideIcon, Map as MapIcon, Sparkles as SparklesIcon, Bell, Car, FolderLock, Compass, CircleUserRound } from "lucide-react";
 
 export type Section = {
   href: string;
@@ -31,10 +30,12 @@ export type Section = {
 
 export const sections: Section[] = [
   { href: "/", label: "Dashboard", short: "Home", icon: House, color: "var(--accent)", phase: 1, group: "Home", blurb: "Your day at a glance." },
+  { href: "/alerts", label: "Alerts", icon: Bell, color: "#ff3b30", phase: 6, group: "Home", blurb: "Everything that needs your attention, in one place." },
   { href: "/calendar", label: "Calendar", icon: CalendarDays, color: "var(--c-travel)", phase: 1, group: "Home", blurb: "Bills, matches, trips and reminders in one calendar." },
 
   { href: "/bills", label: "Bills", icon: ReceiptPoundSterling, color: "var(--c-money)", phase: 2, group: "Money & lists", blurb: "Track bills, due dates and monthly spending." },
   { href: "/shopping", label: "Shopping list", short: "Shopping", icon: ShoppingBasket, color: "var(--c-shop)", phase: 2, group: "Money & lists", blurb: "Supermarket lists you can tick off as you go." },
+  { href: "/documents", label: "Documents", icon: FolderLock, color: "var(--c-tv)", phase: 2, group: "Money & lists", blurb: "Private wallet for insurance, warranties, receipts and bookings." },
   { href: "/wishlist", label: "Wish list", icon: Gift, color: "var(--c-shop)", phase: 2, group: "Money & lists", blurb: "Things you want, with target prices and price drops." },
 
   { href: "/weather", label: "Weather", icon: CloudSun, color: "var(--c-travel)", phase: 3, group: "Discover", blurb: "Live forecast for where you are." },
@@ -42,6 +43,7 @@ export const sections: Section[] = [
   { href: "/travel", label: "Travel", icon: Plane, color: "var(--c-travel)", phase: 3, group: "Discover", blurb: "Destinations map, weather and one-tap flight, hotel and holiday searches." },
   { href: "/ai", label: "AI chat", short: "AI", icon: SparklesIcon, color: "var(--accent)", phase: 3, group: "Discover", blurb: "ChatGPT: ask anything, send photos, create and edit images." },
   { href: "/map", label: "Map", icon: MapIcon, color: "var(--c-discover)", phase: 3, group: "Discover", blurb: "One big map: fuel prices, holidays abroad, saved places and sat-nav follow-me." },
+  { href: "/car", label: "Car", icon: Car, color: "var(--c-travel)", phase: 3, group: "Discover", blurb: "Your vehicles, MOT, tax, insurance and running costs." },
   { href: "/fuel", label: "Fuel", icon: Fuel, color: "var(--c-discover)", phase: 3, group: "Discover", blurb: "Cheapest and nearest UK fuel prices." },
   { href: "/explore", label: "Explore", icon: MapPinned, color: "var(--c-discover)", phase: 3, group: "Discover", blurb: "Restaurants, pubs, days out and events near you." },
 
@@ -57,10 +59,10 @@ export const sections: Section[] = [
 /** The five tabs on the iPhone bottom bar. */
 export const mobileTabs = [
   sections[0], // Home
-  sections[1], // Calendar
-  sections.find((s) => s.href === "/bills")!,
-  sections.find((s) => s.href === "/sport")!,
-  { href: "/menu", label: "More", short: "More", icon: LayoutGrid, color: "var(--text-muted)", phase: 1, group: "App", blurb: "" } satisfies Section,
+  sections.find((s) => s.href === "/ai")!,
+  { href: "/menu", label: "Explore", short: "Explore", icon: Compass, color: "var(--accent)", phase: 1, group: "App", blurb: "" } satisfies Section,
+  sections.find((s) => s.href === "/alerts")!,
+  { href: "/settings", label: "Profile", short: "Profile", icon: CircleUserRound, color: "var(--accent)", phase: 1, group: "App", blurb: "" } satisfies Section,
 ];
 
 export const groups = ["Home", "Money & lists", "Discover", "Sport & TV", "Health", "App"] as const;

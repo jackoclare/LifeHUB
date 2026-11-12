@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const tabIndex = mobileTabs.findIndex((t) => isActive(pathname, t.href));
   // Any section not on the bar (Travel, Fuel…) highlights "More"
-  const activeTab = tabIndex >= 0 ? tabIndex : mobileTabs.length - 1;
+  const activeTab = tabIndex >= 0 ? tabIndex : 2; // any other page lives under Explore
   useEffect(() => {
     autoLocate();
   }, []);

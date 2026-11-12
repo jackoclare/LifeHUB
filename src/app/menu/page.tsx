@@ -3,12 +3,12 @@ import { ChevronRight } from "lucide-react";
 import { groups, sections } from "@/lib/nav";
 import { PageHeader } from "@/components/PageHeader";
 
-export const metadata = { title: "Everything" };
+export const metadata = { title: "Explore" };
 
 export default function MenuPage() {
   return (
     <>
-      <PageHeader title="Everything" subtitle="All sections of LifeHub." />
+      <PageHeader title="Explore" subtitle="Everything in LifeHub." />
       <div className="space-y-6">
         {groups.map((g) => (
           <section key={g}>

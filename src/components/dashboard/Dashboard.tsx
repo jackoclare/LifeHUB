@@ -7,6 +7,7 @@ import { cards, type CardDef, useDashboardPrefs } from "@/lib/dashboard";
 import { formatDay, fromISODate, kindInfo, upcoming, useCalendarEvents } from "@/lib/calendar";
 import { phaseNames } from "@/lib/nav";
 import { HeadlineRotator, LiveBadge, NewsTicker } from "@/components/news/NewsWidgets";
+import { DailyBriefing } from "./DailyBriefing";
 import { WeatherSummary } from "@/components/weather/WeatherWidgets";
 import { Crest, NextMatch } from "@/components/sport/SportWidgets";
 import { DEFAULT_TEAMS, kickoffLabel, useTeams } from "@/lib/football";
@@ -49,6 +50,7 @@ export function Dashboard() {
           <NewsTicker />
         </div>
       )}
+      {!editing && <DailyBriefing events={events} />}
 
       {editing ? (
         <section className="card overflow-hidden">

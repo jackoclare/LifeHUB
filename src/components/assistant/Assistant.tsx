@@ -207,6 +207,43 @@ export function Assistant() {
             setTimeout(() => setOpen(false), 2500);
             break;
           }
+          case "carDue": {
+            const { data } = await supabase.from("vehicles").select("make,model,nickname,reg,mot_due,tax_due,insurance_due,service_due");
+            if (!data?.length) return respond({ ok: false, text: "You haven't added a vehicle yet.", link: { href: "/car", label: "Add your car" } });
+            const labels = { mot: ["mot_due", "MOT"], tax: ["tax_due", "road tax"], insurance: ["insurance_due", "insurance"], service: ["service_due", "service"] } as const;
+            const keys = intent.what === "all" ? (["mot", "tax", "insurance", "service"] as const) : ([intent.what] as const);
+            const fmt = (iso: string) => {
+              const d = Math.round((new Date(`${iso}T12:00:00`).getTime() - new Date(new Date().toDateString() + " 12:00").getTime()) / 864e5);
+              return `${new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long" })} (${d < 0 ? `${-d} days overdue` : d === 0 ? "today" : `in ${d} days`})`;
+            };
+            const lines: string[] = [];
+            for (const v of data) {
+              const name = v.nickname || `${v.make} ${v.model ?? ""}`.trim();
+              for (const k of keys) {
+                const [col, label] = labels[k];
+                const iso = (v as Record<string, string | null>)[col];
+                lines.push(iso ? `${name}: ${label} ${fmt(iso)}` : `${name}: no ${label} date saved`);
+              }
+            }
+            respond({ ok: true, text: lines[0] + (lines.length > 1 ? "" : "."), lines: lines.length > 1 ? lines : undefined, link: { href: "/car", label: "Open Car" } });
+            break;
+          }
+          case "findDoc": {
+            const words = intent.q.split(/\s+/).filter((w) => w.length > 2 && !["the", "and", "for"].includes(w));
+            const { data } = await supabase.from("documents").select("id,title,category,expires_on,notes");
+            const hits = (data ?? []).filter((d) => words.some((w) => `${d.title} ${d.category} ${d.notes ?? ""}`.toLowerCase().includes(w.toLowerCase())));
+            if (!hits.length) return respond({ ok: false, text: `I couldn't find "${intent.q}" in your documents.`, link: { href: "/documents", label: "Open documents" } });
+            const exp = hits.find((d) => d.expires_on);
+            respond({
+              ok: true,
+              text: exp
+                ? `${exp.title} expires on ${new Date(`${exp.expires_on}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.`
+                : `I found ${hits.length === 1 ? `"${hits[0].title}"` : `${hits.length} documents`}.`,
+              lines: hits.length > 1 ? hits.slice(0, 5).map((d) => d.title) : undefined,
+              link: { href: "/documents", label: "Open documents" },
+            });
+            break;
+          }
           case "fuel": {
             const place = readPlace();
             if (!place) return respond({ ok: false, text: "Set your location first, then ask me again.", link: { href: "/fuel", label: "Set location" } });

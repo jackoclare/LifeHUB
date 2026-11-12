@@ -1,0 +1,1 @@
+-- See applied migration "vehicles_documents": vehicles, vehicle_logs, documents (RLS own rows) + private storage bucket "documents" (15 MB, own-folder policies).

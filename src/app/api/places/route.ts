@@ -100,6 +100,6 @@ export async function GET(req: Request) {
       { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" } },
     );
   } catch (e) {
-    return NextResponse.json({ places: [], error: `Couldn't load places right now (${(e as Error).message}). Try again in a minute.` }, { status: 502 });
+    return NextResponse.json({ places: [], error: `Couldn't load places right now (${(e as Error).message}). Try again in a minute.` }, { status: 200, headers: { "Cache-Control": "no-store" } });
   }
 }

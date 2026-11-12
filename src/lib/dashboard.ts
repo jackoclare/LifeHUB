@@ -55,7 +55,7 @@ export const cards: CardDef[] = [
   { id: "news", title: "Latest news", icon: Newspaper, color: "var(--c-news)", href: "/news", phase: 4, promise: "Top UK headlines." },
   { id: "sport-news", title: "Football headlines", icon: Trophy, color: "var(--c-sport)", href: "/news", phase: 4, promise: "The latest football news." },
   { id: "travel", title: "Travel deals", icon: Plane, color: "var(--c-travel)", href: "/travel", phase: 3, promise: "Cheapest flights and holidays to your saved destinations." },
-  { id: "shopping", title: "Shopping discounts", icon: Tag, color: "var(--c-shop)", href: "/deals", phase: 3, promise: "Verified deals and wish-list price drops." },
+  { id: "shopping", title: "Hot deals", icon: Tag, color: "var(--c-shop)", href: "/deals", phase: 3, promise: "Verified deals and wish-list price drops." },
   { id: "local", title: "Local offers", icon: Store, color: "var(--c-discover)", href: "/explore", phase: 3, promise: "Things to do and offers near you." },
   { id: "reminders", title: "Reminders", icon: Bell, color: "var(--c-shop)", href: "/calendar", phase: 1, promise: "Reminders you've added to the calendar." },
 ];

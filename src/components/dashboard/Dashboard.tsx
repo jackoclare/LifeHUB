@@ -93,7 +93,7 @@ export function Dashboard() {
               {visible
                 .filter((c) => LIVE.has(c.id))
                 .map((c, i) => (
-                  <DashCard key={c.id} card={c} index={i} wholeLink={!["news", "sport-news", "weather", "football", "calendar", "reminders"].includes(c.id)}>
+                  <DashCard key={c.id} card={c} index={i} wholeLink={!["news", "sport-news", "weather", "football", "calendar", "reminders", "shopping"].includes(c.id)}>
                     {c.id === "football" ? (
                       <FootballSummary />
                     ) : c.id === "weather" ? (
@@ -108,6 +108,8 @@ export function Dashboard() {
                       <BillsSummary />
                     ) : c.id === "fuel" ? (
                       <FuelSummary />
+                    ) : c.id === "shopping" ? (
+                      <DealsSummary />
                     ) : (
                       <EventList items={upcoming(events, 30).filter((e) => e.kind === "reminder").slice(0, 4)} empty="No reminders set — add one from the calendar." />
                     )}
@@ -251,6 +253,46 @@ function BillsSummary() {
   );
 }
 
+type MiniDeal = { id: string; title: string; link: string; merchant: string | null; price: string | null; heat: number | null; image: string | null };
+
+function DealsSummary() {
+  const [deals, setDeals] = useState<MiniDeal[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/deals?feed=hot")
+      .then((r) => r.json())
+      .then((d) => alive && setDeals((d.deals ?? []).slice(0, 3)))
+      .catch(() => alive && setDeals([]));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!deals) return <div className="h-24 animate-pulse rounded-xl bg-surface-2" />;
+  if (!deals.length) return <p className="text-sm text-muted">Couldn&apos;t load deals right now.</p>;
+  return (
+    <ul className="space-y-2">
+      {deals.map((d) => (
+        <li key={d.id}>
+          <a href={d.link} target="_blank" rel="noopener noreferrer" className="-mx-1 flex items-center gap-2.5 rounded-xl px-1 py-1 transition-colors hover:bg-surface-2">
+            {d.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={d.image} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-white object-contain p-0.5" />
+            ) : (
+              <span className="size-10 shrink-0 rounded-lg bg-surface-2" />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">{d.title}</span>
+              <span className="block truncate text-xs text-muted">
+                {[d.price, d.merchant].filter(Boolean).join(" · ")} {d.heat != null && <span className="font-semibold text-orange-400">· {d.heat}°</span>}
+              </span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 type CheapFuel = { name: string; brand: string | null; price: number; distance_km: number };
 
 function FuelSummary() {
@@ -319,7 +361,7 @@ function FootballSummary() {
   );
 }
 
-const LIVE = new Set<CardDef["id"]>(["calendar", "weather", "bills", "football", "fuel", "news", "sport-news", "reminders"]);
+const LIVE = new Set<CardDef["id"]>(["calendar", "weather", "bills", "football", "fuel", "shopping", "news", "sport-news", "reminders"]);
 
 function SoonTile({ card, index }: { card: CardDef; index: number }) {
   const Icon = card.icon;

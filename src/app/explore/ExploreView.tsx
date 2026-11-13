@@ -229,7 +229,7 @@ export function ExploreView() {
             </div>
           </section>
 
-          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <MapView
               live
               className="h-[38dvh] min-h-64 overflow-hidden rounded-[var(--radius-card)] lg:h-[calc(100dvh-20rem)]"
@@ -240,7 +240,7 @@ export function ExploreView() {
               onSelect={setSelected}
               points={shown.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, color: catColor[p.category] ?? "var(--accent)", label: p.name }))}
             />
-            <section className="lg:h-[calc(100dvh-20rem)] lg:overflow-y-auto">
+            <section className="min-w-0 lg:h-[calc(100dvh-20rem)] lg:overflow-y-auto">
               <SectionHeader title={`All ${cat === "saved" ? "saved" : (activeCat?.label.toLowerCase() ?? "places")} · ${shown.length}`} />
               <ul className="stagger card divide-y divide-line overflow-hidden">
                 {shown.slice(0, 60).map((p, i) => {
@@ -258,7 +258,7 @@ export function ExploreView() {
                           <span className="block truncate text-sm font-semibold">{p.name}</span>
                           <span className="block truncate text-xs capitalize text-muted">
                             {open !== null && <span className={open ? "font-semibold text-[#1f9d47]" : "text-faint"}>{open ? "Open" : "Closed"} · </span>}
-                            {[p.cuisine ?? p.kind, p.address].filter(Boolean).join(" · ")}
+                            {[p.cuisine ?? p.kind, p.address?.replace(/,\s*United Kingdom$/i, "")].filter(Boolean).join(" · ")}
                           </span>
                         </span>
                         <span className="shrink-0 text-xs tabular-nums text-faint">{miles(distanceKm(place, p))}</span>
@@ -289,7 +289,7 @@ export function ExploreView() {
             </p>
             {sel.address && (
               <p className="flex items-start gap-2 text-sm">
-                <MapPin size={16} className="mt-0.5 shrink-0 text-faint" /> {sel.address}
+                <MapPin size={16} className="mt-0.5 shrink-0 text-faint" /> {sel.address.replace(/,\s*United Kingdom$/i, "")}
               </p>
             )}
             {sel.openingHours && (

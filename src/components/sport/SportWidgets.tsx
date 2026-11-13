@@ -84,14 +84,14 @@ export function MatchRow({ m, team }: { m: Match; team: string }) {
   const played = m.homeScore != null;
   return (
     <li>
-      <Link href={`/sport/match/${m.id}`} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-surface-2">
-      <span className="w-20 shrink-0 text-xs text-muted">{m.kickoff ? new Date(m.kickoff).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : m.date}</span>
+      <Link href={`/sport/match/${m.id}`} className="-mx-2 flex items-center gap-2 rounded-lg px-2 py-2.5 transition-colors hover:bg-surface-2 sm:gap-3">
+      <span className="w-11 shrink-0 text-xs text-muted sm:w-20">{m.kickoff ? new Date(m.kickoff).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : m.date}</span>
       <span className="flex min-w-0 flex-1 items-center justify-end gap-2 text-right text-sm">
         <span className={`truncate ${m.home === team ? "font-semibold" : ""}`}>{m.home}</span>
         <Crest src={m.homeBadge} alt="" size={20} />
       </span>
       <span
-        className="w-14 shrink-0 rounded-md py-0.5 text-center font-display text-sm font-semibold tabular-nums"
+        className="w-12 shrink-0 rounded-md py-0.5 text-center font-display text-sm font-semibold tabular-nums sm:w-14"
         style={played ? { background: r === "W" ? "rgb(34 197 94 / .15)" : r === "L" ? "rgb(239 68 68 / .15)" : "var(--surface-2)" } : undefined}
       >
         {played ? `${m.homeScore}–${m.awayScore}` : m.kickoff ? new Date(m.kickoff).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }) : "TBC"}

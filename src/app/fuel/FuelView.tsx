@@ -200,7 +200,7 @@ export function FuelView() {
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <MapView
           live
           className="h-[42dvh] min-h-72 lg:h-[calc(100dvh-20rem)]"
@@ -211,7 +211,7 @@ export function FuelView() {
           onSelect={setSelected}
           points={list.slice(0, 150).map((s) => ({ id: s.node_id, lat: s.lat, lon: s.lon, color: colorFor(s.price), label: s.brand ?? s.name, badge: s.price == null ? undefined : Number(s.price).toFixed(1) }))}
         />
-        <div className="lg:h-[calc(100dvh-20rem)] lg:overflow-y-auto">
+        <div className="min-w-0 lg:h-[calc(100dvh-20rem)] lg:overflow-y-auto">
           {loading ? (
             <Spinner label="Checking pumps" />
           ) : list.length === 0 ? (

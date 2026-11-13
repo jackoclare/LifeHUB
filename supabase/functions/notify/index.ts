@@ -2,7 +2,8 @@
 //
 // GET            → { configured, publicKey }        (public key for the app to subscribe with)
 // POST {test}    → sends a test notification to the signed-in caller (needs their JWT)
-// POST (cron)    → sends anything that's due: morning briefing, bill reminders, kick-off alerts, Met Office warnings, wish-list deals. Idempotent.
+// POST (cron)    → sends anything that's due: morning briefing, bill reminders, kick-off alerts, Met Office warnings, wish-list deals,
+//                  and checks each wish-list link's price once a day (price drop / target alerts). Idempotent.
 //
 // Secrets (set in Supabase → Edge Functions → Secrets): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -73,9 +74,120 @@ const addDays = (iso: string, n: number) => {
 };
 const gbp = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
 
+
+/* ---------- Wish-list price tracking ---------- */
+
+type Found = { price: number; monthly: boolean };
+const MONTHLY = /per[\s_-]?month|monthly|\/mo\b|P1M|"MON"|billingDuration|billingIncrement|subscription/i;
+
+/** Reads a product page's price: structured data (JSON-LD offers) first, then price meta tags. GBP only. */
+export function extractPrice(html: string): Found | null {
+  const cands: Found[] = [];
+  for (const [, raw] of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    let data: unknown;
+    try {
+      data = JSON.parse(raw.trim());
+    } catch {
+      continue;
+    }
+    const walk = (n: unknown, depth = 0): void => {
+      if (!n || typeof n !== "object" || depth > 8) return;
+      if (Array.isArray(n)) return n.forEach((x) => walk(x, depth + 1));
+      const o = n as Record<string, unknown>;
+      if (/Offer/i.test(String(o["@type"] ?? ""))) {
+        const spec = (o.priceSpecification ?? {}) as Record<string, unknown>;
+        const cur = String(o.priceCurrency ?? spec.priceCurrency ?? "GBP").toUpperCase();
+        const p = Number(String(o.price ?? o.lowPrice ?? spec.price ?? "").replace(/[^\d.]/g, ""));
+        if (cur === "GBP" && Number.isFinite(p) && p > 0) cands.push({ price: p, monthly: MONTHLY.test(JSON.stringify(o)) });
+      }
+      for (const v of Object.values(o)) walk(v, depth + 1);
+    };
+    walk(data);
+  }
+  if (cands.length) {
+    const full = cands.filter((c) => !c.monthly);
+    const pool = full.length ? full : cands;
+    return { price: Math.min(...pool.map((c) => c.price)), monthly: !full.length };
+  }
+  const meta =
+    html.match(/<meta[^>]+(?:property|name|itemprop)=["'](?:product:price:amount|og:price:amount|twitter:data1|price)["'][^>]*content=["']£?\s?([\d,]+(?:\.\d{1,2})?)["']/i) ??
+    html.match(/<meta[^>]+content=["']£?\s?([\d,]+(?:\.\d{1,2})?)["'][^>]*(?:property|name|itemprop)=["'](?:product:price:amount|og:price:amount|price)["']/i) ??
+    html.match(/itemprop=["']price["'][^>]*content=["']([\d,]+(?:\.\d{1,2})?)["']/i);
+  if (meta) {
+    const p = Number(meta[1].replace(/,/g, ""));
+    if (Number.isFinite(p) && p > 0) return { price: p, monthly: false };
+  }
+  return null;
+}
+
+/** Once a day (from 9am UK), visit each wish-list link, record the price and alert on drops. */
+async function checkWishPrices(today: string, hour: number) {
+  if (hour < 9 || hour >= 22) return { checked: 0, sent: 0 };
+  const { data: items } = await admin
+    .from("wishlist_items")
+    .select("id,user_id,name,url,current_price,target_price")
+    .eq("purchased", false)
+    .not("url", "is", null);
+  let checked = 0;
+  let sent = 0;
+  for (const it of items ?? []) {
+    if (checked >= 12) break; // spread big lists over several runs
+    if (!/^https?:\/\//i.test(it.url ?? "")) continue;
+    if (!(await once(it.user_id, `price-${it.id}-${today}`))) continue;
+    checked++;
+    try {
+      const r = await fetch(it.url, {
+        redirect: "follow",
+        signal: AbortSignal.timeout(12000),
+        headers: {
+          "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "en-GB,en;q=0.9",
+        },
+      });
+      if (!r.ok) {
+        console.log("price check", it.id, "HTTP", r.status);
+        continue;
+      }
+      const found = extractPrice((await r.text()).slice(0, 4_000_000));
+      if (!found) {
+        console.log("price check", it.id, "no price on page");
+        continue;
+      }
+      await admin.from("wishlist_prices").insert({ user_id: it.user_id, item_id: it.id, price: found.price, source: found.monthly ? "auto (per month)" : "auto" });
+      if (found.monthly) continue; // a monthly plan price isn't comparable with a buy-outright target
+      const prev = it.current_price == null ? null : Number(it.current_price);
+      await admin.from("wishlist_items").update({ current_price: found.price, updated_at: new Date().toISOString() }).eq("id", it.id);
+      const target = it.target_price == null ? null : Number(it.target_price);
+      const hitTarget = target != null && found.price <= target && (prev == null || prev > target);
+      const bigDrop = prev != null && found.price <= prev * 0.95 && prev - found.price >= 1;
+      if (!hitTarget && !bigDrop) continue;
+      if (!(await once(it.user_id, `pricedrop-${it.id}-${found.price.toFixed(2)}`))) continue;
+      const { data: subs } = await admin.from("push_subscriptions").select("id,user_id,endpoint,p256dh,auth").eq("user_id", it.user_id);
+      sent += await sendTo((subs ?? []) as Sub[], {
+        title: hitTarget ? `🎯 ${it.name} hit your target price` : `📉 ${it.name} dropped in price`,
+        body: `Now ${gbp(found.price)}${prev != null ? ` (was ${gbp(prev)})` : ""}${target != null ? ` · target ${gbp(target)}` : ""}. Tap to view.`,
+        url: "/wishlist",
+        tag: `price-${it.id}`,
+      });
+    } catch (e) {
+      console.error("price check failed", it.id, (e as Error).message);
+    }
+  }
+  return { checked, sent };
+}
+
 async function runScheduled() {
+  // Price tracking runs even for people without notifications switched on
+  let prices = { checked: 0, sent: 0 };
+  try {
+    const { date, hour } = ukParts();
+    prices = await checkWishPrices(date, hour);
+  } catch (e) {
+    console.error("price tracking failed", (e as Error).message);
+  }
   const { data: subs } = await admin.from("push_subscriptions").select("id,user_id,endpoint,p256dh,auth");
-  if (!subs?.length) return { users: 0, sent: 0 };
+  if (!subs?.length) return { users: 0, sent: prices.sent, pricesChecked: prices.checked };
   const byUser = new Map<string, Sub[]>();
   for (const s of subs as Sub[]) byUser.set(s.user_id, [...(byUser.get(s.user_id) ?? []), s]);
   const { data: prefRows } = await admin.from("notification_prefs").select("user_id,bills,matches,weather,weather_region,briefing").in("user_id", [...byUser.keys()]);
@@ -256,7 +368,7 @@ async function runScheduled() {
     }
   }
 
-  return { users: byUser.size, sent };
+  return { users: byUser.size, sent: sent + prices.sent, pricesChecked: prices.checked };
 }
 
 Deno.serve(async (req) => {

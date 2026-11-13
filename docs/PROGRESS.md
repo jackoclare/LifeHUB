@@ -111,6 +111,12 @@
 - [x] Assistant: "what's on TV tonight", "when is Match of the Day on"
 - Frontend deploys waiting on Vercel's daily limit (commits fab654d, 73bc639)
 
+### 13 Nov
+- [x] AI switched to free providers only: Edge Function `ai` v2 uses Groq (GROQ_API_KEY, free plan, no card, doesn't train on data; picks a live model automatically, vision for photos) with optional Gemini free-tier backup (GEMINI_API_KEY). OpenAI removed; picture create/edit removed. NEEDS Jack: free Groq key → Supabase secret GROQ_API_KEY
+- [x] Fuel: every UK station from OpenStreetMap (Edge Function `fuel-osm`, 8 latitude bands, `fuel_osm_next()` every 20 min refreshes any band missing/older than 7 days). RPC `nearby_fuel_all` includes stations with no live price; Fuel page + Map show them as grey pins with "Check price in Google Maps". Shrewsbury: 3 → 14 stations within 5 miles
+- Fuel prices: the old retailer feeds (CMA interim scheme) are mostly stale since Fuel Finder launched (Tesco Apr 2026, Morrisons 2023, Applegreen 2025, Sainsbury's/Essar gone, Shell 403); Fuel Finder CSV + API still 403 from cloud IPs. PetrolPrices/Fuel Finder UK/PetrolFinder CSVs are licensed for editorial use only — not used
+- Another Claude session also worked on the repo on 13 Nov (liquid-glass look, Home redesign, wish-list price checks = notify v10, Apple Watch summary, statement sign fix). Don't redeploy `notify` from an older local copy
+
 ## Later phases
 
 - **Phase 3:** deals, travel, fuel, explore, weather; automatic wish-list price tracking

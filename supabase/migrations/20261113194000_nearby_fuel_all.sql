@@ -1,1 +1,3 @@
 -- See applied migration "nearby_fuel_all": like nearby_fuel but includes stations without a live price (price null, sorted last); weekly cron jobs lifehub-fuel-osm-0..7 run the fuel-osm function per latitude band.
+-- Then replaced the weekly jobs with public.fuel_osm_next() (security definer, not callable by clients), run every 20 min by cron job lifehub-fuel-osm:
+-- it refreshes the one latitude band whose OpenStreetMap stations are missing or older than 7 days, so busy Overpass servers just get retried later.

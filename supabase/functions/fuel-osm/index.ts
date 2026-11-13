@@ -7,7 +7,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 // The UK is fetched in 8 bands (?part=0..7) so each run stays small and fast
 const BANDS: [number, number][] = [[49.8, 50.9], [50.9, 51.35], [51.35, 51.7], [51.7, 52.3], [52.3, 52.9], [52.9, 53.6], [53.6, 55.0], [55.0, 61.0]];
-const query = (s: number, n: number) => `[out:json][timeout:90];nwr["amenity"="fuel"](${s},-8.7,${n},1.9);out center tags;`;
+const query = (s: number, n: number) => `[out:json][timeout:40];nwr["amenity"="fuel"](${s},-8.7,${n},1.9);out center tags;`;
 const MIRRORS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
 
 type El = { type: string; id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> };
@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "LifeHub/1.0 (personal dashboard)" },
         body: `data=${encodeURIComponent(QUERY)}`,
+        signal: AbortSignal.timeout(45000), // a busy mirror gives up quickly so the next one can be tried
       });
       if (!r.ok) throw new Error(`${url} ${r.status}`);
       els = (await r.json()).elements ?? [];

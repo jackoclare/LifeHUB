@@ -759,3 +759,138 @@ h3,
 .theme-sport .btn-primary {
   color: #0b0d07;
 }
+
+/* ---------- Home: hero, quick actions, up next (13 Nov redesign) ---------- */
+.hero-card {
+  box-shadow: 0 24px 50px -24px rgb(60 40 160 / 0.55);
+  animation: rise 0.6s var(--spring) both;
+}
+.hero-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(50px);
+  pointer-events: none;
+  animation: orb-drift 14s ease-in-out infinite alternate;
+}
+@keyframes orb-drift {
+  to {
+    transform: translate(12%, 10%) scale(1.15);
+  }
+}
+.glass {
+  background: rgb(255 255 255 / 0.16);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
+}
+.hero-chip {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+  border-radius: 1.1rem;
+  padding: 0.7rem 0.8rem;
+  transition: transform 0.35s var(--spring), background-color 0.2s ease;
+}
+.hero-chip:active {
+  transform: scale(0.95);
+}
+@media (hover: hover) {
+  .hero-chip:hover {
+    background: rgb(255 255 255 / 0.24);
+  }
+}
+.hero-chip-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.72);
+}
+.bell-ring {
+  transform-origin: 50% 10%;
+  animation: bell-ring 2.8s ease-in-out infinite;
+}
+@keyframes bell-ring {
+  0%, 70%, 100% { transform: rotate(0); }
+  74% { transform: rotate(14deg); }
+  80% { transform: rotate(-12deg); }
+  86% { transform: rotate(8deg); }
+  92% { transform: rotate(-4deg); }
+}
+.weather-float {
+  display: inline-block;
+  animation: weather-float 4s ease-in-out infinite alternate;
+}
+@keyframes weather-float {
+  to {
+    transform: translateY(-5px);
+  }
+}
+.quick-tile {
+  display: grid;
+  width: 3.6rem;
+  height: 3.6rem;
+  place-items: center;
+  border-radius: 1.25rem;
+  color: #fff;
+  transition: transform 0.4s var(--spring);
+}
+.quick-action:active .quick-tile {
+  transform: scale(0.86);
+  transition-duration: 0.12s;
+}
+@media (hover: hover) {
+  .quick-action:hover .quick-tile {
+    transform: translateY(-3px) rotate(-4deg);
+  }
+}
+.upnext-card {
+  position: relative;
+  display: flex;
+  width: 11.5rem;
+  flex-shrink: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  background: var(--surface);
+  padding: 1rem;
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--border);
+  animation: rise 0.6s var(--spring) both;
+  animation-delay: calc(var(--i, 0) * 50ms + 80ms);
+  transition: transform 0.4s var(--spring);
+}
+.upnext-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--k);
+}
+.upnext-card:active {
+  transform: scale(0.95);
+}
+@media (hover: hover) {
+  .upnext-card:hover {
+    transform: translateY(-3px);
+  }
+}
+
+/* Cards: coloured glow in the corner from each card's own colour */
+.dash-card::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -30%;
+  z-index: -1;
+  width: 70%;
+  height: 90%;
+  border-radius: 9999px;
+  background: var(--tile, var(--accent));
+  opacity: 0.07;
+  filter: blur(40px);
+  pointer-events: none;
+}
+[data-theme="dark"] .dash-card::after {
+  opacity: 0.14;
+}

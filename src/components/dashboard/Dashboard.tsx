@@ -23,6 +23,8 @@ import type { Bill } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { usePlace } from "@/lib/weather";
 import { readCache, writeCache } from "@/lib/cache";
+import { FILTER_CARDS, HOME_FILTERS, HomeHero, QuickActions, UpNextStrip, type HomeFilter } from "./HomeHero";
+import { PillTabs } from "@/components/kit";
 
 function greeting(h: number) {
   if (h < 12) return "Good morning";
@@ -34,6 +36,7 @@ export function Dashboard() {
   const { prefs, toggle, move, reset } = useDashboardPrefs();
   const { events } = useCalendarEvents();
   const [editing, setEditing] = useState(false);
+  const [filter, setFilter] = useState<HomeFilter>("all");
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
     setNow(new Date());
@@ -43,17 +46,26 @@ export function Dashboard() {
 
   const byId = new Map(cards.map((c) => [c.id, c]));
   const ordered = prefs.order.map((id) => byId.get(id)!).filter(Boolean);
-  const visible = ordered.filter((c) => !prefs.hidden.includes(c.id));
+  const shown = ordered.filter((c) => !prefs.hidden.includes(c.id));
+  // "Up next" replaces the Coming up card on the main view; filters narrow the cards below
+  const visible = filter === "all" ? shown.filter((c) => c.id !== "calendar") : shown.filter((c) => FILTER_CARDS[filter].includes(c.id));
 
   return (
     <>
-      <Hero now={now} next={upcoming(events, 60)[0]} editing={editing} onToggleEdit={() => setEditing((e) => !e)} />
+      <HomeHero now={now} events={events} editing={editing} onToggleEdit={() => setEditing((e) => !e)} />
+      {!editing && <QuickActions />}
+      {!editing && !prefs.hidden.includes("calendar") && <UpNextStrip events={events} now={now} />}
       {!editing && !prefs.hidden.includes("news") && (
-        <div className="animate-rise -mt-2 mb-6">
+        <div className="animate-rise mb-6">
           <NewsTicker />
         </div>
       )}
       {!editing && <DailyBriefing events={events} />}
+      {!editing && (
+        <div className="sticky top-0 z-20 -mx-4 mb-4 bg-bg/80 px-4 py-2 backdrop-blur-xl sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:backdrop-blur-none">
+          <PillTabs value={filter} onChange={setFilter} options={HOME_FILTERS.map((f) => ({ value: f.value, label: f.label, icon: f.icon }))} />
+        </div>
+      )}
 
       {editing ? (
         <section className="card overflow-hidden">
@@ -89,13 +101,19 @@ export function Dashboard() {
         </section>
       ) : visible.length === 0 ? (
         <div className="card p-8 text-center text-sm text-muted">
-          Every section is hidden. Tap <span className="font-semibold text-ink">Customise</span> to bring some back.
+          {filter === "all" ? (
+            <>
+              Every section is hidden. Tap <span className="font-semibold text-ink">Customise</span> to bring some back.
+            </>
+          ) : (
+            "Nothing to show here — the sections for this filter are hidden."
+          )}
         </div>
       ) : (
         <div className="space-y-8">
           {/* Live sections — real information */}
           {visible.some((c) => LIVE.has(c.id)) && (
-            <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div key={filter} className="stagger grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {visible
                 .filter((c) => LIVE.has(c.id))
                 .map((c, i) => (
@@ -219,15 +237,17 @@ function Hero({ now, next, editing, onToggleEdit }: { now: Date | null; next?: R
 function DashCard({ card, index, children, wholeLink = true }: { card: CardDef; index: number; children: React.ReactNode; wholeLink?: boolean }) {
   const Icon = card.icon;
   const style = { "--tile": card.color, "--i": index } as React.CSSProperties;
-  const cls = `card card-interactive flex flex-col p-4 sm:p-5 ${card.wide ? "md:col-span-2" : ""}`;
+  const cls = `card card-interactive dash-card flex flex-col rounded-[1.75rem]! p-4 sm:p-5 ${card.wide ? "md:col-span-2" : ""}`;
   const header = (
-    <div className="mb-3 flex items-center gap-2.5">
-      <span className="icon-tile">
-        <Icon size={18} />
+    <div className="mb-3.5 flex items-center gap-3">
+      <span className="icon-tile size-10! rounded-[0.9rem]!" style={{ background: `linear-gradient(145deg, color-mix(in srgb, ${card.color} 80%, white), ${card.color})`, boxShadow: `0 8px 18px -10px ${card.color}` }}>
+        <Icon size={19} />
       </span>
-      <h2 className="flex-1 text-sm font-semibold">{card.title}</h2>
+      <h2 className="flex-1 text-[0.95rem] font-semibold tracking-tight">{card.title}</h2>
       {(card.id === "news" || card.id === "sport-news") && <LiveBadge />}
-      <ArrowUpRight size={16} className="card-arrow text-faint" />
+      <span className="grid size-8 place-items-center rounded-full bg-surface-2">
+        <ArrowUpRight size={15} className="card-arrow text-muted" />
+      </span>
     </div>
   );
   if (!wholeLink) {

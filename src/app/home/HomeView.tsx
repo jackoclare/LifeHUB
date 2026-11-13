@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
 import { Field, Sheet, inputClass } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { celebrate } from "@/lib/celebrate";
 import { useRows } from "@/lib/useRows";
 
 export type HomeTask = { id: string; name: string; area: string; every_days: number | null; next_due: string | null; last_done: string | null; notes: string | null };
@@ -49,6 +50,7 @@ export function HomeView() {
   if (!user) return <SignInCard reason="Unlock to see your home jobs." />;
 
   const done = async (t: HomeTask) => {
+    celebrate(null, 24);
     setJustDone(t.id);
     const d = today();
     await createClient()

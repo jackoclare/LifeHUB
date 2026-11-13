@@ -3,6 +3,7 @@
 import { Check, ChevronDown, ListPlus, Loader2, Minus, Plus, RotateCcw, ShoppingBasket, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { celebrate } from "@/lib/celebrate";
 import { run, useRows } from "@/lib/useRows";
 import type { ShoppingItem, ShoppingList } from "@/lib/types";
 import { Empty, ErrorNote, Field, Sheet, Spinner, inputClass, money } from "@/components/ui";
@@ -109,6 +110,9 @@ export function ShoppingView() {
   const toggle = async (i: ShoppingItem) => {
     items.setRows((r) => r.map((x) => (x.id === i.id ? { ...x, checked: !x.checked } : x)));
     if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.(8);
+    // Ticked the last thing on the list? Party.
+    const sameList = items.rows.filter((x) => x.list_id === i.list_id);
+    if (!i.checked && sameList.length > 1 && sameList.every((x) => x.id === i.id || x.checked)) celebrate(null, 70);
     const msg = await run(() => createClient().from("shopping_items").update({ checked: !i.checked }).eq("id", i.id));
     if (msg) {
       setError(msg);

@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Check, Mic, Sparkles, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowUp, Check, Mic, Volume2, VolumeX, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { currentPosition } from "@/app/map/MapHub";
 import { askAi } from "@/app/ai/AiChat";
+import { Mascot } from "@/components/Mascot";
+import { useVibe } from "@/lib/vibe";
 import { createClient } from "@/lib/supabase/client";
 import { type Intent, parse } from "@/lib/assistant";
 import { guessAisle } from "@/app/shopping/ShoppingView";
@@ -30,6 +32,7 @@ export function Assistant() {
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const [busy, setBusy] = useState(false);
+  const vibe = useVibe();
   const [reply, setReply] = useState<Reply | null>(null);
   const [speak, setSpeak] = useState(true);
   const [canListen, setCanListen] = useState(false);
@@ -422,7 +425,7 @@ export function Assistant() {
         aria-label="Open assistant"
         className="assistant-fab fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 grid size-14 place-items-center rounded-full text-white lg:bottom-8 lg:right-8"
       >
-        <Sparkles size={24} />
+        <Mascot mood={vibe.mood} size={46} title="Ask Hubby (LifeHub assistant)" />
       </button>
 
       {open && (
@@ -431,7 +434,7 @@ export function Assistant() {
           <div className="sheet-panel pb-safe relative w-full overflow-hidden rounded-t-[1.8rem] border border-line bg-bg-elevated sm:max-w-lg sm:rounded-[1.8rem]">
             <div className="flex items-center justify-between px-5 pt-4">
               <p className="flex items-center gap-2 text-sm font-semibold">
-                <Sparkles size={16} className="text-accent" /> LifeHub assistant
+                <Mascot mood={busy ? "happy" : vibe.mood} size={30} /> Hubby · your LifeHub assistant
               </p>
               <div className="flex gap-1">
                 <button

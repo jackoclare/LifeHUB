@@ -9,6 +9,8 @@ import { LocationBanner } from "./LocationBanner";
 import { useEffect, useState } from "react";
 import { autoLocate } from "@/lib/weather";
 import { syncPrefsFromAccount } from "@/lib/prefs";
+import { VibeProvider } from "@/lib/vibe";
+import { LivingBackground } from "./LivingBackground";
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -38,7 +40,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
+    <VibeProvider>
     <div className="min-h-dvh lg:flex">
+      <LivingBackground />
       <div className="aurora" aria-hidden>
         <span />
         <span />
@@ -169,6 +173,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </div>
     </div>
+    </VibeProvider>
   );
 }
 

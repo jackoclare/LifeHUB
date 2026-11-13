@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   CalendarPlus,
@@ -23,6 +23,9 @@ import { useAlerts } from "@/app/alerts/AlertsView";
 import { WeatherIcon } from "@/components/weather/WeatherWidgets";
 import { upcoming, type CalendarEvent } from "@/lib/calendar";
 import { describe, usePlace, useWeather } from "@/lib/weather";
+import { useVibe } from "@/lib/vibe";
+import { Mascot } from "@/components/Mascot";
+import { celebrate } from "@/lib/celebrate";
 
 /* ---------- helpers ---------- */
 
@@ -96,6 +99,7 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
   const next = upcoming(events, 60).filter((e) => e.kind !== "bill")[0];
   return (
     <section className="animate-rise mb-5">
+      <HubbySays />
       <div className="hero-card hero-dark relative overflow-hidden rounded-[2rem] p-5 sm:p-6">
         {/* futuristic layers: fine grid, electric glow, light sweep */}
         <span aria-hidden className="hero-grid" />
@@ -287,3 +291,31 @@ export const FILTER_CARDS: Record<Exclude<HomeFilter, "all">, string[]> = {
   out: ["weather", "fuel", "local", "travel"],
   health: ["activity", "nutrition"],
 };
+
+/* ---------- Hubby the mascot + a cheeky line for right now ---------- */
+
+function HubbySays() {
+  const { mood, line, ready } = useVibe();
+  const [hop, setHop] = useState(0);
+  if (!ready || !line) return null;
+  return (
+    <div className="mb-3 flex items-center gap-3">
+      <button
+        aria-label="Hubby — tap to ask LifeHub anything"
+        className="shrink-0 transition-transform active:scale-90"
+        onClick={(e) => {
+          setHop((h) => h + 1);
+          if (mood === "party") celebrate(e.currentTarget);
+          window.dispatchEvent(new CustomEvent("lifehub-assistant"));
+        }}
+      >
+        <span key={hop} className={hop ? "mascot-hop inline-block" : "inline-block"}>
+          <Mascot mood={mood} size={58} />
+        </span>
+      </button>
+      <p className="mascot-bubble min-w-0 flex-1" suppressHydrationWarning>
+        {line}
+      </p>
+    </div>
+  );
+}

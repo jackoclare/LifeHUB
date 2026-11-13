@@ -515,8 +515,8 @@ a.chip:active {
 
 /* ---------- Assistant ---------- */
 .assistant-fab {
-  background: conic-gradient(from 180deg, #ff6b3d, #ec4899, #8b5cf6, #3b82f6, #ff6b3d);
-  box-shadow: 0 10px 30px -8px rgb(236 72 153 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.3);
+  background: radial-gradient(circle at 32% 26%, #2c3d9e 0%, #121640 70%);
+  box-shadow: 0 10px 30px -8px rgb(79 123 255 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.25), 0 0 0 1px rgb(255 255 255 / 0.08);
   animation: fab-float 4s ease-in-out infinite;
   transition: transform 0.2s ease;
 }
@@ -1124,4 +1124,327 @@ h3,
   .quick-action:active .quick-tile {
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 0 0 1px currentColor, 0 0 22px -4px currentColor;
   }
+}
+
+/* ---------- Living background (13 Nov): sky follows time of day + real weather ---------- */
+.living-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 85%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 85%);
+}
+.living-sky {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  transition: background 2s ease, opacity 2s ease;
+}
+[data-theme="dark"] .living-sky {
+  opacity: 0.85;
+}
+.scene-dawn .living-sky {
+  background: linear-gradient(180deg, #ffb27a 0%, #ff7aa2 38%, #a78bff 70%, transparent 100%);
+}
+.scene-day .living-sky {
+  background: linear-gradient(180deg, #6cc4ff 0%, #9fd6ff 40%, #d9ecff 72%, transparent 100%);
+}
+.scene-dusk .living-sky {
+  background: linear-gradient(180deg, #ff9f5a 0%, #ff5f7e 35%, #6b4bd6 70%, transparent 100%);
+}
+.scene-night .living-sky {
+  background: linear-gradient(180deg, #0b1036 0%, #1f1b5c 40%, #3b2a7a 70%, transparent 100%);
+}
+[data-theme="light"] .scene-night .living-sky {
+  opacity: 0.35;
+}
+.sky-rain .living-sky,
+.sky-storm .living-sky,
+.sky-fog .living-sky {
+  filter: saturate(0.35) brightness(0.85);
+}
+.sky-cloud .living-sky {
+  filter: saturate(0.7);
+}
+.living-sun {
+  position: absolute;
+  top: -12vmax;
+  right: -10vmax;
+  width: 42vmax;
+  height: 42vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 236 160 / 0.9) 0%, rgb(255 200 90 / 0.35) 35%, transparent 70%);
+  animation: sunPulse 8s ease-in-out infinite;
+}
+.living-moon {
+  position: absolute;
+  top: 7vh;
+  right: 10vw;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #f4f1ff;
+  box-shadow: 0 0 40px 10px rgb(200 190 255 / 0.35), inset -12px -6px 0 0 #d9d2ff;
+  opacity: 0.9;
+}
+.living-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: twinkle 3.2s ease-in-out infinite;
+}
+.living-cloud {
+  position: absolute;
+  height: 18vh;
+  width: 60vw;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgb(255 255 255 / 0.55), transparent 70%);
+  filter: blur(18px);
+  animation: cloudDrift 60s linear infinite;
+}
+[data-theme="dark"] .living-cloud {
+  background: radial-gradient(ellipse at center, rgb(170 180 220 / 0.22), transparent 70%);
+}
+.living-cloud.c1 {
+  top: 4vh;
+  left: -30vw;
+}
+.living-cloud.c2 {
+  top: 16vh;
+  left: -60vw;
+  animation-duration: 85s;
+  animation-delay: -30s;
+}
+.living-cloud.c3 {
+  top: 28vh;
+  left: -40vw;
+  animation-duration: 110s;
+  animation-delay: -60s;
+  opacity: 0.7;
+}
+.living-drop {
+  position: absolute;
+  top: -10vh;
+  width: 1.5px;
+  height: 9vh;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, rgb(150 190 255 / 0.65));
+  animation: rainFall 0.8s linear infinite;
+}
+[data-theme="light"] .living-drop {
+  background: linear-gradient(to bottom, transparent, rgb(60 110 200 / 0.45));
+}
+.living-flake {
+  position: absolute;
+  top: -5vh;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px rgb(255 255 255 / 0.8);
+  animation: snowFall 8s linear infinite;
+}
+[data-theme="light"] .living-flake {
+  background: #b9d4ff;
+}
+.living-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  animation: flash 9s infinite;
+}
+.living-fog {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(200 205 215 / 0.35), transparent 80%);
+  animation: fogMove 20s ease-in-out infinite alternate;
+}
+@keyframes sunPulse {
+  50% {
+    transform: scale(1.06);
+    opacity: 0.85;
+  }
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+@keyframes cloudDrift {
+  to {
+    transform: translateX(170vw);
+  }
+}
+@keyframes rainFall {
+  to {
+    transform: translate(-6vw, 120vh);
+  }
+}
+@keyframes snowFall {
+  50% {
+    transform: translate(4vw, 55vh);
+  }
+  to {
+    transform: translate(-2vw, 110vh);
+  }
+}
+@keyframes flash {
+  0%,
+  86%,
+  90%,
+  100% {
+    opacity: 0;
+  }
+  87%,
+  89% {
+    opacity: 0.18;
+  }
+}
+@keyframes fogMove {
+  to {
+    transform: translateX(-4vw);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .living-drop,
+  .living-flake,
+  .living-flash {
+    display: none;
+  }
+}
+
+/* ---------- Hubby the mascot ---------- */
+.mascot {
+  overflow: visible;
+}
+.mascot-bob {
+  animation: mascotBob 3s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+.mascot-shiver {
+  animation: mascotShiver 0.35s linear infinite;
+}
+.mascot-eyes {
+  animation: mascotBlink 4.5s infinite;
+  transform-origin: 50% 53%;
+  transform-box: fill-box;
+}
+.mascot-confetti {
+  animation: mascotConfetti 1.6s ease-in-out infinite;
+}
+.mascot-confetti:nth-of-type(2n) {
+  animation-delay: 0.4s;
+}
+.mascot-tear {
+  animation: mascotTear 2.4s ease-in infinite;
+}
+.mascot-zzz text {
+  animation: mascotZzz 2.6s ease-in-out infinite;
+}
+.mascot-zzz text:nth-child(2) {
+  animation-delay: 0.8s;
+}
+.mascot-hop {
+  animation: mascotHop 0.6s var(--bounce, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+@keyframes mascotBob {
+  50% {
+    transform: translateY(-3px) scale(1.02, 0.98);
+  }
+}
+@keyframes mascotShiver {
+  25% {
+    transform: translateX(-1px);
+  }
+  75% {
+    transform: translateX(1px);
+  }
+}
+@keyframes mascotBlink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes mascotConfetti {
+  50% {
+    transform: translateY(-5px) rotate(45deg);
+  }
+}
+@keyframes mascotTear {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
+@keyframes mascotZzz {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+@keyframes mascotHop {
+  40% {
+    transform: translateY(-10px) scale(0.95, 1.08);
+  }
+  70% {
+    transform: translateY(0) scale(1.08, 0.92);
+  }
+}
+
+/* Speech bubble next to Hubby on Home */
+.mascot-bubble {
+  position: relative;
+  border-radius: 1.1rem;
+  padding: 0.6rem 0.85rem;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.mascot-bubble::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%) rotate(45deg);
+  background: inherit;
+  box-shadow: inherit;
+  clip-path: polygon(0 100%, 0 0, 100% 100%);
+}
+
+/* Confetti bursts (lib/celebrate.ts) */
+.confetti-bit {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+  border-radius: 2px;
 }

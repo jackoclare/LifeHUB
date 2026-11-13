@@ -3,6 +3,7 @@
 import { AlertTriangle, CheckCircle2, Loader2, Pencil, Plus, ReceiptPoundSterling, Trash2, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { celebrate } from "@/lib/celebrate";
 import { run, useRows } from "@/lib/useRows";
 import { addDays, fromISODate, toISODate } from "@/lib/dates";
 import { billCategories, dueLabel, frequencyLabel, isOverdue, monthlyEquivalent, nextDate, occurrences, projectByMonth } from "@/lib/bills";
@@ -47,6 +48,7 @@ export function BillsView() {
           .eq("id", b.id),
       );
     }
+    if (!msg) celebrate(null, 40);
     setError(msg);
     await Promise.all([bills.reload(), payments.reload()]);
     setBusyId(null);

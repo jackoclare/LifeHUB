@@ -1,11 +1,12 @@
 "use client";
 
-import { FileText, Image as ImageIcon, Loader2, Search, Trash2, Upload } from "lucide-react";
+import { FileText, Image as ImageIcon, Loader2, Search, Sparkles, Trash2, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
 import { ErrorNote, Field, Sheet, inputClass } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { askAi, shrink } from "@/app/ai/AiChat";
 import { useRows } from "@/lib/useRows";
 
 export type Doc = { id: string; title: string; category: string; path: string; mime: string | null; size_bytes: number | null; expires_on: string | null; notes: string | null; created_at: string };
@@ -138,6 +139,41 @@ function AddDoc({ open, onClose, onSaved }: { open: boolean; onClose: () => void
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const [reading, setReading] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+
+  // Opt-in: read a photo of the document with the free AI and fill in name, type, expiry and notes
+  const fillWithAi = async () => {
+    if (!file || !file.type.startsWith("image/")) return;
+    setReading(true);
+    setErr(null);
+    setAiNote(null);
+    try {
+      const image = await shrink(file, 1600);
+      const r = await askAi({
+        mode: "chat",
+        messages: [
+          {
+            role: "user",
+            image,
+            text: `This is a photo of one of my documents. Reply with JSON only, no other text: {"title":"short name, e.g. Car insurance – Admiral 2026","category":"one of ${DOC_CATS.map((c) => c.id).join("|")}","expires":"YYYY-MM-DD or empty if there's no expiry/renewal date","notes":"policy/reference number and provider if visible, otherwise empty"}`,
+          },
+        ],
+      });
+      const m = (r.text ?? "").match(/\{[\s\S]*\}/);
+      if (!m) throw new Error(r.error ?? "no answer");
+      const j = JSON.parse(m[0]) as { title?: string; category?: string; expires?: string; notes?: string };
+      if (j.title) setTitle(String(j.title).slice(0, 120));
+      if (j.category && DOC_CATS.some((c) => c.id === j.category)) setCategory(j.category);
+      if (j.expires && /^\d{4}-\d{2}-\d{2}$/.test(j.expires)) setExpires(j.expires);
+      if (j.notes) setNotes(String(j.notes).slice(0, 200));
+      setAiNote("Filled in by AI — check it's right before saving.");
+    } catch {
+      setAiNote("Couldn't read that one — fill it in by hand.");
+    }
+    setReading(false);
+  };
+
   const reset = () => {
     setFile(null);
     setTitle("");
@@ -145,6 +181,7 @@ function AddDoc({ open, onClose, onSaved }: { open: boolean; onClose: () => void
     setExpires("");
     setNotes("");
     setErr(null);
+    setAiNote(null);
   };
 
   const save = async () => {
@@ -184,6 +221,12 @@ function AddDoc({ open, onClose, onSaved }: { open: boolean; onClose: () => void
         <Upload size={22} className="text-accent" />
         {file ? <span className="font-medium text-ink">{file.name}</span> : "Take a photo or choose a file (PDF, image, Word…)"}
       </button>
+      {file?.type.startsWith("image/") && (
+        <button className="btn btn-ghost mt-3 w-full" disabled={reading} onClick={fillWithAi}>
+          {reading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} className="text-accent" />} {reading ? "Reading the document…" : "Fill in the details with AI"}
+        </button>
+      )}
+      {aiNote && <p className="mt-2 text-xs text-muted">{aiNote}</p>}
       <div className="mt-3 grid grid-cols-2 gap-3">
         <Field label="Name" className="col-span-2">
           <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Car insurance 2026" />

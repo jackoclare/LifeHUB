@@ -7,6 +7,7 @@ import { SignInCard } from "@/components/SignInCard";
 import { ErrorNote, Field, Sheet, inputClass } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { useRows } from "@/lib/useRows";
+import { WarningLight } from "./WarningLight";
 
 export type Vehicle = {
   id: string;
@@ -70,6 +71,8 @@ export function CarView() {
           <Plus size={16} /> Add another vehicle
         </button>
       )}
+
+      <WarningLight vehicles={vehicles.rows} />
 
       <p className="text-xs text-faint">
         Check your official MOT and tax dates on GOV.UK:{" "}

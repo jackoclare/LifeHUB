@@ -23,7 +23,7 @@ import type { Bill } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { usePlace } from "@/lib/weather";
 import { readCache, writeCache } from "@/lib/cache";
-import { FILTER_CARDS, HOME_FILTERS, HomeHero, QuickActions, UpNextStrip, type HomeFilter } from "./HomeHero";
+import { FILTER_CARDS, HOME_FILTERS, HomeHero, QuickActions, type HomeFilter } from "./HomeHero";
 import { PillTabs } from "@/components/kit";
 
 function greeting(h: number) {
@@ -45,16 +45,15 @@ export function Dashboard() {
   }, []);
 
   const byId = new Map(cards.map((c) => [c.id, c]));
-  const ordered = prefs.order.map((id) => byId.get(id)!).filter(Boolean);
+  // Bills stay on the Bills page — not shown on Home
+  const ordered = prefs.order.map((id) => byId.get(id)!).filter((c) => c && c.id !== "bills");
   const shown = ordered.filter((c) => !prefs.hidden.includes(c.id));
-  // "Up next" replaces the Coming up card on the main view; filters narrow the cards below
-  const visible = filter === "all" ? shown.filter((c) => c.id !== "calendar") : shown.filter((c) => FILTER_CARDS[filter].includes(c.id));
+  const visible = filter === "all" ? shown : shown.filter((c) => FILTER_CARDS[filter].includes(c.id));
 
   return (
     <>
       <HomeHero now={now} events={events} editing={editing} onToggleEdit={() => setEditing((e) => !e)} />
       {!editing && <QuickActions />}
-      {!editing && !prefs.hidden.includes("calendar") && <UpNextStrip events={events} now={now} />}
       {!editing && !prefs.hidden.includes("news") && (
         <div className="animate-rise mb-6">
           <NewsTicker />
@@ -127,7 +126,7 @@ export function Dashboard() {
                     ) : c.id === "sport-news" ? (
                       <HeadlineRotator feed="football" accent="var(--c-sport)" />
                     ) : c.id === "calendar" ? (
-                      <EventList items={upcoming(events, 14).slice(0, 5)} empty="Nothing in the next two weeks." />
+                      <EventList items={upcoming(events, 14).filter((e) => e.kind !== "bill").slice(0, 5)} empty="Nothing in the next two weeks." />
                     ) : c.id === "bills" ? (
                       <BillsSummary />
                     ) : c.id === "fuel" ? (

@@ -38,8 +38,7 @@ export function DailyBriefing({ events }: { events: CalendarEvent[] }) {
     if (todays.length) out.push({ emoji: "📅", text: `Today: ${fmtList(todays)}.`, href: "/calendar" });
     if (evening && list(tomorrow).length) out.push({ emoji: "🗓️", text: `Tomorrow: ${fmtList(list(tomorrow))}.`, href: "/calendar" });
     const urgent = alerts.filter((a) => a.days <= 3 && !a.id.startsWith("wx-") && !(a.id.startsWith("cal-") && a.title && todays.some((t) => a.id === `cal-${t.id}`)));
-    const bills = urgent.filter((a) => a.href === "/bills");
-    if (bills.length) out.push({ emoji: "💷", text: `${bills.length === 1 ? bills[0].title : `${bills.length} bills`} due ${bills.length === 1 ? bills[0].detail.replace(/^Bill /, "") : "in the next 3 days"}.`, href: "/bills" });
+    // Bills are kept on the Bills page, not in the Home briefing
     const other = urgent.filter((a) => a.href !== "/bills" && a.href !== "/sport" && !a.href.startsWith("/sport/"));
     if (other.length) out.push({ emoji: "🔔", text: `${other[0].title} — ${other[0].detail.toLowerCase()}${other.length > 1 ? ` (+${other.length - 1} more)` : ""}.`, href: "/alerts" });
     const wxw = alerts.find((a) => a.id.startsWith("wx-"));

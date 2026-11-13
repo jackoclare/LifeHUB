@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
 import {
   Bell,
   CalendarPlus,
@@ -20,13 +19,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAlerts } from "@/app/alerts/AlertsView";
-import { useAuth } from "@/components/AuthProvider";
 import { WeatherIcon } from "@/components/weather/WeatherWidgets";
-import { money } from "@/components/ui";
-import { kindInfo, upcoming, type CalendarEvent } from "@/lib/calendar";
+import { upcoming, type CalendarEvent } from "@/lib/calendar";
 import { describe, usePlace, useWeather } from "@/lib/weather";
-import { useRows } from "@/lib/useRows";
-import type { Bill } from "@/lib/types";
 
 /* ---------- helpers ---------- */
 
@@ -44,8 +39,6 @@ function skyFor(h: number) {
   if (h >= 16 && h < 19) return "linear-gradient(140deg, #ff9f43 0%, #ff4f81 50%, #6a3cff 100%)"; // golden hour
   return "linear-gradient(140deg, #141a3d 0%, #3b2a8f 55%, #7a2e9c 100%)"; // night
 }
-
-const todayISO = () => new Date().toLocaleDateString("en-CA");
 
 /** "Today 15:00", "Tomorrow", "In 3 days", "Sat 21 Nov" */
 export function whenLabel(e: Pick<CalendarEvent, "date" | "time">, now: Date) {
@@ -75,19 +68,10 @@ function eventHref(e: CalendarEvent) {
 
 export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | null; events: CalendarEvent[]; editing: boolean; onToggleEdit: () => void }) {
   const hour = now?.getHours() ?? 12;
-  const alerts = useAlerts();
+  // Bills live on the Bills page only, so they're left out of Home
+  const alerts = useAlerts().filter((a) => a.href !== "/bills");
   const soon = alerts.filter((a) => a.days <= 3).length;
-  const next = upcoming(events, 60)[0];
-  const { user } = useAuth();
-  const { rows: bills } = useRows<Bill>("bills", [{ column: "next_due_date" }]);
-  const weekBills = useMemo(() => {
-    if (!user) return null;
-    const t = todayISO();
-    const in7 = new Date(Date.now() + 7 * 86400e3).toLocaleDateString("en-CA");
-    const due = bills.filter((b) => b.is_active && b.next_due_date && b.next_due_date <= in7);
-    return { count: due.length, total: due.reduce((s, b) => s + Number(b.amount || 0), 0), overdue: due.filter((b) => b.next_due_date < t).length };
-  }, [bills, user]);
-
+  const next = upcoming(events, 60).filter((e) => e.kind !== "bill")[0];
   return (
     <section className="animate-rise mb-5">
       <div className="hero-card relative overflow-hidden rounded-[2rem] p-5 text-white sm:p-6" style={{ background: skyFor(hour) }}>
@@ -126,8 +110,8 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
         </div>
 
         {/* glass stat chips */}
-        <div className="relative mt-5 grid grid-cols-3 gap-2">
-          <Link href={next ? eventHref(next) : "/calendar"} className="glass hero-chip col-span-3 sm:col-span-1">
+        <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Link href={next ? eventHref(next) : "/calendar"} className="glass hero-chip col-span-2">
             <span className="hero-chip-label">Next up</span>
             {next ? (
               <>
@@ -140,18 +124,13 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
               <span className="text-[0.95rem] font-semibold">Nothing planned</span>
             )}
           </Link>
-          <Link href="/bills" className="glass hero-chip col-span-1">
-            <span className="hero-chip-label">Bills · 7 days</span>
-            <span className="text-[0.95rem] font-semibold tabular-nums">{weekBills ? money(weekBills.total) : "—"}</span>
-            <span className="text-xs text-white/80">{weekBills ? (weekBills.overdue ? `${weekBills.overdue} overdue` : `${weekBills.count} due`) : "Unlock to see"}</span>
-          </Link>
           <Link href="/alerts" className="glass hero-chip col-span-1">
             <span className="hero-chip-label">Alerts</span>
             <span className="text-[0.95rem] font-semibold">{alerts.length || "All clear"}</span>
             <span className="text-xs text-white/80">{soon ? `${soon} in 3 days` : alerts.length ? "Nothing urgent" : "✓"}</span>
           </Link>
-          {/* third mobile cell: the assistant */}
-          <button onClick={() => window.dispatchEvent(new CustomEvent("lifehub-assistant"))} className="glass hero-chip col-span-1 items-start text-left sm:hidden">
+          {/* the assistant */}
+          <button onClick={() => window.dispatchEvent(new CustomEvent("lifehub-assistant"))} className="glass hero-chip col-span-1 items-start text-left">
             <span className="hero-chip-label">Assistant</span>
             <Sparkles size={18} className="mt-0.5" />
             <span className="text-xs text-white/80">Ask me</span>
@@ -256,70 +235,20 @@ export function QuickActions() {
   );
 }
 
-/* ---------- Up next carousel ---------- */
-
-const KIND_EMOJI: Record<CalendarEvent["kind"], string> = { personal: "📌", reminder: "⏰", bill: "💷", football: "⚽", travel: "✈️", holiday: "🎉" };
-
-export function UpNextStrip({ events, now }: { events: CalendarEvent[]; now: Date | null }) {
-  const items = upcoming(events, 30).slice(0, 10);
-  if (!items.length) return null;
-  return (
-    <section className="mb-6">
-      <div className="mb-3 flex items-end justify-between px-1">
-        <h2 className="text-[1.3rem] font-bold tracking-tight">Up next</h2>
-        <Link href="/calendar" className="text-sm font-semibold text-accent">
-          Calendar
-        </Link>
-      </div>
-      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0">
-        {items.map((e, i) => {
-          const color = kindInfo[e.kind].color;
-          const d = new Date(`${e.date}T12:00:00`);
-          return (
-            <Link
-              key={e.id}
-              href={eventHref(e)}
-              className="upnext-card snap-start"
-              style={{ "--k": color, "--i": i } as React.CSSProperties}
-            >
-              <span className="flex items-start justify-between">
-                <span className="grid size-11 place-items-center rounded-2xl text-xl" style={{ background: `color-mix(in srgb, ${color} 18%, transparent)` }}>
-                  {KIND_EMOJI[e.kind]}
-                </span>
-                <span className="text-right leading-none">
-                  <span className="block text-[0.65rem] font-bold uppercase tracking-wider text-muted">{d.toLocaleDateString("en-GB", { month: "short" })}</span>
-                  <span className="block font-display text-2xl font-bold">{d.getDate()}</span>
-                </span>
-              </span>
-              <span className="mt-4 line-clamp-2 min-h-[2.6em] text-[0.95rem] font-semibold leading-snug">{e.title}</span>
-              <span className="mt-2 flex items-center justify-between gap-2 text-xs">
-                <span className="rounded-full px-2 py-1 font-semibold" style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }} suppressHydrationWarning>
-                  {now ? whenLabel(e, now) : ""}
-                </span>
-                {e.kind === "bill" && e.amount != null && <span className="font-semibold tabular-nums">{money(e.amount)}</span>}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 /* ---------- Filter groups for the cards below ---------- */
 
 export type HomeFilter = "all" | "today" | "money" | "sport" | "out" | "health";
 export const HOME_FILTERS: { value: HomeFilter; label: string; icon: string }[] = [
   { value: "all", label: "All", icon: "✨" },
   { value: "today", label: "Today", icon: "☀️" },
-  { value: "money", label: "Money", icon: "💷" },
+  { value: "money", label: "Fuel & deals", icon: "🏷️" },
   { value: "sport", label: "Sport & TV", icon: "⚽" },
   { value: "out", label: "Out & about", icon: "🧭" },
   { value: "health", label: "Health", icon: "❤️" },
 ];
 export const FILTER_CARDS: Record<Exclude<HomeFilter, "all">, string[]> = {
-  today: ["calendar", "weather", "reminders", "bills", "tv"],
-  money: ["bills", "fuel", "shopping"],
+  today: ["calendar", "weather", "reminders", "tv"],
+  money: ["fuel", "shopping"],
   sport: ["football", "sport-news", "tv", "news"],
   out: ["weather", "fuel", "local", "travel"],
   health: ["activity", "nutrition"],

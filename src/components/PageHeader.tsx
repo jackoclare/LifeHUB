@@ -1,9 +1,12 @@
 import type { Section } from "@/lib/nav";
+import { HubTabs } from "@/components/HubTabs";
 
 /** iOS-style large title */
 export function PageHeader({ section, title, subtitle, action }: { section?: Section; title?: string; subtitle?: string; action?: React.ReactNode }) {
   const Icon = section?.icon;
   return (
+    <>
+    {section && <HubTabs section={section} />}
     <div className="mb-6 flex items-end justify-between gap-4">
       <div className="min-w-0">
         {Icon && (
@@ -16,5 +19,6 @@ export function PageHeader({ section, title, subtitle, action }: { section?: Sec
       </div>
       {action}
     </div>
+    </>
   );
 }

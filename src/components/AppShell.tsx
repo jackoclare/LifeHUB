@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { groups, mobileTabs, sections } from "@/lib/nav";
+import { hubSections, hubs, mobileTabs, sections, type Section } from "@/lib/nav";
 import { ThemeToggle } from "./ThemeToggle";
 import { Assistant } from "./assistant/Assistant";
 import { LocationBanner } from "./LocationBanner";
@@ -54,32 +54,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <nav className="flex-1 space-y-6 overflow-y-auto" aria-label="Main">
-          {groups.map((group) => (
-            <div key={group}>
-              <p className="mb-1.5 px-2 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-faint">{group}</p>
+          {(
+            [
+              ["", ["/", "/alerts", "/ai"].map((h) => sections.find((s) => s.href === h)!)],
+              [
+                "Hubs",
+                hubs.map((h) => {
+                  const parts = hubSections(h.id);
+                  return { ...parts[0], label: h.id, icon: h.icon, color: h.color, hubParts: parts.map((p) => p.href) };
+                }),
+              ],
+              ["", [sections.find((s) => s.href === "/settings")!]],
+            ] as [string, (Section & { hubParts?: string[] })[]][]
+          ).map(([title, items], gi) => (
+            <div key={gi}>
+              {title && <p className="mb-1.5 px-2 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-faint">{title}</p>}
               <ul className="space-y-0.5">
-                {sections
-                  .filter((s) => s.group === group)
-                  .map((s) => {
-                    const active = isActive(pathname, s.href);
-                    const Icon = s.icon;
-                    return (
-                      <li key={s.href}>
-                        <Link
-                          href={s.href}
-                          aria-current={active ? "page" : undefined}
-                          className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-[0.95rem] font-medium transition-all duration-300 active:scale-[0.97] ${
-                            active ? "bg-accent text-white" : "text-ink hover:bg-surface-2"
-                          }`}
-                        >
-                          <span className="grid size-7 place-items-center rounded-lg text-white" style={{ background: s.color }}>
-                            <Icon size={16} strokeWidth={2.2} />
-                          </span>
-                          {s.label}
-                        </Link>
-                      </li>
-                    );
-                  })}
+                {items.map((s) => {
+                  const active = s.hubParts ? s.hubParts.some((h) => isActive(pathname, h)) : isActive(pathname, s.href);
+                  const Icon = s.icon;
+                  return (
+                    <li key={s.label}>
+                      <Link
+                        href={s.href}
+                        aria-current={active ? "page" : undefined}
+                        className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-[0.95rem] font-medium transition-all duration-300 active:scale-[0.97] ${
+                          active ? "bg-accent text-white" : "text-ink hover:bg-surface-2"
+                        }`}
+                      >
+                        <span className="grid size-7 place-items-center rounded-lg text-white" style={{ background: s.color }}>
+                          <Icon size={16} strokeWidth={2.2} />
+                        </span>
+                        {s.label}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

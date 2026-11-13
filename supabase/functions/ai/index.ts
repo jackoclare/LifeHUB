@@ -123,11 +123,11 @@ async function lifeContext(userId: string) {
   return lines.join("\n\n").slice(0, 6500);
 }
 
-async function chatCall(base: string, key: string, model: string, messages: unknown[]) {
+async function chatCall(base: string, key: string, model: string, messages: unknown[], opts: { json?: boolean; maxTokens?: number } = {}) {
   const r = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ model, messages, max_tokens: 1200, temperature: 0.6 }),
+    body: JSON.stringify({ model, messages, max_tokens: opts.maxTokens ?? 1200, temperature: 0.6, ...(opts.json ? { response_format: { type: "json_object" } } : {}) }),
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new ApiError(r.status, j?.error?.message ?? `AI error ${r.status}`);
@@ -153,6 +153,46 @@ Deno.serve(async (req) => {
     return json({ error: "Bad request" }, 400);
   }
   if (body.mode === "image") return json({ error: "Creating and editing pictures isn't available on the free AI. You can still send a photo and ask about it." }, 400);
+
+  // ---- Meal plan: fill the given empty slots with varied, UK-supermarket-friendly meals (JSON out)
+  if (body.mode === "mealplan") {
+    const slots = ((body as { slots?: { day: string; slot: string }[] }).slots ?? [])
+      .filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.day) && ["breakfast", "lunch", "dinner"].includes(x.slot))
+      .slice(0, 21);
+    const avoid = ((body as { avoid?: string[] }).avoid ?? []).map(String).slice(0, 40);
+    if (!slots.length) return json({ meals: [] });
+    if (!(await bump(user.id))) return json({ error: `Daily AI limit reached (${MAX_CHATS}). Try again tomorrow.` }, 429);
+    const { data: st } = await admin.from("user_settings").select("prefs").eq("user_id", user.id).maybeSingle();
+    const prefs = (st?.prefs ?? {}) as { diet?: string[]; supermarket?: string | null };
+    const prompt = `Plan these meals for Jack (UK, cooking for himself, budget-friendly, quick on weekdays, a bit more effort at weekends).
+Diet/preferences: ${prefs.diet?.length ? prefs.diet.join(", ") : "none stated"}. Supermarket: ${prefs.supermarket ?? "any UK supermarket"}.
+Make every meal different${avoid.length ? ` and don't repeat these: ${avoid.join("; ")}` : ""}. Breakfasts simple, lunches portable or quick, dinners proper meals; reuse ingredients across the week to cut waste.
+Slots to fill (day, slot): ${slots.map((x) => `${x.day} ${x.slot}`).join(", ")}.
+Reply with JSON only: {"meals":[{"day":"YYYY-MM-DD","slot":"breakfast|lunch|dinner","title":"short meal name","ingredients":["ingredient as you'd write it on a shopping list", ...]}]} — 3 to 8 ingredients each, UK names (courgette, mince, coriander).`;
+    const wanted = new Set(slots.map((x) => `${x.day}|${x.slot}`));
+    const tryParse = (t: string) => {
+      const m = t.match(/\{[\s\S]*\}/);
+      const j = JSON.parse(m ? m[0] : t);
+      return ((j.meals ?? []) as { day: string; slot: string; title: string; ingredients: unknown }[])
+        .filter((x) => wanted.has(`${x.day}|${x.slot}`) && typeof x.title === "string" && x.title.trim())
+        .map((x) => ({
+          day: x.day,
+          slot: x.slot,
+          title: x.title.trim().slice(0, 80),
+          ingredients: (Array.isArray(x.ingredients) ? x.ingredients : []).map(String).map((i) => i.trim().slice(0, 50)).filter(Boolean).slice(0, 12),
+        }));
+    };
+    const msgs2 = [{ role: "system", content: "You are a practical UK meal planner. Output valid JSON only." }, { role: "user", content: prompt }];
+    try {
+      if (GROQ_KEY) {
+        const model = await pickGroqModel(CHAT_PREFS);
+        return json({ meals: tryParse(await chatCall("https://api.groq.com/openai/v1", GROQ_KEY, model, msgs2, { json: true, maxTokens: 3500 })) });
+      }
+      return json({ meals: tryParse(await chatCall("https://generativelanguage.googleapis.com/v1beta/openai", GEMINI_KEY, GEMINI_MODEL, msgs2, { json: true, maxTokens: 3500 })) });
+    } catch (e) {
+      return json({ error: `The AI couldn't plan meals right now (${(e as Error).message.slice(0, 120)}).` }, 502);
+    }
+  }
 
   const msgs = (body.messages ?? []).slice(-16);
   if (!msgs.length) return json({ error: "Say something first." }, 400);

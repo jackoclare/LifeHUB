@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ShoppingBasket, Trash2 } from "lucide-react";
+import { askAi } from "@/app/ai/AiChat";
+import { ChevronLeft, ChevronRight, ShoppingBasket, Trash2, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { guessAisle } from "@/app/shopping/ShoppingView";
 import { useAuth } from "@/components/AuthProvider";
@@ -67,6 +68,7 @@ export function MealsView() {
   const [edit, setEdit] = useState<{ day: string; slot: Slot; meal?: Meal } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [selDay, setSelDay] = useState(() => iso(new Date()));
+  const [planning, setPlanning] = useState(false);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)), [start]);
   const load = useCallback(async () => {
@@ -100,20 +102,34 @@ export function MealsView() {
   const sel = dayIsos.includes(selDay) ? selDay : dayIsos.includes(todayIso) ? todayIso : dayIsos[0];
 
   const autoFill = async () => {
-    const rows: { day: string; slot: Slot; title: string; ingredients: string[] }[] = [];
-    const used = new Set(meals.map((m) => m.title));
-    for (const di of dayIsos) {
-      for (const sl of SLOTS) {
-        if (meals.some((m) => m.day === di && m.slot === sl.id)) continue;
-        const pool = LIBRARY[sl.id].filter((x) => !used.has(x.title));
-        const pick = (pool.length ? pool : LIBRARY[sl.id])[Math.floor(Math.random() * (pool.length || LIBRARY[sl.id].length))];
-        used.add(pick.title);
-        rows.push({ day: di, slot: sl.id, title: pick.title, ingredients: pick.ingredients });
-      }
+    const empty = dayIsos.flatMap((di) => SLOTS.filter((sl) => !meals.some((m) => m.day === di && m.slot === sl.id)).map((sl) => ({ day: di, slot: sl.id })));
+    if (!empty.length) return setMsg("Your week is already full — tap a meal to change it.");
+    setPlanning(true);
+    setMsg(null);
+    let rows: { day: string; slot: Slot; title: string; ingredients: string[] }[] = [];
+    let byAi = false;
+    // First choice: the free AI plans varied meals around your diet and supermarket
+    try {
+      const r = (await askAi({ mode: "mealplan", slots: empty, avoid: meals.map((m) => m.title) })) as { meals?: { day: string; slot: Slot; title: string; ingredients: string[] }[] };
+      const got = new Map((r.meals ?? []).map((m) => [`${m.day}|${m.slot}`, m]));
+      rows = empty.flatMap((e) => (got.has(`${e.day}|${e.slot}`) ? [{ ...got.get(`${e.day}|${e.slot}`)!, day: e.day, slot: e.slot }] : []));
+      byAi = rows.length > 0;
+    } catch {
+      /* fall back below */
     }
-    if (!rows.length) return setMsg("Your week is already full — tap a meal to change it.");
-    await createClient().from("meal_plan").insert(rows);
-    setMsg(`Planned ${rows.length} meals. Tap any to swap it.`);
+    // Anything the AI didn't fill comes from the built-in recipe list
+    const used = new Set([...meals.map((m) => m.title), ...rows.map((r) => r.title)]);
+    for (const e of empty) {
+      if (rows.some((r) => r.day === e.day && r.slot === e.slot)) continue;
+      const pool = LIBRARY[e.slot].filter((x) => !used.has(x.title));
+      const pick = (pool.length ? pool : LIBRARY[e.slot])[Math.floor(Math.random() * (pool.length || LIBRARY[e.slot].length))];
+      used.add(pick.title);
+      rows.push({ day: e.day, slot: e.slot, title: pick.title, ingredients: pick.ingredients });
+    }
+    const { error } = await createClient().from("meal_plan").insert(rows);
+    setPlanning(false);
+    if (error) return setMsg("Couldn't save the plan — try again.");
+    setMsg(`Planned ${rows.length} meals${byAi ? " with AI" : ""}. Tap any to swap it.`);
     load();
   };
 
@@ -167,8 +183,14 @@ export function MealsView() {
         })}
       </div>
 
-      <button className="btn w-full text-white" style={{ background: CORAL, boxShadow: `0 14px 30px -14px ${CORAL}` }} onClick={autoFill}>
-        Generate meal plan automatically
+      <button className="btn w-full text-white disabled:opacity-80" style={{ background: CORAL, boxShadow: `0 14px 30px -14px ${CORAL}` }} onClick={autoFill} disabled={planning}>
+        {planning ? (
+          <>
+            <Loader2 size={16} className="animate-spin" /> Planning your week…
+          </>
+        ) : (
+          "Generate meal plan automatically"
+        )}
       </button>
       <button className="btn btn-ghost w-full" onClick={toShopping}>
         <ShoppingBasket size={16} /> Add this week&apos;s ingredients to my shopping list

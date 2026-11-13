@@ -1,11 +1,12 @@
 "use client";
 
-import { Copy, Flame, Footprints, Loader2, Plus, Search, Timer, Trash2, Watch } from "lucide-react";
+import { Camera, Copy, Flame, Footprints, Loader2, Plus, Search, Timer, Trash2, Watch } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
 import { Sheet } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { askAi, shrink } from "@/app/ai/AiChat";
 import type { Food } from "@/app/api/food/route";
 import { DateStrip, daysFrom } from "@/components/kit";
 
@@ -277,6 +278,9 @@ function AddFood({ meal, date, onClose, onAdded }: { meal: Meal | null; date: st
   const [pick, setPick] = useState<Food | null>(null);
   const [grams, setGrams] = useState("100");
   const [manual, setManual] = useState({ name: "", kcal: "", protein: "" });
+  type PhotoItem = { name: string; grams: number; kcal: number; protein: number; carbs: number; fat: number; on: boolean };
+  const [photo, setPhoto] = useState<{ preview: string; items: PhotoItem[]; note: string; confidence: string } | null>(null);
+  const [portion, setPortion] = useState(1);
 
   useEffect(() => {
     if (!meal) {
@@ -285,6 +289,8 @@ function AddFood({ meal, date, onClose, onAdded }: { meal: Meal | null; date: st
       setPick(null);
       setErr(null);
       setManual({ name: "", kcal: "", protein: "" });
+      setPhoto(null);
+      setPortion(1);
     }
   }, [meal]);
 
@@ -316,12 +322,113 @@ function AddFood({ meal, date, onClose, onAdded }: { meal: Meal | null; date: st
     onClose();
   };
 
+  const snap = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const image = await shrink(file, 1024);
+      const r = (await askAi({ mode: "foodphoto", image })) as { items?: Omit<PhotoItem, "on">[]; note?: string; confidence?: string; error?: string };
+      if (r.error) setErr(r.error);
+      else if (!r.items?.length) setErr(r.note || "I couldn't spot any food in that photo — try again or add it by hand.");
+      else {
+        setPortion(1);
+        setPhoto({ preview: image, items: r.items.map((i) => ({ ...i, on: true })), note: r.note ?? "", confidence: r.confidence ?? "medium" });
+      }
+    } catch {
+      setErr("Couldn't read that photo — try again.");
+    }
+    setBusy(false);
+  };
+
+  const savePhoto = async () => {
+    if (!photo) return;
+    const rows = photo.items
+      .filter((i) => i.on)
+      .map((i) => ({
+        name: i.name,
+        brand: "Photo estimate",
+        grams: Math.round(i.grams * portion),
+        kcal: Math.round(i.kcal * portion),
+        protein: Math.round(i.protein * portion * 10) / 10,
+        carbs: Math.round(i.carbs * portion * 10) / 10,
+        fat: Math.round(i.fat * portion * 10) / 10,
+        meal,
+        eaten_on: date,
+      }));
+    if (!rows.length) return setErr("Tick at least one item.");
+    setBusy(true);
+    const { error } = await createClient().from("food_entries").insert(rows);
+    setBusy(false);
+    if (error) return setErr(error.message);
+    onAdded();
+    onClose();
+  };
+
   const g = Number(grams) || 0;
   const scaled = (v: number | null) => (v == null ? null : Math.round(((v * g) / 100) * 10) / 10);
 
   return (
     <Sheet open={!!meal} title={`Add to ${MEALS.find((m) => m.id === meal)?.label ?? ""}`} onClose={onClose}>
-      {pick ? (
+      {photo ? (
+        <div className="space-y-4">
+          <div className="flex gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photo.preview} alt="Your food" className="size-20 shrink-0 rounded-2xl object-cover" />
+            <div className="min-w-0 text-sm">
+              <p className="font-semibold">AI estimate · {photo.confidence} confidence</p>
+              <p className="text-muted">{photo.note || "Check the items and portion, then add."}</p>
+            </div>
+          </div>
+          <ul className="divide-y divide-line rounded-2xl bg-surface-2">
+            {photo.items.map((it, i) => (
+              <li key={i}>
+                <label className="flex min-h-12 cursor-pointer items-center gap-3 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    className="size-5 accent-[var(--accent)]"
+                    checked={it.on}
+                    onChange={() => setPhoto({ ...photo, items: photo.items.map((x, j) => (j === i ? { ...x, on: !x.on } : x)) })}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{it.name}</span>
+                    <span className="block text-xs text-muted">
+                      ~{Math.round(it.grams * portion)}g · {r0(it.protein * portion)}g protein
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums">{Math.round(it.kcal * portion)} kcal</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          <div>
+            <p className="mb-1.5 text-sm font-medium">Portion</p>
+            <div className="flex gap-2">
+              {[0.5, 1, 1.5, 2].map((x) => (
+                <button key={x} className={`chip min-h-10 flex-1 justify-center ${portion === x ? "bg-accent! text-white!" : ""}`} onClick={() => setPortion(x)}>
+                  {x === 0.5 ? "½" : x === 1.5 ? "1½" : `${x}`}×
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-center text-sm">
+            Total{" "}
+            <span className="font-display text-lg font-bold tabular-nums">
+              {Math.round(photo.items.filter((i) => i.on).reduce((a, i) => a + i.kcal, 0) * portion)} kcal
+            </span>
+          </p>
+          {err && <p className="text-sm text-muted">{err}</p>}
+          <div className="grid grid-cols-2 gap-2">
+            <button className="btn btn-ghost" onClick={() => setPhoto(null)}>
+              Back
+            </button>
+            <button className="btn btn-primary" disabled={busy} onClick={savePhoto}>
+              {busy ? <Loader2 size={16} className="animate-spin" /> : "Add to diary"}
+            </button>
+          </div>
+          <p className="text-[11px] text-faint">Photo estimates are rough — free AI (Groq) guesses portions from the picture.</p>
+        </div>
+      ) : pick ? (
         <div className="space-y-4">
           <div>
             <p className="font-semibold">{pick.name}</p>
@@ -382,6 +489,10 @@ function AddFood({ meal, date, onClose, onAdded }: { meal: Meal | null; date: st
         </div>
       ) : (
         <div className="space-y-4">
+          <label className={`btn w-full cursor-pointer text-white ${busy ? "opacity-80" : ""}`} style={{ background: "linear-gradient(135deg,#ff9500,#ff2d55)" }}>
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <Camera size={17} />} {busy ? "Looking at your food…" : "Snap your food — AI counts the calories"}
+            <input type="file" accept="image/*" capture="environment" className="hidden" disabled={busy} onChange={(e) => snap(e.target.files?.[0] ?? undefined)} />
+          </label>
           <form onSubmit={search} className="flex gap-2">
             <label className="flex min-h-11 flex-1 items-center gap-2 rounded-full bg-surface-2 px-4 focus-within:ring-2 focus-within:ring-accent">
               <Search size={16} className="text-faint" />

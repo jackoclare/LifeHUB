@@ -11,7 +11,7 @@ type Msg = { role: "user" | "assistant"; text: string; image?: string; generated
 const STORE = "mlh.ai.chat.v1";
 
 /** Shrink a photo before sending (keeps uploads fast and cheap). PNG for editing, JPEG for chat. */
-async function shrink(file: File, max = 1280, png = false): Promise<string> {
+export async function shrink(file: File, max = 1280, png = false): Promise<string> {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((res, rej) => {

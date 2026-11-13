@@ -194,6 +194,34 @@ Reply with JSON only: {"meals":[{"day":"YYYY-MM-DD","slot":"breakfast|lunch|dinn
     }
   }
 
+  // ---- Food photo: estimate what's on the plate (name, grams, kcal, macros) for the food diary
+  if (body.mode === "foodphoto") {
+    const image = String((body as { image?: string }).image ?? "");
+    const note = String((body as { note?: string }).note ?? "").slice(0, 200);
+    if (!/^data:image\/(jpeg|png|webp);base64,/.test(image) || image.length > 4_000_000) return json({ error: "Send a photo of your food." }, 400);
+    if (!GROQ_KEY) return json({ error: "Food photos need the Groq key." }, 503);
+    if (!(await bump(user.id))) return json({ error: `Daily AI limit reached (${MAX_CHATS}). Try again tomorrow.` }, 429);
+    const ask = `Estimate the food in this photo for a UK calorie diary.${note ? ` Jack says: "${note}".` : ""}
+List each separate item you can see with a realistic portion in grams and its nutrition for that portion.
+Reply with JSON only: {"items":[{"name":"e.g. Chips","grams":200,"kcal":0,"protein":0,"carbs":0,"fat":0}],"confidence":"low|medium|high","note":"one short line, e.g. what you weren't sure about"}.
+If it isn't food, reply {"items":[],"confidence":"low","note":"That doesn't look like food."}`;
+    const msgs3 = [{ role: "user", content: [{ type: "text", text: ask }, { type: "image_url", image_url: { url: image } }] }];
+    try {
+      const model = await pickGroqModel(VISION_PREFS);
+      const t = await chatCall("https://api.groq.com/openai/v1", GROQ_KEY, model, msgs3, { maxTokens: 900 });
+      const m = t.match(/\{[\s\S]*\}/);
+      const j = JSON.parse(m ? m[0] : t);
+      const num = (v: unknown, max: number) => Math.max(0, Math.min(max, Math.round(Number(v) * 10) / 10 || 0));
+      const items = ((j.items ?? []) as Record<string, unknown>[])
+        .filter((x) => typeof x.name === "string" && String(x.name).trim())
+        .slice(0, 8)
+        .map((x) => ({ name: String(x.name).trim().slice(0, 60), grams: num(x.grams, 2000), kcal: num(x.kcal, 4000), protein: num(x.protein, 300), carbs: num(x.carbs, 600), fat: num(x.fat, 300) }));
+      return json({ items, confidence: ["low", "medium", "high"].includes(j.confidence) ? j.confidence : "medium", note: String(j.note ?? "").slice(0, 160) });
+    } catch (e) {
+      return json({ error: `Couldn't read that photo (${(e as Error).message.slice(0, 100)}). Try again or add it by hand.` }, 502);
+    }
+  }
+
   const msgs = (body.messages ?? []).slice(-16);
   if (!msgs.length) return json({ error: "Say something first." }, 400);
   if (!(await bump(user.id))) return json({ error: `Daily chat limit reached (${MAX_CHATS}). Try again tomorrow.` }, 429);

@@ -6,7 +6,7 @@ import { groups, mobileTabs, sections } from "@/lib/nav";
 import { ThemeToggle } from "./ThemeToggle";
 import { Assistant } from "./assistant/Assistant";
 import { LocationBanner } from "./LocationBanner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { autoLocate } from "@/lib/weather";
 import { syncPrefsFromAccount } from "@/lib/prefs";
 
@@ -23,6 +23,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     autoLocate();
     syncPrefsFromAccount().catch(() => {});
   }, []);
+  // Liquid-glass tab bar shrinks while scrolling down, grows back when scrolling up
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 6) return;
+      setCompact(y > last && y > 80);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -31,6 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <span />
         <span />
       </div>
+      <div className="dot-grid" aria-hidden />
 
       {/* ---------- Desktop sidebar ---------- */}
       <aside className="glass sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line px-4 py-6 lg:flex">
@@ -79,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ---------- Page ---------- */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="glass pt-safe sticky top-0 z-30 border-b border-line lg:hidden">
+        <header className="liquid pt-safe sticky top-0 z-30 lg:hidden">
           <div className="flex h-14 items-center justify-between px-4">
             <Link href="/" className="flex items-center gap-2">
               <Logo />
@@ -89,7 +103,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-5 sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-32 pt-5 sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
           <div key={pathname} className="animate-rise">
             <LocationBanner />
             {children}
@@ -101,19 +115,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Mobile bottom tab bar */}
         <nav
           aria-label="Tabs"
-          className="glass pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line lg:hidden"
+          className={`liquid tabbar fixed inset-x-3 z-40 mx-auto max-w-md rounded-[2rem] lg:hidden ${compact ? "tabbar-compact" : ""}`}
+          style={{ bottom: "calc(env(safe-area-inset-bottom) + 0.6rem)" }}
         >
-          <ul className="relative mx-auto grid max-w-md grid-cols-5">
+          <ul className="relative grid grid-cols-5 px-1">
             {/* sliding highlight behind the active tab */}
             {activeTab >= 0 && (
               <span
                 aria-hidden
-                className="absolute top-2 h-12 w-[20%] px-3 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                className="tab-pill absolute w-[20%] px-1.5 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
                 style={{ transform: `translateX(${activeTab * 100}%)` }}
               >
                 <span
-                  className="block h-full rounded-2xl transition-colors duration-500"
-                  style={{ background: `color-mix(in srgb, ${mobileTabs[activeTab].color} 14%, transparent)` }}
+                  className="block h-full rounded-[1.4rem] transition-colors duration-500"
+                  style={{ background: `color-mix(in srgb, ${mobileTabs[activeTab].color} 16%, transparent)`, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${mobileTabs[activeTab].color} 22%, transparent)` }}
                 />
               </span>
             )}
@@ -125,7 +140,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Link
                     href={t.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex h-16 flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold transition-colors active:scale-95 ${
+                    className={`tab-link flex flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold transition-colors active:scale-90 ${
                       active ? "text-ink" : "text-faint"
                     }`}
                   >
@@ -135,7 +150,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       className={`transition-transform duration-300 ${active ? "-translate-y-0.5 scale-110" : ""}`}
                       style={{ color: active ? t.color : undefined }}
                     />
-                    {t.short ?? t.label}
+                    <span className="tab-label">{t.short ?? t.label}</span>
                   </Link>
                 </li>
               );

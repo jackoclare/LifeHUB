@@ -23,7 +23,7 @@ import type { Bill } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { usePlace } from "@/lib/weather";
 import { readCache, writeCache } from "@/lib/cache";
-import { FILTER_CARDS, HOME_FILTERS, HomeHero, QuickActions, type HomeFilter } from "./HomeHero";
+import { FILTER_CARDS, HOME_FILTERS, HomeHero, QuickActions, useSpotlight, type HomeFilter } from "./HomeHero";
 import { PillTabs } from "@/components/kit";
 
 function greeting(h: number) {
@@ -37,6 +37,7 @@ export function Dashboard() {
   const { events } = useCalendarEvents();
   const [editing, setEditing] = useState(false);
   const [filter, setFilter] = useState<HomeFilter>("all");
+  useSpotlight();
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
     setNow(new Date());

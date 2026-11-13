@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import {
   Bell,
   CalendarPlus,
@@ -64,6 +65,27 @@ function eventHref(e: CalendarEvent) {
   return e.id.startsWith("match-") ? `/sport/match/${e.id.slice(6)}` : e.kind === "bill" ? "/bills" : "/calendar";
 }
 
+/* ---------- Spotlight: cards light up where your finger / mouse is ---------- */
+
+export function useSpotlight() {
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      const el = t && typeof t.closest === "function" ? (t.closest(".dash-card, .hero-card, .quick-tile") as HTMLElement | null) : null;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      el.style.setProperty("--my", `${e.clientY - r.top}px`);
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerdown", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerdown", onMove);
+    };
+  }, []);
+}
+
 /* ---------- Hero ---------- */
 
 export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | null; events: CalendarEvent[]; editing: boolean; onToggleEdit: () => void }) {
@@ -74,10 +96,15 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
   const next = upcoming(events, 60).filter((e) => e.kind !== "bill")[0];
   return (
     <section className="animate-rise mb-5">
-      <div className="hero-card relative overflow-hidden rounded-[2rem] bg-surface p-5 text-ink sm:p-6">
+      <div className="hero-card hero-dark relative overflow-hidden rounded-[2rem] p-5 sm:p-6">
+        {/* futuristic layers: fine grid, electric glow, light sweep */}
+        <span aria-hidden className="hero-grid" />
+        <span aria-hidden className="hero-glow hero-glow-a" />
+        <span aria-hidden className="hero-glow hero-glow-b" />
+        <span aria-hidden className="hero-sweep" />
         {/* avatar · greeting · bell */}
         <div className="relative flex items-center gap-3">
-          <Link href="/settings" aria-label="Profile" className="grid size-12 shrink-0 place-items-center rounded-full bg-accent font-display text-base font-bold text-white transition-transform active:scale-90">
+          <Link href="/settings" aria-label="Profile" className="avatar-ring grid size-12 shrink-0 place-items-center rounded-full font-display text-base font-bold text-white transition-transform active:scale-90">
             JC
           </Link>
           <div className="min-w-0 flex-1">
@@ -85,6 +112,9 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
               {now ? `${greeting(hour)},` : "Hello,"}
             </p>
             <h1 className="truncate text-[1.45rem] font-bold leading-tight tracking-tight">Jack</h1>
+            <p className="mt-0.5 flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-[0.14em] text-faint">
+              <span className="status-dot" /> {soon ? `${soon} need${soon === 1 ? "s" : ""} attention` : "All systems normal"}
+            </p>
           </div>
           <Link href="/alerts" aria-label={`Alerts${soon ? ` (${soon})` : ""}`} className="hero-glass relative grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-90">
             <Bell size={19} className={soon ? "bell-ring" : ""} />
@@ -95,8 +125,16 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
         {/* time · weather */}
         <div className="relative mt-6 flex items-end justify-between gap-3">
           <div>
-            <p className="font-display text-[3.4rem] font-bold leading-none tracking-tighter tabular-nums" suppressHydrationWarning>
-              {now ? now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "--:--"}
+            <p className="hero-clock font-display text-[3.8rem] font-extralight leading-none tracking-tight tabular-nums" suppressHydrationWarning>
+              {now ? (
+                <>
+                  {String(now.getHours()).padStart(2, "0")}
+                  <span className="clock-colon">:</span>
+                  {String(now.getMinutes()).padStart(2, "0")}
+                </>
+              ) : (
+                "--:--"
+              )}
             </p>
             <p className="mt-2 text-sm font-medium text-muted" suppressHydrationWarning>
               {now ? now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) : " "}

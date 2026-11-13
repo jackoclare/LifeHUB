@@ -90,7 +90,7 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
             </p>
             <h1 className="truncate text-[1.45rem] font-bold leading-tight tracking-tight">Jack</h1>
           </div>
-          <Link href="/alerts" aria-label={`Alerts${soon ? ` (${soon})` : ""}`} className="glass relative grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-90">
+          <Link href="/alerts" aria-label={`Alerts${soon ? ` (${soon})` : ""}`} className="hero-glass relative grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-90">
             <Bell size={19} className={soon ? "bell-ring" : ""} />
             {soon > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-[#ff3b30] px-1 text-[11px] font-bold ring-2 ring-white/70">{soon}</span>}
           </Link>
@@ -111,7 +111,7 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
 
         {/* glass stat chips */}
         <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Link href={next ? eventHref(next) : "/calendar"} className="glass hero-chip col-span-2">
+          <Link href={next ? eventHref(next) : "/calendar"} className="hero-glass hero-chip col-span-2">
             <span className="hero-chip-label">Next up</span>
             {next ? (
               <>
@@ -124,13 +124,13 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
               <span className="text-[0.95rem] font-semibold">Nothing planned</span>
             )}
           </Link>
-          <Link href="/alerts" className="glass hero-chip col-span-1">
+          <Link href="/alerts" className="hero-glass hero-chip col-span-1">
             <span className="hero-chip-label">Alerts</span>
             <span className="text-[0.95rem] font-semibold">{alerts.length || "All clear"}</span>
             <span className="text-xs text-white/80">{soon ? `${soon} in 3 days` : alerts.length ? "Nothing urgent" : "✓"}</span>
           </Link>
           {/* the assistant */}
-          <button onClick={() => window.dispatchEvent(new CustomEvent("lifehub-assistant"))} className="glass hero-chip col-span-1 items-start text-left">
+          <button onClick={() => window.dispatchEvent(new CustomEvent("lifehub-assistant"))} className="hero-glass hero-chip col-span-1 items-start text-left">
             <span className="hero-chip-label">Assistant</span>
             <Sparkles size={18} className="mt-0.5" />
             <span className="text-xs text-white/80">Ask me</span>
@@ -167,12 +167,12 @@ function HeroWeather() {
   const { data } = useWeather(place);
   if (!place) {
     return (
-      <Link href="/weather" className="glass rounded-2xl px-3 py-2 text-xs font-semibold">
+      <Link href="/weather" className="hero-glass rounded-2xl px-3 py-2 text-xs font-semibold">
         Set location
       </Link>
     );
   }
-  if (!data) return <span className="glass block h-16 w-24 animate-pulse rounded-2xl" />;
+  if (!data) return <span className="hero-glass block h-16 w-24 animate-pulse rounded-2xl" />;
   const c = data.current;
   const d = data.daily[0];
   return (

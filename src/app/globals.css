@@ -613,9 +613,21 @@ h3,
 
 @layer components {
   .card {
-    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 84%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(170%);
+    backdrop-filter: blur(18px) saturate(170%);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow);
+    /* liquid-glass edge: bright top line + hairline outline */
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.6),
+      inset 0 0 0 1px color-mix(in srgb, var(--text) 6%, transparent),
+      0 12px 30px -22px rgb(0 0 0 / 0.28);
+  }
+  [data-theme="dark"] .card {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.07),
+      inset 0 0 0 1px rgb(255 255 255 / 0.07),
+      0 12px 30px -18px rgb(0 0 0 / 0.6);
   }
   .chip {
     display: inline-flex;

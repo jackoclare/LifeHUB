@@ -461,6 +461,22 @@ function ShortcutSetup({ open, onClose }: { open: boolean; onClose: () => void }
             <Copy size={15} /> {copied ? "Copied!" : "Copy link"}
           </button>
         </div>
+        <div className="rounded-2xl bg-surface-2 p-3">
+          <p className="mb-1 text-xs font-semibold text-muted">⌚ Apple Watch: &quot;LifeHub Today&quot; link</p>
+          <p className="text-xs text-muted">A second Shortcut — Get Contents of URL (this link) → Show Result, with &quot;Show on Apple Watch&quot; on — shows your weather, plans, next match and steps on your wrist.</p>
+          <button
+            className="btn btn-ghost mt-2 w-full"
+            disabled={!url}
+            onClick={async () => {
+              if (!url) return;
+              await navigator.clipboard.writeText(url.replace("/health-ingest?", "/today?"));
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          >
+            <Copy size={15} /> Copy watch link
+          </button>
+        </div>
         <ol className="list-decimal space-y-2 pl-5">
           <li>
             Open the <strong>Shortcuts</strong> app → <strong>+</strong> → name it <strong>LifeHub Health</strong>.

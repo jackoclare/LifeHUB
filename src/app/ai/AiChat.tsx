@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Download, ImagePlus, Loader2, MessageCircle, Sparkles, Trash2, Wand2, X } from "lucide-react";
+import { ArrowUp, Download, ImagePlus, Loader2, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { SignInCard } from "@/components/SignInCard";
@@ -103,7 +103,7 @@ export function AiChat() {
   return (
     <div className="mx-auto flex h-[calc(100dvh-13rem)] max-w-2xl flex-col lg:h-[calc(100dvh-10rem)]">
       {status && !status.configured && (
-        <p className="mb-3 rounded-2xl bg-amber-500/10 px-4 py-3 text-sm text-amber-400">ChatGPT isn&apos;t connected yet — the OpenAI key needs adding in Supabase secrets.</p>
+        <p className="mb-3 rounded-2xl bg-amber-500/10 px-4 py-3 text-sm text-amber-400">The free AI isn&apos;t connected yet — it needs a free Groq key adding in Supabase secrets.</p>
       )}
 
       <div className="flex-1 space-y-3 overflow-y-auto pb-4">
@@ -111,7 +111,7 @@ export function AiChat() {
           <div className="card p-6 text-center">
             <Sparkles className="mx-auto text-accent" size={28} />
             <p className="mt-2 font-display text-lg font-semibold">Ask me anything</p>
-            <p className="mt-1 text-sm text-muted">Chat, send a photo and ask about it, or switch to ✨ Image to create a picture or change a photo.</p>
+            <p className="mt-1 text-sm text-muted">Ask anything, or send a photo and ask about it. Free AI (Groq), no cost.</p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {["Plan a cheap weekend in Lisbon", "What should I cook with chicken, rice and peppers?", "Write a funny birthday message for my mate"].map((ex) => (
                 <button key={ex} className="chip min-h-9 px-3!" onClick={() => setText(ex)}>
@@ -155,14 +155,6 @@ export function AiChat() {
 
       <div className="space-y-2 border-t border-line pt-3">
         <div className="flex items-center gap-2">
-          <div className="flex rounded-full bg-surface-2 p-1">
-            <button onClick={() => setMode("chat")} className={`flex min-h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold ${mode === "chat" ? "bg-accent text-white" : "text-muted"}`}>
-              <MessageCircle size={13} /> Chat
-            </button>
-            <button onClick={() => setMode("image")} className={`flex min-h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold ${mode === "image" ? "bg-accent text-white" : "text-muted"}`}>
-              <Wand2 size={13} /> Image
-            </button>
-          </div>
           <span className="flex-1 truncate text-xs text-faint">{mode === "image" ? (photo ? "Describe how to change your photo" : "Describe a picture, or add a photo to edit") : "Add a photo to ask about it"}</span>
           {msgs.length > 0 && (
             <button className="grid size-8 place-items-center rounded-full text-faint hover:text-ink" aria-label="Clear chat" onClick={() => setMsgs([])}>
@@ -212,7 +204,7 @@ export function AiChat() {
               }
             }}
             rows={1}
-            placeholder={mode === "image" ? "e.g. make it look like a sunny day" : "Message ChatGPT…"}
+            placeholder={mode === "image" ? "e.g. make it look like a sunny day" : "Message LifeHub AI…"}
             className="max-h-32 min-h-11 flex-1 resize-none rounded-3xl border border-line bg-bg-elevated px-4 py-2.5 text-base outline-none focus:border-accent"
             aria-label="Message"
           />

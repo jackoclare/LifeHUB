@@ -23,7 +23,7 @@ const FUELS = [
   { id: "E5", label: "Super" },
 ] as const;
 
-type Station = { node_id: string; name: string; brand: string | null; address: string | null; postcode: string | null; lat: number; lon: number; price: number; price_last_updated: string | null };
+type Station = { node_id: string; name: string; brand: string | null; address: string | null; postcode: string | null; lat: number; lon: number; price: number | null; price_last_updated: string | null };
 type Saved = { id: string; osm_id: string; name: string; category: string; lat: number; lon: number; address: string | null };
 type Sel = { kind: "fuel"; s: Station } | { kind: "holiday"; d: (typeof DESTINATIONS)[number] } | { kind: "saved"; p: Saved };
 
@@ -125,7 +125,7 @@ export function MapHub() {
     if (!layers.has("fuel") || !view || view.zoom < 10) return setStations([]);
     const n = ++seq.current;
     createClient()
-      .rpc("nearby_fuel", { p_lat: view.lat, p_lon: view.lon, p_radius_km: Math.min(view.radiusKm, 40), p_fuel: fuel })
+      .rpc("nearby_fuel_all", { p_lat: view.lat, p_lon: view.lon, p_radius_km: Math.min(view.radiusKm, 40), p_fuel: fuel })
       .then(({ data }) => n === seq.current && setStations((data as Station[]) ?? []));
   }, [layers, view, fuel]);
 
@@ -143,11 +143,12 @@ export function MapHub() {
   };
 
   const range = useMemo(() => {
-    const p = stations.map((s) => Number(s.price)).sort((a, b) => a - b);
+    const p = stations.filter((s) => s.price != null).map((s) => Number(s.price)).sort((a, b) => a - b);
     return p.length ? { low: p[0], high: p[p.length - 1] } : null;
   }, [stations]);
   const fuelColor = useCallback(
-    (price: number) => {
+    (price: number | null) => {
+      if (price == null) return "#8e8e93";
       if (!range || range.high === range.low) return "#16a34a";
       const t = (price - range.low) / (range.high - range.low);
       return t < 0.25 ? "#16a34a" : t < 0.6 ? "#f59e0b" : "#ef4444";
@@ -157,7 +158,7 @@ export function MapHub() {
 
   const points: MapPoint[] = useMemo(() => {
     const out: MapPoint[] = [];
-    if (layers.has("fuel")) out.push(...stations.slice(0, 120).map((s) => ({ id: `f:${s.node_id}`, lat: s.lat, lon: s.lon, color: fuelColor(s.price), label: s.brand ?? s.name, badge: Number(s.price).toFixed(1) })));
+    if (layers.has("fuel")) out.push(...stations.slice(0, 200).map((s) => ({ id: `f:${s.node_id}`, lat: s.lat, lon: s.lon, color: fuelColor(s.price), label: s.brand ?? s.name, badge: s.price == null ? undefined : Number(s.price).toFixed(1) })));
     if (layers.has("holidays")) out.push(...DESTINATIONS.map((d) => ({ id: `h:${d.code}`, lat: d.lat, lon: d.lon, color: "#0ea5e9", label: d.city, badge: d.code })));
     if (layers.has("saved")) out.push(...saved.rows.map((p) => ({ id: `s:${p.id}`, lat: p.lat, lon: p.lon, color: "#f97316", label: p.name })));
     if (trip?.start) out.push({ id: "t:start", lat: trip.start.lat, lon: trip.start.lon, color: "#22c55e", label: trip.start.name, badge: "A" });
@@ -181,7 +182,8 @@ export function MapHub() {
   }, [selected, stations, saved.rows]);
 
   const from = me ?? place ?? null;
-  const cheapest = range && stations.length ? stations.reduce((a, b) => (b.price < a.price ? b : a)) : null;
+  const pricedStations = stations.filter((s) => s.price != null);
+  const cheapest = range && pricedStations.length ? pricedStations.reduce((a, b) => (Number(b.price) < Number(a.price) ? b : a)) : null;
 
   return (
     <div className="space-y-3">
@@ -359,14 +361,15 @@ export function MapHub() {
       </div>
       <p className="text-xs text-faint">
         Tap <strong>◎</strong> for sat-nav mode: the map follows you with an arrow showing your direction. Drag the map to look around. Fuel prices come from retailers&apos; open price
-        feeds (Asda, Esso/Tesco Alliance, SGN, JET, Moto) — always check the pump.
+        feeds (Asda, Esso/Tesco Alliance, SGN, JET, Moto); grey pins are stations without a shared price (locations © OpenStreetMap) — always check the pump.
       </p>
 
       <Sheet open={!!sel} title={sel?.kind === "fuel" ? (sel.s.brand ?? sel.s.name) : sel?.kind === "holiday" ? `${sel.d.flag} ${sel.d.city}` : sel?.kind === "saved" ? sel.p.name : ""} onClose={() => setSelected(null)}>
         {sel?.kind === "fuel" && (
           <div className="space-y-3">
             <p className="font-display text-4xl font-semibold tabular-nums" style={{ color: fuelColor(sel.s.price) }}>
-              {Number(sel.s.price).toFixed(1)}p <span className="text-base font-medium text-muted">{FUELS.find((f) => f.id === fuel)?.label}</span>
+              {sel.s.price == null ? <span className="text-xl">No live price</span> : `${Number(sel.s.price).toFixed(1)}p`}{" "}
+              <span className="text-base font-medium text-muted">{FUELS.find((f) => f.id === fuel)?.label}</span>
             </p>
             <p className="text-sm text-muted">
               {[sel.s.address, sel.s.postcode].filter(Boolean).join(", ")}
@@ -375,6 +378,11 @@ export function MapHub() {
             <a className="btn btn-primary w-full" href={googleDirections(sel.s)} target="_blank" rel="noopener noreferrer">
               <Navigation size={16} /> Google Maps
             </a>
+            {sel.s.price == null && (
+              <a className="btn btn-ghost w-full" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${sel.s.brand ?? sel.s.name} ${sel.s.postcode ?? ""}`.trim())}`} target="_blank" rel="noopener noreferrer">
+                Check price in Google Maps
+              </a>
+            )}
           </div>
         )}
         {sel?.kind === "holiday" && (

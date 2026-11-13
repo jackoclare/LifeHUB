@@ -312,7 +312,7 @@ export function Assistant() {
             respond({ ok: true, text: "Here are some things you can ask me.", lines: EXAMPLES });
             break;
           default: {
-            // Anything the built-in commands don't cover goes to ChatGPT
+            // Anything the built-in commands don't cover goes to the free AI
             const r = await askAi({ mode: "chat", messages: [{ role: "user", text: q }] });
             if (r.error) respond({ ok: false, text: /switched on|connected/.test(r.error) ? "Sorry, I didn't get that. Try one of these:" : r.error, lines: EXAMPLES.slice(0, 4) });
             else respond({ ok: true, text: r.text ?? "", link: { href: "/ai", label: "Continue in AI chat" } });

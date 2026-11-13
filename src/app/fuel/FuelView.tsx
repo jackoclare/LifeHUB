@@ -30,13 +30,15 @@ type Station = {
   amenities: string[];
   opening_times: { usual_days?: Record<string, { open?: string; close?: string; is_24_hours?: boolean }> } | null;
   phone: string | null;
-  price: number;
+  price: number | null;
   price_last_updated: string | null;
   distance_km: number;
 };
 
 const FUEL_KEY = "mylife.fuel.type";
-const p = (n: number) => `${Number(n).toFixed(1)}p`;
+const p = (n: number | null) => (n == null ? "—" : `${Number(n).toFixed(1)}p`);
+const gmaps = (s: { name: string; brand: string | null; postcode: string | null; lat: number; lon: number }) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.brand ?? s.name} ${s.postcode ?? ""}`.trim())}`;
 
 function ago(iso: string | null) {
   if (!iso) return "time unknown";
@@ -83,7 +85,7 @@ export function FuelView() {
     setSelected(null);
     const supabase = createClient();
     Promise.all([
-      supabase.rpc("nearby_fuel", { p_lat: place.lat, p_lon: place.lon, p_radius_km: radius, p_fuel: fuel }),
+      supabase.rpc("nearby_fuel_all", { p_lat: place.lat, p_lon: place.lon, p_radius_km: radius, p_fuel: fuel }),
       supabase.from("fuel_prices").select("synced_at").order("synced_at", { ascending: false }).limit(1),
     ])
       .then(([res, last]) => {
@@ -98,13 +100,20 @@ export function FuelView() {
     };
   }, [place, fuel, radius]);
 
-  const list = useMemo(() => [...rows].sort((a, b) => (sort === "cheapest" ? a.price - b.price || a.distance_km - b.distance_km : a.distance_km - b.distance_km)), [rows, sort]);
+  const list = useMemo(
+    () =>
+      [...rows].sort((a, b) =>
+        sort === "cheapest" ? (a.price ?? 9999) - (b.price ?? 9999) || a.distance_km - b.distance_km : a.distance_km - b.distance_km,
+      ),
+    [rows, sort],
+  );
+  const priced = useMemo(() => rows.filter((r) => r.price != null) as (Station & { price: number })[], [rows]);
   const stats = useMemo(() => {
-    if (!rows.length) return null;
-    const prices = rows.map((r) => Number(r.price)).sort((a, b) => a - b);
+    if (!priced.length) return null;
+    const prices = priced.map((r) => Number(r.price)).sort((a, b) => a - b);
     const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-    return { low: prices[0], high: prices[prices.length - 1], avg, cheapest: rows.reduce((a, b) => (b.price < a.price ? b : a)) };
-  }, [rows]);
+    return { low: prices[0], high: prices[prices.length - 1], avg, cheapest: priced.reduce((a, b) => (b.price < a.price ? b : a)) };
+  }, [priced]);
   const sel = list.find((s) => s.node_id === selected) ?? null;
 
   const pickFuel = (f: FuelId) => {
@@ -128,7 +137,8 @@ export function FuelView() {
       </div>
     );
 
-  const colorFor = (price: number) => {
+  const colorFor = (price: number | null) => {
+    if (price == null) return "#8e8e93";
     if (!stats || stats.high === stats.low) return "#22c55e";
     const t = (price - stats.low) / (stats.high - stats.low);
     return t < 0.25 ? "#16a34a" : t < 0.6 ? "#f59e0b" : "#ef4444";
@@ -180,7 +190,7 @@ export function FuelView() {
           <div className="card p-3" style={{ "--i": 1 } as React.CSSProperties}>
             <span className="text-xs text-muted">Average</span>
             <span className="block font-display text-xl font-semibold tabular-nums">{p(stats.avg)}</span>
-            <span className="block text-xs text-faint">{rows.length} stations</span>
+            <span className="block text-xs text-faint">{priced.length} priced · {rows.length} stations</span>
           </div>
           <div className="card p-3" style={{ "--i": 2 } as React.CSSProperties}>
             <span className="text-xs text-muted">Save on 50L</span>
@@ -199,7 +209,7 @@ export function FuelView() {
           me={place}
           selectedId={selected}
           onSelect={setSelected}
-          points={list.slice(0, 80).map((s) => ({ id: s.node_id, lat: s.lat, lon: s.lon, color: colorFor(s.price), label: s.name, badge: Number(s.price).toFixed(1) }))}
+          points={list.slice(0, 150).map((s) => ({ id: s.node_id, lat: s.lat, lon: s.lon, color: colorFor(s.price), label: s.brand ?? s.name, badge: s.price == null ? undefined : Number(s.price).toFixed(1) }))}
         />
         <div className="lg:h-[calc(100dvh-20rem)] lg:overflow-y-auto">
           {loading ? (
@@ -216,8 +226,8 @@ export function FuelView() {
                     onClick={() => setSelected(s.node_id)}
                     className={`card card-interactive flex w-full items-center gap-3 p-3 text-left ${selected === s.node_id ? "ring-2 ring-accent" : ""}`}
                   >
-                    <span className="grid min-w-16 shrink-0 place-items-center rounded-xl px-2 py-1.5 font-display text-base font-semibold tabular-nums text-white" style={{ background: colorFor(s.price) }}>
-                      {p(s.price)}
+                    <span className={`grid min-w-16 shrink-0 place-items-center rounded-xl px-2 py-1.5 font-display font-semibold tabular-nums text-white ${s.price == null ? "text-[11px]" : "text-base"}`} style={{ background: colorFor(s.price) }}>
+                      {s.price == null ? "No price" : p(s.price)}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5 truncate text-sm font-semibold">
@@ -225,7 +235,7 @@ export function FuelView() {
                         {s.is_supermarket && <ShoppingCart size={12} className="shrink-0 text-faint" />}
                       </span>
                       <span className="block truncate text-xs text-muted">{[s.address, s.city].filter(Boolean).join(", ")}</span>
-                      <span className="block text-[11px] text-faint">Updated {ago(s.price_last_updated)}</span>
+                      <span className="block text-[11px] text-faint">{s.price == null ? "Live price not shared — tap to check" : `Updated ${ago(s.price_last_updated)}`}</span>
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-faint">{miles(s.distance_km)}</span>
                   </button>
@@ -236,9 +246,9 @@ export function FuelView() {
         </div>
       </div>
       <p className="text-xs text-faint">
-        Prices from retailers&apos; own open price feeds — Asda, Esso/Tesco Alliance, SGN, JET and Moto (about 1,150 stations). Full coverage of every UK station will switch on
-        automatically once the government Fuel Finder service accepts our connection. Refreshed hourly
-        {synced ? ` — last refreshed ${ago(synced)}` : ""}. Always check the price at the pump.
+        Every station on the map comes from OpenStreetMap (© OpenStreetMap contributors). Live prices come from retailers&apos; own open feeds (Asda, Esso/Tesco Alliance, SGN, JET,
+        Moto); for the rest, tap “Check price” to see it in Google Maps. Full prices for every UK station switch on automatically once the government Fuel Finder service accepts
+        our connection. Refreshed hourly{synced ? ` — last refreshed ${ago(synced)}` : ""}. Always check the price at the pump.
       </p>
 
       <Sheet open={!!sel} title={sel ? (sel.brand ?? sel.name) : ""} onClose={() => setSelected(null)}>
@@ -254,10 +264,15 @@ export function FuelView() {
               <p className="text-right text-xs text-faint">
                 {miles(sel.distance_km)} away
                 <br />
-                Updated {ago(sel.price_last_updated)}
+                {sel.price != null && <>Updated {ago(sel.price_last_updated)}</>}
               </p>
             </div>
-            {stats && sel.price > stats.low && (
+            {sel.price == null && (
+              <a href={gmaps(sel)} target="_blank" rel="noopener noreferrer" className="btn btn-primary w-full">
+                Check price in Google Maps
+              </a>
+            )}
+            {stats && sel.price != null && sel.price > stats.low && (
               <p className="text-sm text-muted">
                 {p(sel.price - stats.low)} more per litre than the cheapest nearby — £{(((sel.price - stats.low) * 50) / 100).toFixed(2)} on a 50-litre fill.
               </p>

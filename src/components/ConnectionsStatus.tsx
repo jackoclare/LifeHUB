@@ -30,7 +30,7 @@ export function ConnectionsStatus() {
       };
       const viaFeeds = String(fuel?.recent?.[0]?.error ?? "").startsWith("fallback");
       const list: Row[] = [
-        { label: "ChatGPT (AI chat & images)", ok: ai ? Boolean(ai.configured) : null, detail: ai?.configured ? "Connected" : "Not connected — needs an OpenAI key" },
+        { label: "Free AI chat (Groq)", ok: ai ? Boolean(ai.configured) : null, detail: ai?.configured ? "Connected" : "Not connected — needs a free Groq key" },
         { label: "Phone notifications", ok: notify ? Boolean(notify.configured) : null, detail: notify?.configured ? "Server ready — switch on per device above" : "Push keys missing" },
         {
           label: "Fuel prices",

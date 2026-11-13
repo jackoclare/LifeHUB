@@ -1,0 +1,1 @@
+-- See applied migration "nearby_fuel_all": like nearby_fuel but includes stations without a live price (price null, sorted last); weekly cron jobs lifehub-fuel-osm-0..7 run the fuel-osm function per latitude band.

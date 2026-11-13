@@ -53,7 +53,18 @@ export function ExploreView() {
   const [changing, setChanging] = useState(false);
   const [query, setQuery] = useState("");
   const [openOnly, setOpenOnly] = useState(false);
+  const [radiusPicked, setRadiusPicked] = useState(false);
+  const [widened, setWidened] = useState(false);
   const saved = useRows<Saved>("saved_places", [{ column: "created_at", ascending: false }], Boolean(user));
+
+  // A new category starts close by again (unless a distance was picked)
+  useEffect(() => {
+    if (!radiusPicked) {
+      setWidened(false);
+      setRadius(2000);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cat]);
 
   useEffect(() => {
     if (!place || cat === "saved") return;
@@ -65,7 +76,14 @@ export function ExploreView() {
       .then((r) => r.json())
       .then((d) => {
         if (!alive) return;
-        setPlaces(d.places ?? []);
+        const found = (d.places ?? []) as Place[];
+        // Not much close by (e.g. a quiet village)? Look a bit further automatically, unless a distance was chosen
+        if (found.length < 5 && !radiusPicked && radius < 8000 && !d.error) {
+          setWidened(true);
+          setRadius(radius < 2000 ? 2000 : radius < 5000 ? 5000 : 8000);
+          return;
+        }
+        setPlaces(found);
         setError(d.error ?? null);
       })
       .catch(() => alive && setError("Couldn't load places"))
@@ -143,7 +161,16 @@ export function ExploreView() {
           <button onClick={() => setChanging(true)} className="chip min-h-9 px-3!">
             <MapPin size={13} /> {place.name}
           </button>
-          <select value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="chip min-h-9 cursor-pointer px-3! outline-none" aria-label="Search radius">
+          <select
+            value={radius}
+            onChange={(e) => {
+              setRadiusPicked(true);
+              setWidened(false);
+              setRadius(Number(e.target.value));
+            }}
+            className="chip min-h-9 cursor-pointer px-3! outline-none"
+            aria-label="Search radius"
+          >
             <option value={1000}>Within ~½ mile</option>
             <option value={2000}>Within ~1 mile</option>
             <option value={5000}>Within ~3 miles</option>
@@ -186,6 +213,9 @@ export function ExploreView() {
       </div>
 
       {error && <ErrorNote message={error} />}
+      {widened && !loading && cat !== "saved" && (
+        <p className="px-1 text-xs text-muted">Not much right on your doorstep, so I&apos;ve looked a little further out.</p>
+      )}
 
       {loading ? (
         <Spinner label="Finding places" />

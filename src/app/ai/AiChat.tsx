@@ -1,5 +1,6 @@
 "use client";
 
+import { RichText } from "@/components/RichText";
 import { ArrowUp, Download, ImagePlus, Loader2, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -132,7 +133,7 @@ export function AiChat() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={m.image} alt="Your photo" className="mb-2 max-h-56 rounded-xl" />
               )}
-              {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
+              {m.text && (m.role === "assistant" && !m.error ? <RichText text={m.text} /> : <p className="whitespace-pre-wrap">{m.text}</p>)}
               {m.generated && (
                 <div className="mt-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}

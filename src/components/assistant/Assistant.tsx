@@ -315,7 +315,13 @@ export function Assistant() {
             // Anything the built-in commands don't cover goes to the free AI
             const r = await askAi({ mode: "chat", messages: [{ role: "user", text: q }] });
             if (r.error) respond({ ok: false, text: /switched on|connected/.test(r.error) ? "Sorry, I didn't get that. Try one of these:" : r.error, lines: EXAMPLES.slice(0, 4) });
-            else respond({ ok: true, text: r.text ?? "", link: { href: "/ai", label: "Continue in AI chat" } });
+            else
+              respond({
+                ok: true,
+                // Plain text for the bubble and for reading aloud (no ** or # symbols)
+                text: (r.text ?? "").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/^\s*[-*•]\s+/gm, "• ").replace(/`([^`]+)`/g, "$1").replace(/^\s*-{3,}\s*$/gm, ""),
+                link: { href: "/ai", label: "Continue in AI chat" },
+              });
           }
         }
       } catch (e) {

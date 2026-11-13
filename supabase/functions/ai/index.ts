@@ -4,6 +4,7 @@
 //           Note: Google may use free-tier prompts to improve its products.
 // Optional overrides: GROQ_CHAT_MODEL, GROQ_VISION_MODEL, GEMINI_MODEL.
 // Signed-in users only; a daily cap keeps it inside the free limits.
+// Each chat includes a short read-only summary of the person's own LifeHub data (calendar, bills, meals, car, jobs, lists).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const GROQ_KEY = (Deno.env.get("GROQ_API_KEY") ?? "").trim();
@@ -57,6 +58,71 @@ async function pickGroqModel(prefs: string[], refresh = false): Promise<string> 
   return prefs[0];
 }
 
+// A compact, read-only snapshot of the person's own LifeHub data, so the AI can answer "what have I got on?" etc.
+async function lifeContext(userId: string) {
+  const day = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+  const now = new Date();
+  const today = day(now);
+  const in14 = day(new Date(now.getTime() + 14 * 86400e3));
+  const in30 = day(new Date(now.getTime() + 30 * 86400e3));
+  const weekAgo = day(new Date(now.getTime() - 1 * 86400e3));
+  const q = <T>(p: PromiseLike<{ data: T | null }>) => Promise.resolve(p).then((r) => r.data).catch(() => null);
+  const [events, bills, meals, cars, jobs, settings, money, goals, shopping, wishes] = await Promise.all([
+    q(admin.from("calendar_events").select("title,event_date,event_time,kind").eq("user_id", userId).gte("event_date", today).lte("event_date", in14).order("event_date").limit(25)),
+    q(admin.from("bills").select("name,amount,frequency,next_due_date,category").eq("user_id", userId).eq("is_active", true).order("next_due_date").limit(30)),
+    q(admin.from("meal_plan").select("day,slot,title").eq("user_id", userId).gte("day", weekAgo).lte("day", in14).order("day").limit(40)),
+    q(admin.from("vehicles").select("nickname,make,model,reg,mot_due,tax_due,insurance_due,service_due,mileage").eq("user_id", userId).limit(5)),
+    q(admin.from("home_tasks").select("name,area,next_due,every_days").eq("user_id", userId).lte("next_due", in14).order("next_due").limit(15)),
+    q(admin.from("user_settings").select("prefs").eq("user_id", userId).maybeSingle()),
+    q(admin.from("finance_profile").select("monthly_income,payday").eq("user_id", userId).maybeSingle()),
+    q(admin.from("savings_goals").select("name,target,saved,target_date").eq("user_id", userId).limit(10)),
+    q(admin.from("shopping_items").select("name,quantity,checked").eq("user_id", userId).eq("checked", false).limit(40)),
+    q(admin.from("wishlist_items").select("name,current_price,target_price").eq("user_id", userId).eq("purchased", false).limit(15)),
+  ]);
+  const lines: string[] = [];
+  const list = <T>(label: string, rows: T[] | null | undefined, f: (r: T) => string) => {
+    if (rows?.length) lines.push(`${label}:\n${rows.map((r) => `- ${f(r)}`).join("\n")}`);
+  };
+  type R = Record<string, unknown>;
+  list("Calendar (next 14 days)", events as R[], (e) => `${e.event_date}${e.event_time ? " " + String(e.event_time).slice(0, 5) : ""} ${e.title} (${e.kind})`);
+  list("Bills", bills as R[], (b) => `${b.name}: £${Number(b.amount).toFixed(2)} ${b.frequency}, next due ${b.next_due_date}${b.category ? `, ${b.category}` : ""}`);
+  list("Meal plan", meals as R[], (m) => `${m.day} ${m.slot}: ${m.title}`);
+  list("Vehicles", cars as R[], (v) => `${[v.nickname, v.make, v.model, v.reg].filter(Boolean).join(" ")} — MOT ${v.mot_due ?? "?"}, tax ${v.tax_due ?? "?"}, insurance ${v.insurance_due ?? "?"}, service ${v.service_due ?? "?"}`);
+  list("Household jobs due", jobs as R[], (j) => `${j.name} (${j.area ?? "home"}) due ${j.next_due}`);
+  list("Savings goals", goals as R[], (g) => `${g.name}: £${g.saved ?? 0} of £${g.target}${g.target_date ? ` by ${g.target_date}` : ""}`);
+  list("Shopping list (not yet bought)", shopping as R[], (i) => `${i.name}${Number(i.quantity) > 1 ? ` x${i.quantity}` : ""}`);
+  list("Wish list", wishes as R[], (w) => `${w.name}${w.current_price ? ` now £${w.current_price}` : ""}${w.target_price ? ` (target £${w.target_price})` : ""}`);
+  const m = money as R | null;
+  if (m?.monthly_income || m?.payday) lines.push(`Money: income £${m.monthly_income ?? "?"} a month, payday day ${m.payday ?? "?"}`);
+  const p = (settings as { prefs?: R } | null)?.prefs;
+  if (p) {
+    const teams = ((p.teams as { name?: string }[] | undefined) ?? []).map((t) => t.name).filter(Boolean).join(", ");
+    lines.push(`Preferences: ${[teams && `teams ${teams}`, p.airport && `home airport ${p.airport}`, p.supermarket && `supermarket ${p.supermarket}`, (p.diet as string[] | undefined)?.length && `diet ${(p.diet as string[]).join(", ")}`].filter(Boolean).join("; ")}`);
+  }
+  // Next fixtures for favourite teams (TheSportsDB free key)
+  const teamIds = ((p?.teams as { id?: string }[] | undefined) ?? []).map((t) => String(t.id)).filter((id) => /^\d{3,9}$/.test(id)).slice(0, 4);
+  const fixtures: string[] = [];
+  const seen = new Set<string>();
+  await Promise.all(
+    (teamIds.length ? teamIds : ["133601", "133914"]).map(async (id) => {
+      try {
+        const r = await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${id}`, { signal: AbortSignal.timeout(4000) });
+        for (const e of ((await r.json())?.events ?? []).slice(0, 2) as Record<string, string>[]) {
+          if (seen.has(e.idEvent)) continue;
+          seen.add(e.idEvent);
+          const ts = e.strTimestamp ? new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(e.strTimestamp) ? e.strTimestamp : `${e.strTimestamp}Z`) : null;
+          const when = ts ? ts.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }) : e.dateEvent;
+          fixtures.push(`${when}: ${e.strHomeTeam} (home) v ${e.strAwayTeam} (away) — ${e.strLeague}${e.strVenue ? `, at ${e.strVenue}` : ""}`);
+        }
+      } catch {
+        /* feed slow — skip */
+      }
+    }),
+  );
+  if (fixtures.length) lines.push(`Upcoming matches for his teams:\n${fixtures.map((f) => `- ${f}`).join("\n")}`);
+  return lines.join("\n\n").slice(0, 6500);
+}
+
 async function chatCall(base: string, key: string, model: string, messages: unknown[]) {
   const r = await fetch(`${base}/chat/completions`, {
     method: "POST",
@@ -96,10 +162,14 @@ Deno.serve(async (req) => {
   const hasImage = msgs.some((m) => m.image && m.role === "user");
   // Only the latest photo is sent (free vision models take a small number of images)
   const lastImageIdx = msgs.map((m) => Boolean(m.image && m.role === "user")).lastIndexOf(true);
+  const context = await lifeContext(user.id).catch(() => "");
   const messages = [
     {
       role: "system",
-      content: `You are Jack's personal assistant inside his LifeHub app. Jack lives near Shrewsbury, Shropshire (UK) and supports Aston Villa. Today is ${today}. Be friendly, direct and concise — short paragraphs, UK spelling, prices in £. You can't browse the web, so if a fact may have changed recently, say you're not certain.`,
+      content: `You are Jack's personal assistant inside his LifeHub app. Jack lives near Shrewsbury, Shropshire (UK) and supports Aston Villa. Today is ${today}. Be friendly, direct and concise — short paragraphs, UK spelling, prices in £. You can't browse the web, so if a fact may have changed recently, say you're not certain.
+Below is Jack's own data from LifeHub (read-only). Use it when he asks about his plans, bills, meals, car, jobs, shopping, goals or upcoming matches; never invent entries that aren't listed, and say so if something isn't there. Dates are YYYY-MM-DD.
+
+${context || "(no LifeHub data yet)"}`,
     },
     ...msgs.map((m, i) =>
       i === lastImageIdx

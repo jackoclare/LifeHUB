@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
   const messages = [
     {
       role: "system",
-      content: `You are Jack's personal assistant inside his LifeHub app. Jack lives in the UK (West Midlands) and supports Aston Villa. Today is ${today}. Be friendly, direct and concise — short paragraphs, UK spelling, prices in £. You can't browse the web, so if a fact may have changed recently, say you're not certain.`,
+      content: `You are Jack's personal assistant inside his LifeHub app. Jack lives near Shrewsbury, Shropshire (UK) and supports Aston Villa. Today is ${today}. Be friendly, direct and concise — short paragraphs, UK spelling, prices in £. You can't browse the web, so if a fact may have changed recently, say you're not certain.`,
     },
     ...msgs.map((m, i) =>
       i === lastImageIdx

@@ -34,15 +34,17 @@ const AMOUNT_RE = /[-+−(]?\s?£?\s?\d{1,3}(?:,\d{3})*\.\d{2}\)?(?:\s?(?:CR|DR)
 /** Rules for sorting transactions — first match wins */
 const RULES: [RegExp, string][] = [
   [/salary|wages|payroll|hmrc|universal credit|dwp|child benefit/i, "income"],
-  [/tesco|asda|sainsbury|aldi|lidl|morrisons|co-?op|iceland|waitrose|m&s food|marks.*spencer.*food|ocado|farmfoods|spar\b/i, "groceries"],
-  [/shell|\bbp\b|esso|texaco|jet\b|gulf\b|murco|petrol|fuel|applegreen|mfg|motor fuel/i, "fuel"],
-  [/mcdonald|greggs|kfc|subway|nando|costa|starbucks|pret\b|burger king|domino|pizza|just eat|deliveroo|uber ?eats|wetherspoon|restaurant|cafe|takeaway|chippy|five guys/i, "eating out"],
-  [/netflix|spotify|disney|prime video|amazon prime|apple\.com|icloud|youtube|now tv|sky\b|dazn|playstation|xbox|patreon|google storage/i, "subscriptions"],
-  [/\btfl\b|trainline|national rail|uber(?! ?eats)|bolt\b|bus|stagecoach|parking|ringgo|paybyphone|dvla|toll|nx west|west midlands railway/i, "transport"],
-  [/amazon|ebay|argos|currys|primark|asos|next\b|h&m|zara|jd sports|sports direct|boots|superdrug|b&m|home bargains|the range|ikea|wilko|temu|shein/i, "shopping"],
-  [/british gas|octopus|eon|e\.on|edf|ovo|scottish power|severn trent|water|council tax|tv licen[cs]e|vodafone|\bee\b|o2\b|three\b|virgin|bt\b|talktalk|insurance|admiral|aviva|direct line|rent|mortgage/i, "bills"],
+  [/^fee for |\bpockit (standard|plus|premium)\b|monthly (account )?fee|card fee|atm fee/i, "bills"],
+  [/^no references?$|transfer to|payment to/i, "transfers"],
+  [/tesco|asda|sainsbury|aldi|lidl|morrisons|co-?op|iceland|waitrose|m&s food|marks.*spencer.*food|ocado|farmfoods|spar\b|nisa\b|one stop|londis|budgens|costcutter|premier stores?|lidl|heron foods|jack'?s\b/i, "groceries"],
+  [/shell|\bbp\b|esso|texaco|jet\b|gulf\b|murco|petrol|fuel|applegreen|mfg|motor fuel|rubis|on the move|service sta(tion)?|filling sta|garage\b|forecourt|certas|valero|harvest energy/i, "fuel"],
+  [/mcdonald|greggs|kfc|subway|nando|costa|starbucks|pret\b|burger king|domino|pizza|just eat|deliveroo|uber ?eats|wetherspoon|restaurant|cafe|café|coffee|brews?\b|takeaway|chippy|five guys|tim hortons|wagamama|toby carvery|harvester|beefeater/i, "eating out"],
+  [/netflix|spotify|disney|prime video|amazon prime|apple\.com|icloud|youtube|now tv|sky\b|dazn|playstation|xbox|patreon|google storage|anthropic|claude\.ai|openai|chatgpt|audible|kindle/i, "subscriptions"],
+  [/\btfl\b|trainline|national rail|uber(?! ?eats)|bolt\b|bus|stagecoach|parking|ringgo|paybyphone|dvla|toll|nx west|west midlands railway|tyres?\b|kwik ?fit|halfords|\bmot\b|car wash|ncp\b/i, "transport"],
+  [/amazon|ebay|argos|currys|primark|asos|next\b|h&m|zara|jd sports|sports direct|boots|superdrug|b&m|b ?m ?retail|bmretail|home bargains|poundland|the works|whsmith|newsxtra|card factory|the range|ikea|wilko|temu|shein/i, "shopping"],
+  [/british gas|octopus|eon|e\.on|edf|ovo|scottish power|severn trent|water|council tax|tv licen[cs]e|vodafone|\bee\b|o2\b|three\b|virgin|bt\b|talktalk|plusnet|sky broadband|giffgaff|tesco mobile|id mobile|smarty|lebara|\.gov\b|gov\.uk|insurance|admiral|aviva|direct line|rent|mortgage/i, "bills"],
   [/atm|cash withdrawal|cashpoint|link atm/i, "cash"],
-  [/gym|puregym|the gym|david lloyd|fitness/i, "health"],
+  [/gym|puregym|the gym|david lloyd|fitness|powerleague|goals soccer|leisure centre|pharmacy|chemist/i, "health"],
   [/bet365|sky bet|paddy power|william hill|ladbrokes|coral\b|betfair|lottery|national lottery/i, "betting"],
   [/transfer|faster payment|standing order|top ?up|sent to|received from|from:|to:/i, "transfers"],
 ];
@@ -153,7 +155,12 @@ export function parsePdfLines(lines: string[]): Txn[] {
       continue;
     }
     let amount = r.amounts[0];
-    if (r.amounts.length >= 2) {
+    // An amount printed with its own sign ("- £6.65", "+ £532.68", "(12.00)", "12.00 DR") is trusted over everything else
+    const firstTok = (r.raw.replace(/\t+/g, " \t ").match(AMOUNT_RE)?.[0] ?? "").trim();
+    const signed = /^[-−+(]/.test(firstTok) || /\b(CR|DR)$/i.test(firstTok);
+    if (signed) {
+      if (r.amounts.length >= 2) prevBal = r.amounts[r.amounts.length - 1];
+    } else if (r.amounts.length >= 2) {
       const bal = r.amounts[r.amounts.length - 1];
       const amt = Math.abs(r.amounts[0]);
       if (prevBal != null && Math.abs(Math.abs(bal - prevBal) - amt) < 0.015) amount = bal > prevBal ? amt : -amt;

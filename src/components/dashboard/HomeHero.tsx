@@ -74,25 +74,21 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
   const next = upcoming(events, 60).filter((e) => e.kind !== "bill")[0];
   return (
     <section className="animate-rise mb-5">
-      <div className="hero-card relative overflow-hidden rounded-[2rem] p-5 text-white sm:p-6" style={{ background: skyFor(hour) }}>
-        {/* soft light blobs */}
-        <span aria-hidden className="hero-orb left-[-20%] top-[-40%] size-72 bg-white/25" />
-        <span aria-hidden className="hero-orb bottom-[-50%] right-[-15%] size-80 bg-black/20 [animation-delay:-6s]" />
-
+      <div className="hero-card relative overflow-hidden rounded-[2rem] bg-surface p-5 text-ink sm:p-6">
         {/* avatar · greeting · bell */}
         <div className="relative flex items-center gap-3">
-          <Link href="/settings" aria-label="Profile" className="grid size-12 shrink-0 place-items-center rounded-full bg-white/20 font-display text-base font-black italic ring-2 ring-white/40 backdrop-blur-md transition-transform active:scale-90">
+          <Link href="/settings" aria-label="Profile" className="grid size-12 shrink-0 place-items-center rounded-full bg-accent font-display text-base font-bold text-white transition-transform active:scale-90">
             JC
           </Link>
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-white/80" suppressHydrationWarning>
+            <p className="text-sm text-muted" suppressHydrationWarning>
               {now ? `${greeting(hour)},` : "Hello,"}
             </p>
             <h1 className="truncate text-[1.45rem] font-bold leading-tight tracking-tight">Jack</h1>
           </div>
           <Link href="/alerts" aria-label={`Alerts${soon ? ` (${soon})` : ""}`} className="hero-glass relative grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-90">
             <Bell size={19} className={soon ? "bell-ring" : ""} />
-            {soon > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-[#ff3b30] px-1 text-[11px] font-bold ring-2 ring-white/70">{soon}</span>}
+            {soon > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-[#ff3b30] px-1 text-[11px] font-bold ring-2 ring-surface text-white">{soon}</span>}
           </Link>
         </div>
 
@@ -102,7 +98,7 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
             <p className="font-display text-[3.4rem] font-bold leading-none tracking-tighter tabular-nums" suppressHydrationWarning>
               {now ? now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "--:--"}
             </p>
-            <p className="mt-2 text-sm font-medium text-white/85" suppressHydrationWarning>
+            <p className="mt-2 text-sm font-medium text-muted" suppressHydrationWarning>
               {now ? now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) : " "}
             </p>
           </div>
@@ -116,7 +112,7 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
             {next ? (
               <>
                 <span className="truncate text-[0.95rem] font-semibold">{next.title}</span>
-                <span className="text-xs text-white/80" suppressHydrationWarning>
+                <span className="text-xs text-muted" suppressHydrationWarning>
                   {now ? whenLabel(next, now) : ""}
                 </span>
               </>
@@ -127,13 +123,13 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
           <Link href="/alerts" className="hero-glass hero-chip col-span-1">
             <span className="hero-chip-label">Alerts</span>
             <span className="text-[0.95rem] font-semibold">{alerts.length || "All clear"}</span>
-            <span className="text-xs text-white/80">{soon ? `${soon} in 3 days` : alerts.length ? "Nothing urgent" : "✓"}</span>
+            <span className="text-xs text-muted">{soon ? `${soon} in 3 days` : alerts.length ? "Nothing urgent" : "✓"}</span>
           </Link>
           {/* the assistant */}
           <button onClick={() => window.dispatchEvent(new CustomEvent("lifehub-assistant"))} className="hero-glass hero-chip col-span-1 items-start text-left">
             <span className="hero-chip-label">Assistant</span>
             <Sparkles size={18} className="mt-0.5" />
-            <span className="text-xs text-white/80">Ask me</span>
+            <span className="text-xs text-muted">Ask me</span>
           </button>
         </div>
       </div>
@@ -177,14 +173,14 @@ function HeroWeather() {
   const d = data.daily[0];
   return (
     <Link href="/weather" className="flex items-center gap-2 text-right transition-transform active:scale-95">
-      <span className="weather-float drop-shadow-lg">
+      <span className="weather-float">
         <WeatherIcon code={c.code} isDay={c.isDay} size={46} />
       </span>
       <span>
         <span className="block font-display text-3xl font-bold leading-none tabular-nums">{Math.round(c.temp)}°</span>
-        <span className="mt-1 block text-xs font-medium text-white/85">{describe(c.code).label}</span>
+        <span className="mt-1 block text-xs font-medium text-muted">{describe(c.code).label}</span>
         {d && (
-          <span className="block text-[0.7rem] text-white/70 tabular-nums">
+          <span className="block text-[0.7rem] text-faint tabular-nums">
             H {Math.round(d.max)}° · L {Math.round(d.min)}°
           </span>
         )}
@@ -214,7 +210,7 @@ export function QuickActions() {
         const Icon = a.icon;
         const inner = (
           <>
-            <span className="quick-tile" style={{ background: `linear-gradient(145deg, ${a.from}, ${a.to})`, boxShadow: `0 10px 22px -12px ${a.to}` }}>
+            <span className="quick-tile" style={{ color: a.to }}>
               <Icon size={22} strokeWidth={2.2} />
             </span>
             <span className="mt-1.5 block w-16 truncate text-center text-xs font-medium text-muted">{a.label}</span>

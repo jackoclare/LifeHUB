@@ -239,7 +239,7 @@ function DashCard({ card, index, children, wholeLink = true }: { card: CardDef; 
   const cls = `card card-interactive dash-card flex flex-col rounded-[1.75rem]! p-4 sm:p-5 ${card.wide ? "md:col-span-2" : ""}`;
   const header = (
     <div className="mb-3.5 flex items-center gap-3">
-      <span className="icon-tile size-10! rounded-[0.9rem]!" style={{ background: `linear-gradient(145deg, color-mix(in srgb, ${card.color} 80%, white), ${card.color})`, boxShadow: `0 8px 18px -10px ${card.color}` }}>
+      <span className="icon-tile size-10! rounded-[0.9rem]!" style={{ background: `color-mix(in srgb, ${card.color} 14%, transparent)`, color: card.color }}>
         <Icon size={19} />
       </span>
       <h2 className="flex-1 text-[0.95rem] font-semibold tracking-tight">{card.title}</h2>

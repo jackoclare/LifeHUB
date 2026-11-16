@@ -16,6 +16,14 @@ import { useAuth } from "@/components/AuthProvider";
 
 const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const enc = encodeURIComponent;
+// Rightmove's town pages: /property-to-rent/Shrewsbury.html, /property-to-rent/Church-Stretton.html
+const rmTown = (s: string) =>
+  s
+    .trim()
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+    .join("-") || "Shrewsbury";
 
 type Portal = { id: string; name: string; colour: string; note: string; url: (r: RentSearch) => string; rooms?: boolean };
 
@@ -26,7 +34,7 @@ const PORTALS: Portal[] = [
     colour: "#00deb6",
     note: "Biggest UK site",
     url: (r) =>
-      `https://www.rightmove.co.uk/property-to-rent/find.html?searchLocation=${enc(r.area)}&useLocationIdentifier=false&radius=${r.radius}.0${r.maxRent ? `&maxPrice=${r.maxRent}` : ""}&minBedrooms=${r.minBeds}${r.kind === "house" ? "&propertyTypes=detached%2Csemi-detached%2Cterraced" : r.kind === "flat" ? "&propertyTypes=flat" : ""}`,
+      `https://www.rightmove.co.uk/property-to-rent/${rmTown(r.area)}.html?radius=${r.radius}.0${r.maxRent ? `&maxPrice=${r.maxRent}` : ""}&minBedrooms=${r.minBeds}${r.kind === "house" ? "&propertyTypes=detached%2Csemi-detached%2Cterraced" : r.kind === "flat" ? "&propertyTypes=flat" : ""}`,
   },
   {
     id: "zoopla",
@@ -42,7 +50,7 @@ const PORTALS: Portal[] = [
     colour: "#3fa9f5",
     note: "Rent direct from landlords, no agent fees",
     url: (r) =>
-      `https://www.openrent.co.uk/properties-to-rent/${slug(r.area)}?term=${enc(r.area)}&within=${r.radius}&bedrooms_min=${r.minBeds}${r.maxRent ? `&prices_max=${r.maxRent}` : ""}`,
+      `https://www.openrent.co.uk/properties-to-rent/${slug(r.area)}?term=${enc(r.area)}&within=${Math.round(r.radius * 1.609)}&bedrooms_min=${r.minBeds}${r.maxRent ? `&prices_max=${r.maxRent}` : ""}`,
   },
   {
     id: "otm",
@@ -187,7 +195,7 @@ export function RentView() {
       {/* Instant alerts */}
       <section className="card p-4">
         <div className="flex items-start gap-3">
-          <span className="icon-tile" style={{ "--tile": "#ff9500" } as React.CSSProperties}>
+          <span className="icon-tile shrink-0" style={{ "--tile": "#ff9500" } as React.CSSProperties}>
             <BellRing size={18} />
           </span>
           <div className="min-w-0">
@@ -218,7 +226,7 @@ export function RentView() {
         <SectionHeader title="Council and housing association homes" />
         <div className="space-y-2">
           <a href="https://www.shropshirehomepoint.co.uk/" target="_blank" rel="noopener noreferrer" className="card flex min-h-16 items-center gap-3 p-4">
-            <span className="icon-tile" style={{ "--tile": "#34c759" } as React.CSSProperties}>
+            <span className="icon-tile shrink-0" style={{ "--tile": "#34c759" } as React.CSSProperties}>
               <Landmark size={18} />
             </span>
             <span className="min-w-0 flex-1">
@@ -228,7 +236,7 @@ export function RentView() {
             <ChevronRight size={18} className="shrink-0 text-faint" />
           </a>
           <a href="tel:03003038595" className="card flex min-h-14 items-center gap-3 p-4">
-            <span className="icon-tile" style={{ "--tile": "#0a84ff" } as React.CSSProperties}>
+            <span className="icon-tile shrink-0" style={{ "--tile": "#0a84ff" } as React.CSSProperties}>
               <Phone size={18} />
             </span>
             <span className="min-w-0 flex-1">
@@ -237,7 +245,7 @@ export function RentView() {
             </span>
           </a>
           <a href="https://www.homesplus.co.uk/finding-a-home/homes-to-rent/" target="_blank" rel="noopener noreferrer" className="card flex min-h-16 items-center gap-3 p-4">
-            <span className="icon-tile" style={{ "--tile": "#af52de" } as React.CSSProperties}>
+            <span className="icon-tile shrink-0" style={{ "--tile": "#af52de" } as React.CSSProperties}>
               <Building2 size={18} />
             </span>
             <span className="min-w-0 flex-1">
@@ -247,7 +255,7 @@ export function RentView() {
             <ChevronRight size={18} className="shrink-0 text-faint" />
           </a>
           <a href="https://shropshire.gov.uk/housing-options-and-homelessness/types-of-housing-available" target="_blank" rel="noopener noreferrer" className="card flex min-h-14 items-center gap-3 p-4">
-            <span className="icon-tile" style={{ "--tile": "#8e8e93" } as React.CSSProperties}>
+            <span className="icon-tile shrink-0" style={{ "--tile": "#8e8e93" } as React.CSSProperties}>
               <Home size={18} />
             </span>
             <span className="min-w-0 flex-1">

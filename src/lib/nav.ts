@@ -6,6 +6,7 @@ import {
   Gift,
   House,
   KeyRound,
+  Mail,
   MapPinned,
   Newspaper,
   Plane,
@@ -39,6 +40,7 @@ export const sections: Section[] = [
   { href: "/shopping", label: "Shopping list", short: "Shopping", icon: ShoppingBasket, color: "var(--c-shop)", phase: 2, group: "Food & shopping", blurb: "Supermarket lists you can tick off as you go." },
   { href: "/meals", label: "Meal planner", short: "Meals", icon: ChefHat, color: "var(--c-shop)", phase: 3, group: "Food & shopping", blurb: "Plan the week's meals and send the ingredients to your shopping list." },
   { href: "/home", label: "Household", icon: HomeIcon, color: "var(--c-money)", phase: 3, group: "Home & life", blurb: "Cleaning rota, maintenance and garden jobs that come back round." },
+  { href: "/mail", label: "Email", icon: Mail, color: "#6001d2", phase: 3, group: "Home & life", blurb: "Your Yahoo inbox, rental alerts and important mail at a glance." },
   { href: "/rent", label: "Homes to rent", short: "Renting", icon: KeyRound, color: "var(--c-travel)", phase: 3, group: "Home & life", blurb: "Search Rightmove, Zoopla and OpenRent in one tap, instant alerts, and social housing." },
   { href: "/documents", label: "Documents", icon: FolderLock, color: "var(--c-tv)", phase: 2, group: "Home & life", blurb: "Private wallet for insurance, warranties, receipts and bookings." },
   { href: "/wishlist", label: "Wish list", icon: Gift, color: "var(--c-shop)", phase: 2, group: "Money", blurb: "Things you want, with target prices and price drops." },
@@ -83,7 +85,7 @@ export const hubs: { id: Hub; icon: LucideIcon; color: string }[] = [
   { id: "Sport & TV", icon: Trophy, color: "var(--c-sport)" },
   { id: "Health", icon: Dumbbell, color: "var(--c-health)" },
 ];
-const HUB_ORDER = ["/money", "/bills", "/wishlist", "/deals", "/meals", "/shopping", "/calendar", "/home", "/rent", "/documents", "/car", "/fuel", "/map", "/explore", "/travel", "/weather", "/sport", "/tv", "/news", "/health"];
+const HUB_ORDER = ["/money", "/bills", "/wishlist", "/deals", "/meals", "/shopping", "/calendar", "/mail", "/home", "/rent", "/documents", "/car", "/fuel", "/map", "/explore", "/travel", "/weather", "/sport", "/tv", "/news", "/health"];
 export const hubSections = (hub: Hub) => sections.filter((s) => s.group === hub).sort((a, b) => HUB_ORDER.indexOf(a.href) - HUB_ORDER.indexOf(b.href));
 
 export function findSection(href: string) {

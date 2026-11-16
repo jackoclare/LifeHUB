@@ -1,13 +1,17 @@
 // LifeHub — Yahoo Mail link (Supabase Edge Function, Deno)
 //
 // Reads Jack's Yahoo inbox over IMAP using a Yahoo *app password* (a separate password made just for LifeHub,
-// which he can revoke at any time in Yahoo → Account security). Read-only: never sends, deletes or moves mail.
+// which he can revoke at any time in Yahoo → Account security). Never sends mail and never permanently deletes;
+// the only change it can make is moving senders Jack has ticked and confirmed into Trash.
 //
 // Secrets (Supabase → Edge Functions → Secrets, entered by Jack): YAHOO_EMAIL, YAHOO_APP_PASSWORD
 //
 // GET               → { configured, reachable? }            (?probe=1 checks Yahoo's mail server answers)
 // POST {inbox}      → latest messages (signed-in owner only — the LifeHub user whose login email is YAHOO_EMAIL)
 // POST {check}      → cron: push-notify new rental-alert / important emails to the owner's phone (deduped)
+// POST {scan, from} → owner only: group newsletter/marketing mail (List-Unsubscribe / bulk headers) by sender, in chunks
+// POST {trash, senders[]} → owner only, after Jack confirms in the app: MOVE those senders' mail to Yahoo's Trash
+//                     (recoverable from Trash — nothing is permanently deleted). Only ever touches the senders listed.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { ImapFlow } from "npm:imapflow@1.0.171";
@@ -62,12 +66,14 @@ function textSnippet(raw: string) {
     .replace(/&amp;/g, "&")
     .replace(/--[0-9a-zA-Z_=.-]{10,}[\s\S]*?Content-Transfer-Encoding:[^\n]*\n/g, " ")
     .replace(/Content-Type:[^\n]*\n/gi, " ")
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/\[[^\]]{0,40}\]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 180);
 }
 
-async function withInbox<T>(fn: (c: ImapFlow) => Promise<T>): Promise<T> {
+async function withInbox<T>(fn: (c: ImapFlow) => Promise<T>, write = false): Promise<T> {
   const client = new ImapFlow({
     host: "imap.mail.yahoo.com",
     port: 993,
@@ -78,7 +84,7 @@ async function withInbox<T>(fn: (c: ImapFlow) => Promise<T>): Promise<T> {
   });
   await client.connect();
   try {
-    const lock = await client.getMailboxLock("INBOX", { readOnly: true });
+    const lock = await client.getMailboxLock("INBOX", { readOnly: !write });
     try {
       return await fn(client);
     } finally {
@@ -200,6 +206,80 @@ Deno.serve(async (req) => {
   if (!u?.user) return json({ error: "Please unlock the app first." }, 401);
   if (!configured) return json({ configured: false });
   if ((u.user.email ?? "").toLowerCase() !== EMAIL) return json({ error: "This inbox belongs to another account." }, 403);
+  // ---- Clean-up scan: which senders are newsletters / marketing? (chunked so big inboxes fit the time limit)
+  if (body?.scan) {
+    const started = Date.now();
+    try {
+      const out = await withInbox(async (c) => {
+        const total = (c.mailbox as { exists: number } | false) ? (c.mailbox as { exists: number }).exists : 0;
+        let from = Math.max(1, Number(body.from) || 1);
+        const senders = new Map<string, { addr: string; name: string; count: number; unread: number; marketing: number; sample: string; latest: string }>();
+        while (from <= total && Date.now() - started < 95_000) {
+          const to = Math.min(total, from + 1999);
+          for await (const m of c.fetch(`${from}:${to}`, { envelope: true, flags: true, headers: ["list-unsubscribe", "list-id", "precedence"] })) {
+            const f = m.envelope?.from?.[0] ?? {};
+            const addr = String(f.address ?? "").toLowerCase();
+            if (!addr) continue;
+            const h = m.headers ? new TextDecoder().decode(m.headers).toLowerCase() : "";
+            const isBulk = h.includes("list-unsubscribe") || h.includes("list-id") || /precedence:\s*(bulk|list|junk)/.test(h);
+            const cur = senders.get(addr) ?? { addr, name: String(f.name || addr), count: 0, unread: 0, marketing: 0, sample: "", latest: "" };
+            cur.count++;
+            if (!(m.flags ?? new Set()).has("\\Seen")) cur.unread++;
+            if (isBulk) cur.marketing++;
+            const d = m.envelope?.date ? new Date(m.envelope.date).toISOString() : "";
+            if (d >= cur.latest) {
+              cur.latest = d;
+              cur.sample = String(m.envelope?.subject ?? "").slice(0, 90);
+            }
+            senders.set(addr, cur);
+          }
+          from = to + 1;
+        }
+        return { total, next: from > total ? null : from, senders: [...senders.values()] };
+      });
+      // Only senders that mostly send bulk mail, and never the "important" kinds (banks, council, gov…)
+      const list = out.senders
+        .filter((x) => x.marketing > 0 && x.marketing / x.count >= 0.5)
+        .map((x) => ({ ...x, protected: IMPORTANT.test(`${x.addr} ${x.name}`) || RENTAL.test(`${x.addr} ${x.name}`) }));
+      return json({ total: out.total, next: out.next, senders: list });
+    } catch (e) {
+      return json({ error: `Couldn't scan your inbox (${(e as Error).message.slice(0, 120)}).` }, 502);
+    }
+  }
+
+  // ---- Clean-up: move the confirmed senders' mail to Trash (recoverable). Never touches anyone not listed.
+  if (body?.trash) {
+    const senders: string[] = (Array.isArray(body.senders) ? body.senders : []).map((x: unknown) => String(x).toLowerCase().trim()).filter((x: string) => /^[^\s@]+@[^\s@]+$/.test(x));
+    if (!senders.length) return json({ error: "No senders picked." }, 400);
+    const started = Date.now();
+    try {
+      const res = await withInbox(async (c) => {
+        const boxes = await c.list();
+        const trash = boxes.find((b) => b.specialUse === "\\Trash")?.path ?? "Trash";
+        let moved = 0;
+        const done: string[] = [];
+        for (const addr of senders.slice(0, 60)) {
+          if (Date.now() - started > 100_000) break;
+          const uids = (await c.search({ from: addr }, { uid: true })) || [];
+          // IMAP "FROM" matches substrings, so double-check the exact sender before moving
+          const exact: number[] = [];
+          for (let i = 0; i < uids.length; i += 500) {
+            for await (const m of c.fetch(uids.slice(i, i + 500), { envelope: true }, { uid: true })) {
+              if (String(m.envelope?.from?.[0]?.address ?? "").toLowerCase() === addr) exact.push(m.uid);
+            }
+          }
+          for (let i = 0; i < exact.length; i += 500) await c.messageMove(exact.slice(i, i + 500), trash, { uid: true });
+          moved += exact.length;
+          done.push(addr);
+        }
+        return { moved, done, trash };
+      }, true);
+      return json({ ok: true, ...res, remaining: senders.filter((x) => !res.done.includes(x)) });
+    } catch (e) {
+      return json({ error: `Couldn't move the emails (${(e as Error).message.slice(0, 120)}).` }, 502);
+    }
+  }
+
   try {
     const r = await latest(Math.min(40, Math.max(5, Number(body?.count) || 25)), true);
     return json({ configured: true, ...r });

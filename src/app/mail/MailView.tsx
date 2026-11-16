@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { PillTabs } from "@/components/kit";
 import { readCache, writeCache } from "@/lib/cache";
+import { CleanUp } from "./CleanUp";
 
 type Msg = { uid: number; from: string; fromAddr: string; subject: string; date: string; unread: boolean; kind: "rental" | "important" | "other"; snippet: string };
 type Resp = { configured?: boolean; unread?: number; messages?: Msg[]; error?: string };
@@ -76,6 +77,8 @@ export function MailView() {
         </button>
       </div>
 
+      <CleanUp onDone={load} />
+
       <PillTabs
         value={tab}
         onChange={setTab}
@@ -121,7 +124,7 @@ export function MailView() {
         <ExternalLink size={16} /> Open Yahoo Mail
       </a>
       <p className="px-1 text-xs text-faint">
-        Read-only — LifeHub can see your latest emails but can&apos;t send, delete or move anything. Rental alerts from Rightmove, Zoopla and OpenRent also ping your phone.
+        LifeHub never sends email or permanently deletes anything. Clean-up only moves the senders you tick to Trash, where you can restore them.
       </p>
     </div>
   );

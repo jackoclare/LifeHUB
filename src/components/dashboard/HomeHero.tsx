@@ -99,7 +99,6 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
   const next = upcoming(events, 60).filter((e) => e.kind !== "bill")[0];
   return (
     <section className="animate-rise mb-5">
-      <HubbySays />
       <div className="hero-card hero-dark relative overflow-hidden rounded-[2rem] p-5 sm:p-6">
         {/* futuristic layers: fine grid, electric glow, light sweep */}
         <span aria-hidden className="hero-grid" />
@@ -108,17 +107,13 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
         <span aria-hidden className="hero-sweep" />
         {/* avatar · greeting · bell */}
         <div className="relative flex items-center gap-3">
-          <Link href="/settings" aria-label="Profile" className="avatar-ring grid size-12 shrink-0 place-items-center rounded-full font-display text-base font-bold text-white transition-transform active:scale-90">
-            JC
-          </Link>
+          <JohnButton />
           <div className="min-w-0 flex-1">
             <p className="text-sm text-muted" suppressHydrationWarning>
               {now ? `${greeting(hour)},` : "Hello,"}
             </p>
             <h1 className="truncate text-[1.45rem] font-bold leading-tight tracking-tight">Jack</h1>
-            <p className="mt-0.5 flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-[0.14em] text-faint">
-              <span className="status-dot" /> {soon ? `${soon} need${soon === 1 ? "s" : ""} attention` : "All systems normal"}
-            </p>
+            <JohnLine />
           </div>
           <Link href="/alerts" aria-label={`Alerts${soon ? ` (${soon})` : ""}`} className="hero-glass relative grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-90">
             <Bell size={19} className={soon ? "bell-ring" : ""} />
@@ -292,30 +287,33 @@ export const FILTER_CARDS: Record<Exclude<HomeFilter, "all">, string[]> = {
   health: ["activity", "nutrition"],
 };
 
-/* ---------- Hubby the mascot + a cheeky line for right now ---------- */
+/* ---------- John the mascot (tap him to ask LifeHub anything) + his line for right now ---------- */
 
-function HubbySays() {
-  const { mood, line, ready } = useVibe();
+function JohnButton() {
+  const { mood } = useVibe();
   const [hop, setHop] = useState(0);
-  if (!ready || !line) return null;
   return (
-    <div className="mb-3 flex items-center gap-3">
-      <button
-        aria-label="Hubby — tap to ask LifeHub anything"
-        className="shrink-0 transition-transform active:scale-90"
-        onClick={(e) => {
-          setHop((h) => h + 1);
-          if (mood === "party") celebrate(e.currentTarget);
-          window.dispatchEvent(new CustomEvent("lifehub-assistant"));
-        }}
-      >
-        <span key={hop} className={hop ? "mascot-hop inline-block" : "inline-block"}>
-          <Mascot mood={mood} size={58} />
-        </span>
-      </button>
-      <p className="mascot-bubble min-w-0 flex-1" suppressHydrationWarning>
-        {line}
-      </p>
-    </div>
+    <button
+      aria-label="John — tap to ask LifeHub anything"
+      className="john-ring relative grid size-14 shrink-0 place-items-center rounded-full transition-transform active:scale-90"
+      onClick={(e) => {
+        setHop((h) => h + 1);
+        if (mood === "party") celebrate(e.currentTarget);
+        window.dispatchEvent(new CustomEvent("lifehub-assistant"));
+      }}
+    >
+      <span key={hop} className={hop ? "mascot-hop inline-block" : "inline-block"}>
+        <Mascot mood={mood} size={52} />
+      </span>
+    </button>
+  );
+}
+
+function JohnLine() {
+  const { line, ready } = useVibe();
+  return (
+    <p className="mt-0.5 line-clamp-2 text-[0.8rem] leading-snug text-muted" suppressHydrationWarning>
+      {ready ? line : "\u00a0"}
+    </p>
   );
 }

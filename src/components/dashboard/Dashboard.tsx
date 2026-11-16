@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { cards, type CardDef, useDashboardPrefs } from "@/lib/dashboard";
 import { formatDay, fromISODate, kindInfo, upcoming, useCalendarEvents } from "@/lib/calendar";
 import { phaseNames } from "@/lib/nav";
-import { HeadlineRotator, LiveBadge, NewsTicker } from "@/components/news/NewsWidgets";
+import { HeadlineRotator, LiveBadge } from "@/components/news/NewsWidgets";
 import { DailyBriefing } from "./DailyBriefing";
 import { useAlerts } from "@/app/alerts/AlertsView";
 import { WeatherSummary } from "@/components/weather/WeatherWidgets";
@@ -55,11 +55,6 @@ export function Dashboard() {
     <>
       <HomeHero now={now} events={events} editing={editing} onToggleEdit={() => setEditing((e) => !e)} />
       {!editing && <QuickActions />}
-      {!editing && !prefs.hidden.includes("news") && (
-        <div className="animate-rise mb-6">
-          <NewsTicker />
-        </div>
-      )}
       {!editing && <DailyBriefing events={events} />}
       {!editing && (
         <div className="sticky top-0 z-20 -mx-4 mb-4 bg-bg/80 px-4 py-2 backdrop-blur-xl sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:backdrop-blur-none">

@@ -10,7 +10,11 @@ export type Prefs = {
   airport: string;
   supermarket: string | null;
   diet: string[];
+  /** Homes-to-rent search (Renting page) */
+  rent?: RentSearch;
 };
+export type RentSearch = { area: string; maxRent: number | null; minBeds: number; radius: number; kind: "any" | "house" | "flat" | "room" };
+export const DEFAULT_RENT: RentSearch = { area: "Shrewsbury", maxRent: null, minBeds: 1, radius: 5, kind: "any" };
 export const DEFAULT_PREFS: Prefs = { teams: DEFAULT_TEAMS, airport: "BHX", supermarket: null, diet: [] };
 const KEY = "mlh.prefs.v1";
 

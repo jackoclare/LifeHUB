@@ -425,7 +425,7 @@ export function Assistant() {
         aria-label="Open assistant"
         className="assistant-fab fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 grid size-14 place-items-center rounded-full text-white lg:bottom-8 lg:right-8"
       >
-        <Mascot mood={vibe.mood} size={46} title="Ask Hubby (LifeHub assistant)" />
+        <Mascot mood={vibe.mood} size={46} title="Ask John (LifeHub assistant)" />
       </button>
 
       {open && (
@@ -434,7 +434,7 @@ export function Assistant() {
           <div className="sheet-panel pb-safe relative w-full overflow-hidden rounded-t-[1.8rem] border border-line bg-bg-elevated sm:max-w-lg sm:rounded-[1.8rem]">
             <div className="flex items-center justify-between px-5 pt-4">
               <p className="flex items-center gap-2 text-sm font-semibold">
-                <Mascot mood={busy ? "happy" : vibe.mood} size={30} /> Hubby · your LifeHub assistant
+                <Mascot mood={busy ? "happy" : vibe.mood} size={30} /> John · your LifeHub assistant
               </p>
               <div className="flex gap-1">
                 <button

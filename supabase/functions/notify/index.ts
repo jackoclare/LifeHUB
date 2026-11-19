@@ -263,6 +263,111 @@ async function goalAlerts(
   return sent;
 }
 
+/* ---------- Parking, usual train and the Sunday night plan ---------- */
+
+type LifePrefs = {
+  parking?: { started: string; expires: string | null } | null;
+  train?: { from: string; to: string; time: string; days: number[] } | null;
+  parcels?: { delivered?: boolean }[];
+  teams?: { id: string }[];
+};
+
+function ukClock(d = new Date()) {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false })
+      .formatToParts(d)
+      .map((x) => [x.type, x.value]),
+  );
+  const dow = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(p.weekday);
+  return { dow, minutes: Number(p.hour) * 60 + Number(p.minute) };
+}
+const hhmmUk = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
+
+async function lifeAlerts(byUser: Map<string, Sub[]>, settings: { user_id: string; prefs: unknown }[], today: string, hour: number) {
+  let sent = 0;
+  const now = Date.now();
+  const { dow, minutes } = ukClock();
+  for (const [userId, subs] of byUser) {
+    const p = ((settings.find((x) => x.user_id === userId)?.prefs ?? {}) as LifePrefs) || {};
+
+    // Parking: warn 25 → 0 minutes before, then once when it's run out
+    const exp = p.parking?.expires;
+    if (exp) {
+      const left = (Date.parse(exp) - now) / 60000;
+      if (left > 0 && left <= 25 && (await once(userId, `park-${exp}`)))
+        sent += await sendTo(subs, { title: `🅿️ Parking runs out at ${hhmmUk(exp)}`, body: `About ${Math.ceil(left)} min left. Tap to add time or find your car.`, url: "/parking", tag: "parking" });
+      else if (left <= 0 && left > -40 && (await once(userId, `park-over-${exp}`)))
+        sent += await sendTo(subs, { title: "🅿️ Your parking has run out", body: `It ended at ${hhmmUk(exp)}. Tap for the way back to the car.`, url: "/parking", tag: "parking" });
+    }
+
+    // Usual train: from 95 min before departure, alert on cancellation / delay (once per state)
+    const t = p.train;
+    if (t && t.days?.includes(dow) && /^\d\d:\d\d$/.test(t.time)) {
+      const dep = Number(t.time.slice(0, 2)) * 60 + Number(t.time.slice(3));
+      const until = dep - minutes;
+      if (until <= 95 && until >= -5) {
+        try {
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/trains?from=${t.from}&to=${t.to}&rows=20`, { signal: AbortSignal.timeout(12000) });
+          const b = await r.json();
+          const svc = ((b?.services ?? []) as { std: string; etd: string; cancelled: boolean; reason: string | null; destination: string; platform: string | null }[]).find((x) => x.std === t.time);
+          if (svc) {
+            const where = svc.destination || t.to;
+            if (svc.cancelled && (await once(userId, `train-${today}-${t.time}-cancelled`)))
+              sent += await sendTo(subs, { title: `🚆 Your ${t.time} to ${where} is cancelled`, body: svc.reason ?? "Tap for the next trains.", url: "/trains", tag: "train" });
+            else if (/^\d\d:\d\d$/.test(svc.etd) && svc.etd !== t.time && (await once(userId, `train-${today}-${t.time}-late-${svc.etd}`)))
+              sent += await sendTo(subs, { title: `🚆 Your ${t.time} to ${where} is running late`, body: `Now expected ${svc.etd}${svc.platform ? `, platform ${svc.platform}` : ""}.${svc.reason ? ` ${svc.reason}` : ""}`, url: "/trains", tag: "train" });
+            else if (svc.etd === "Delayed" && (await once(userId, `train-${today}-${t.time}-delayed`)))
+              sent += await sendTo(subs, { title: `🚆 Your ${t.time} to ${where} is delayed`, body: svc.reason ?? "No new time yet — tap to keep an eye on it.", url: "/trains", tag: "train" });
+          }
+        } catch {
+          /* trains feed not set up / busy — try next run */
+        }
+      }
+    }
+
+    // Sunday night plan: one push between 6pm and 9pm with the week ahead
+    if (dow === 0 && hour >= 18 && hour < 21 && (await once(userId, `week-${today}`))) {
+      try {
+        const in7 = addDays(today, 7);
+        const [ev, bl] = await Promise.all([
+          admin.from("calendar_events").select("title,event_date,event_time").eq("user_id", userId).gt("event_date", today).lte("event_date", in7).order("event_date").order("event_time"),
+          admin.from("bills").select("name,amount").eq("user_id", userId).eq("is_active", true).gt("next_due_date", today).lte("next_due_date", in7),
+        ]);
+        const day = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
+        const parts: string[] = [];
+        const events = ev.data ?? [];
+        if (events.length) parts.push(`📅 ${events.slice(0, 3).map((e) => `${day(e.event_date)} ${e.title}`).join(", ")}${events.length > 3 ? ` +${events.length - 3}` : ""}`);
+        const bills = bl.data ?? [];
+        if (bills.length) parts.push(`💷 ${bills.length} bill${bills.length > 1 ? "s" : ""}, ${gbp(bills.reduce((a, b) => a + Number(b.amount), 0))}`);
+        // matches this week
+        const teams = (p.teams ?? []).map((x) => String(x.id)).filter((id) => /^\d{3,9}$/.test(id));
+        const games: string[] = [];
+        for (const id of (teams.length ? teams : TEAMS).slice(0, 3)) {
+          try {
+            const j = await (await fetch(`https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=${id}`)).json();
+            for (const e of (j?.events ?? []) as Record<string, string>[]) if (e.dateEvent > today && e.dateEvent <= in7 && !games.some((g) => g.includes(e.strAwayTeam))) games.push(`${day(e.dateEvent)} ${shortName(e.strHomeTeam)} v ${shortName(e.strAwayTeam)}`);
+          } catch {}
+        }
+        if (games.length) parts.push(`⚽ ${games.slice(0, 2).join(", ")}`);
+        // weather for the week (Shrewsbury)
+        try {
+          const w = await (await fetch("https://api.open-meteo.com/v1/forecast?latitude=52.707&longitude=-2.755&daily=temperature_2m_max,precipitation_probability_max&timezone=Europe%2FLondon&forecast_days=8")).json();
+          const dates = (w?.daily?.time ?? []) as string[];
+          const wet = dates.map((d, i) => ({ d, rain: w.daily.precipitation_probability_max[i] as number })).filter((x, i) => i > 0 && x.rain >= 60).map((x) => day(x.d));
+          const maxes = ((w?.daily?.temperature_2m_max ?? []) as number[]).slice(1);
+          if (maxes.length) parts.push(`🌦️ ${Math.round(Math.min(...maxes))}–${Math.round(Math.max(...maxes))}°${wet.length ? `, rain ${wet.slice(0, 3).join("/")}` : ", mostly dry"}`);
+        } catch {}
+        const parcels = (p.parcels ?? []).filter((x) => !x.delivered).length;
+        if (parcels) parts.push(`📦 ${parcels} parcel${parcels > 1 ? "s" : ""} on the way`);
+        sent += await sendTo(subs, { title: "🗓️ Your week ahead", body: parts.length ? parts.join(" · ").slice(0, 230) : "A quiet week — nothing booked yet. Enjoy it.", url: "/calendar", tag: `week-${today}` });
+      } catch (e) {
+        console.error("week plan failed", (e as Error).message);
+      }
+    }
+  }
+  return sent;
+}
+
 async function runScheduled() {
   // Price tracking runs even for people without notifications switched on
   let prices = { checked: 0, sent: 0 };
@@ -390,6 +495,13 @@ async function runScheduled() {
     sent += await goalAlerts(allTeams, byUser, teamsByUser, prefs, now);
   } catch (err) {
     console.error("goal alerts failed", (err as Error).message);
+  }
+
+  // ---- Parking, usual train, Sunday night plan
+  try {
+    sent += await lifeAlerts(byUser, (settings ?? []) as { user_id: string; prefs: unknown }[], today, hour);
+  } catch (err) {
+    console.error("life alerts failed", (err as Error).message);
   }
 
   // ---- Met Office weather warnings for each person's region (7am–10pm)

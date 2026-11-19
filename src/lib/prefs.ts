@@ -12,7 +12,18 @@ export type Prefs = {
   diet: string[];
   /** Homes-to-rent search (Renting page) */
   rent?: RentSearch;
+  /** Parcels being tracked (Parcels page) */
+  parcels?: Parcel[];
+  /** Current parking session (Parking page) — the alerts job reads this */
+  parking?: Parking | null;
+  /** Usual train, watched for delays (Trains page) */
+  train?: UsualTrain | null;
+  /** Saved train stations (CRS codes) */
+  stations?: { from: string; to: string | null };
 };
+export type Parcel = { id: string; number: string; courier: string; label: string; added: string; delivered?: boolean };
+export type Parking = { started: string; expires: string | null; lat?: number; lon?: number; note?: string };
+export type UsualTrain = { from: string; to: string; time: string; days: number[] }; // days: 0=Sun … 6=Sat
 export type RentSearch = { area: string; maxRent: number | null; minBeds: number; radius: number; kind: "any" | "house" | "flat" | "room" };
 export const DEFAULT_RENT: RentSearch = { area: "Shrewsbury", maxRent: null, minBeds: 1, radius: 5, kind: "any" };
 export const DEFAULT_PREFS: Prefs = { teams: DEFAULT_TEAMS, airport: "BHX", supermarket: null, diet: [] };
@@ -24,6 +35,11 @@ export function readPrefs(): Prefs {
     if (p && Array.isArray(p.teams)) return { ...DEFAULT_PREFS, ...p };
   } catch {}
   return DEFAULT_PREFS;
+}
+
+/** Change part of the prefs and save (merges with what's stored now). */
+export function updatePrefs(patch: Partial<Prefs>) {
+  return savePrefs({ ...readPrefs(), ...patch });
 }
 
 export async function savePrefs(p: Prefs) {

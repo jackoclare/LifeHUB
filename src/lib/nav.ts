@@ -16,6 +16,10 @@ import {
   Tag,
   Trophy,
   Tv,
+  Package,
+  TrainFront,
+  CircleParking,
+  Ticket,
   type LucideIcon, Map as MapIcon, Sparkles as SparklesIcon, Bell, Car, FolderLock, Compass, CircleUserRound, Wallet, ChefHat, Hammer as HomeIcon } from "lucide-react";
 
 export type Section = {
@@ -41,6 +45,7 @@ export const sections: Section[] = [
   { href: "/meals", label: "Meal planner", short: "Meals", icon: ChefHat, color: "var(--c-shop)", phase: 3, group: "Food & shopping", blurb: "Plan the week's meals and send the ingredients to your shopping list." },
   { href: "/home", label: "Household", icon: HomeIcon, color: "var(--c-money)", phase: 3, group: "Home & life", blurb: "Cleaning rota, maintenance and garden jobs that come back round." },
   { href: "/mail", label: "Email", icon: Mail, color: "#6001d2", phase: 3, group: "Home & life", blurb: "Your Yahoo inbox, rental alerts and important mail at a glance." },
+  { href: "/parcels", label: "Parcels", icon: Package, color: "var(--c-shop)", phase: 3, group: "Home & life", blurb: "Every tracking number in one list — tap to see where it is." },
   { href: "/rent", label: "Homes to rent", short: "Renting", icon: KeyRound, color: "var(--c-travel)", phase: 3, group: "Home & life", blurb: "Search Rightmove, Zoopla and OpenRent in one tap, instant alerts, and social housing." },
   { href: "/documents", label: "Documents", icon: FolderLock, color: "var(--c-tv)", phase: 2, group: "Home & life", blurb: "Private wallet for insurance, warranties, receipts and bookings." },
   { href: "/wishlist", label: "Wish list", icon: Gift, color: "var(--c-shop)", phase: 2, group: "Money", blurb: "Things you want, with target prices and price drops." },
@@ -51,7 +56,10 @@ export const sections: Section[] = [
   { href: "/ai", label: "AI assistant", short: "AI", icon: SparklesIcon, color: "var(--accent)", phase: 3, group: "App", blurb: "Talk to it like a mate — it adds things to your calendar, shopping, meals and more, or answers anything." },
   { href: "/map", label: "Map", icon: MapIcon, color: "var(--c-discover)", phase: 3, group: "Car", blurb: "One big map: fuel prices, holidays abroad, saved places and sat-nav follow-me." },
   { href: "/car", label: "Car", icon: Car, color: "var(--c-travel)", phase: 3, group: "Car", blurb: "Your vehicles, MOT, tax, insurance and running costs." },
+  { href: "/parking", label: "Parking timer", short: "Parking", icon: CircleParking, color: "var(--c-discover)", phase: 3, group: "Car", blurb: "Tap when you park — a countdown, a warning before it runs out, and the way back to the car." },
   { href: "/fuel", label: "Fuel", icon: Fuel, color: "var(--c-discover)", phase: 3, group: "Car", blurb: "Cheapest and nearest UK fuel prices." },
+  { href: "/trains", label: "Trains & buses", short: "Trains", icon: TrainFront, color: "var(--c-travel)", phase: 3, group: "Out & about", blurb: "Live departures from Shrewsbury, plus a heads-up if your usual train is late." },
+  { href: "/whatson", label: "What's on", icon: Ticket, color: "var(--c-sport)", phase: 3, group: "Out & about", blurb: "Gigs, comedy, shows and markets in and around Shrewsbury." },
   { href: "/explore", label: "Explore", icon: MapPinned, color: "var(--c-discover)", phase: 3, group: "Out & about", blurb: "Restaurants, pubs, days out and events near you." },
 
   { href: "/news", label: "News", icon: Newspaper, color: "var(--c-news)", phase: 4, group: "Sport & TV", blurb: "Live headlines from the BBC — top stories, UK, football and sport." },
@@ -85,7 +93,7 @@ export const hubs: { id: Hub; icon: LucideIcon; color: string }[] = [
   { id: "Sport & TV", icon: Trophy, color: "var(--c-sport)" },
   { id: "Health", icon: Dumbbell, color: "var(--c-health)" },
 ];
-const HUB_ORDER = ["/money", "/bills", "/wishlist", "/deals", "/meals", "/shopping", "/calendar", "/mail", "/home", "/rent", "/documents", "/car", "/fuel", "/map", "/explore", "/travel", "/weather", "/sport", "/tv", "/news", "/health"];
+const HUB_ORDER = ["/money", "/bills", "/wishlist", "/deals", "/meals", "/shopping", "/calendar", "/mail", "/home", "/parcels", "/rent", "/documents", "/car", "/parking", "/fuel", "/map", "/explore", "/whatson", "/trains", "/travel", "/weather", "/sport", "/tv", "/news", "/health"];
 export const hubSections = (hub: Hub) => sections.filter((s) => s.group === hub).sort((a, b) => HUB_ORDER.indexOf(a.href) - HUB_ORDER.indexOf(b.href));
 
 export function findSection(href: string) {

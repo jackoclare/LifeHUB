@@ -184,7 +184,7 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
           </span>
         </button>
         <button
-          className="grid size-13 shrink-0 place-items-center rounded-2xl bg-ink text-bg shadow-lg transition-transform active:scale-90"
+          className="neon-btn grid size-13 shrink-0 place-items-center rounded-2xl bg-ink text-bg shadow-lg transition-transform active:scale-90"
           onClick={onToggleEdit}
           aria-label={editing ? "Finish customising" : "Customise dashboard"}
         >

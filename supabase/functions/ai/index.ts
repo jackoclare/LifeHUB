@@ -135,6 +135,54 @@ async function chatCall(base: string, key: string, model: string, messages: unkn
   return String(text).replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 }
 
+/* ---------- Actions: the AI can put things into LifeHub ("dentist Tuesday 3pm and add milk") ---------- */
+
+const ACTIONS_GUIDE = (iso: string) => `ADDING THINGS: when Jack asks you to add, put, book in, schedule, plan, remember or remind him about something, do it. At the very END of your reply add one line:
+<actions>[ ...JSON objects... ]</actions>
+Allowed objects (use only these):
+{"type":"calendar","title":"Dentist","date":"YYYY-MM-DD","time":"HH:MM" or null,"kind":"personal"|"reminder"|"travel"}   — appointments, plans, events; "remind me to…" = kind "reminder" (default time 09:00 if he gives none for a reminder)
+{"type":"shopping","items":[{"name":"Milk","quantity":1}]}   — anything to buy at the shops / groceries
+{"type":"wishlist","name":"PS5 Pro","target_price":number or null}   — things he wants to buy one day / gift ideas
+{"type":"meal","day":"YYYY-MM-DD","slot":"breakfast"|"lunch"|"dinner","title":"Spag bol","ingredients":["mince","spaghetti"]}   — meals for a day
+{"type":"homejob","name":"Clean the oven","next_due":"YYYY-MM-DD" or null,"every_days":number or null}   — chores around the house
+Today is ${iso}. Coming days: ${nextDays(iso)}. Work out real dates from that list ("Tuesday" = the next Tuesday, "tomorrow", "next Friday"). Split one sentence into several objects if he mentions several things, each in the right place. Capitalise names nicely. In the visible reply just confirm in a few friendly words what you've added (no JSON, no dates in YYYY-MM-DD). Never add actions for questions, and never invent things he didn't ask for.`;
+
+const nextDays = (from: string) =>
+  Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(`${from}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + i);
+    return `${d.toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" })} ${d.toISOString().slice(0, 10)}`;
+  }).join(", ");
+const iso = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+const hm = (v: unknown) => (typeof v === "string" && /^\d{1,2}:\d{2}$/.test(v) ? v.padStart(5, "0") : null);
+const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+
+function splitActions(raw: string): { text: string; actions: Record<string, unknown>[] } {
+  const m = raw.match(/<actions>([\s\S]*?)<\/actions>/i);
+  if (!m) return { text: raw, actions: [] };
+  const text = raw.replace(m[0], "").trim();
+  let list: unknown = [];
+  try {
+    const inner = m[1].trim().replace(/^```(?:json)?|```$/g, "");
+    list = JSON.parse(inner);
+  } catch {
+    return { text, actions: [] };
+  }
+  const out: Record<string, unknown>[] = [];
+  for (const a of (Array.isArray(list) ? list : [list]).slice(0, 12) as Record<string, unknown>[]) {
+    if (!a || typeof a !== "object") continue;
+    if (a.type === "calendar" && str(a.title, 200) && iso(a.date)) out.push({ type: "calendar", title: str(a.title, 200), date: iso(a.date), time: hm(a.time), kind: ["personal", "reminder", "travel"].includes(String(a.kind)) ? a.kind : "personal" });
+    else if (a.type === "shopping" && Array.isArray(a.items)) {
+      const items = (a.items as Record<string, unknown>[]).map((i) => ({ name: str(i?.name, 120), quantity: Math.min(99, Math.max(1, Math.round(Number(i?.quantity) || 1))) })).filter((i) => i.name).slice(0, 30);
+      if (items.length) out.push({ type: "shopping", items });
+    } else if (a.type === "wishlist" && str(a.name, 120)) out.push({ type: "wishlist", name: str(a.name, 120), target_price: Number(a.target_price) > 0 ? Math.round(Number(a.target_price) * 100) / 100 : null });
+    else if (a.type === "meal" && iso(a.day) && ["breakfast", "lunch", "dinner"].includes(String(a.slot)) && str(a.title, 120))
+      out.push({ type: "meal", day: iso(a.day), slot: a.slot, title: str(a.title, 120), ingredients: (Array.isArray(a.ingredients) ? a.ingredients : []).map((x) => str(x, 50)).filter(Boolean).slice(0, 15) });
+    else if (a.type === "homejob" && str(a.name, 120)) out.push({ type: "homejob", name: str(a.name, 120), next_due: iso(a.next_due), every_days: Number(a.every_days) > 0 ? Math.min(3650, Math.round(Number(a.every_days))) : null });
+  }
+  return { text, actions: out };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const configured = GROQ_KEY.length > 20 || GEMINI_KEY.length > 20;
@@ -153,6 +201,32 @@ Deno.serve(async (req) => {
     return json({ error: "Bad request" }, 400);
   }
   if (body.mode === "image") return json({ error: "Creating and editing pictures isn't available on the free AI. You can still send a photo and ask about it." }, 400);
+
+  // ---- Voice notes → text (Groq Whisper, free). Works in the iPhone Home Screen app, unlike the browser's speech recognition.
+  if (body.mode === "transcribe") {
+    const audio = String((body as { audio?: string }).audio ?? "");
+    const m = audio.match(/^data:(audio\/[a-z0-9.+-]+)(?:;[^,]*)?;base64,(.+)$/i);
+    if (!m || audio.length > 9_000_000) return json({ error: "Send a short voice note (up to a minute)." }, 400);
+    if (!GROQ_KEY) return json({ error: "Voice needs the Groq key." }, 503);
+    if (!(await bump(user.id))) return json({ error: `Daily AI limit reached (${MAX_CHATS}). Try again tomorrow.` }, 429);
+    const mime = m[1].toLowerCase();
+    const ext = /mp4|m4a|aac/.test(mime) ? "m4a" : /ogg/.test(mime) ? "ogg" : /wav/.test(mime) ? "wav" : /mpeg|mp3/.test(mime) ? "mp3" : "webm";
+    const bytes = Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0));
+    const fd = new FormData();
+    fd.append("file", new Blob([bytes], { type: mime }), `voice.${ext}`);
+    fd.append("model", Deno.env.get("GROQ_WHISPER_MODEL") ?? "whisper-large-v3-turbo");
+    fd.append("language", "en");
+    fd.append("response_format", "json");
+    fd.append("prompt", "Jack in Shrewsbury, UK. Aston Villa, Tesco, Aldi, Lidl, MOT, spag bol, Sainsbury's.");
+    try {
+      const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", { method: "POST", headers: { authorization: `Bearer ${GROQ_KEY}` }, body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return json({ error: `Couldn't hear that (${String(j?.error?.message ?? r.status).slice(0, 100)}).` }, 502);
+      return json({ text: String(j.text ?? "").trim() });
+    } catch (e) {
+      return json({ error: `Couldn't hear that (${(e as Error).message.slice(0, 80)}).` }, 502);
+    }
+  }
 
   // ---- Meal plan: fill the given empty slots with varied, UK-supermarket-friendly meals (JSON out)
   if (body.mode === "mealplan") {
@@ -227,6 +301,7 @@ If it isn't food, reply {"items":[],"confidence":"low","note":"That doesn't look
   if (!(await bump(user.id))) return json({ error: `Daily chat limit reached (${MAX_CHATS}). Try again tomorrow.` }, 429);
 
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/London" });
+  const isoToday = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" });
   const hasImage = msgs.some((m) => m.image && m.role === "user");
   // Only the latest photo is sent (free vision models take a small number of images)
   const lastImageIdx = msgs.map((m) => Boolean(m.image && m.role === "user")).lastIndexOf(true);
@@ -235,6 +310,8 @@ If it isn't food, reply {"items":[],"confidence":"low","note":"That doesn't look
     {
       role: "system",
       content: `You are Jack's personal assistant inside his LifeHub app. Jack lives near Shrewsbury, Shropshire (UK) and supports Aston Villa. Today is ${today}. Be friendly, direct and concise — short paragraphs, UK spelling, prices in £. You can't browse the web, so if a fact may have changed recently, say you're not certain.
+${ACTIONS_GUIDE(isoToday)}
+
 Below is Jack's own data from LifeHub (read-only). Use it when he asks about his plans, bills, meals, car, jobs, shopping, goals or upcoming matches; never invent entries that aren't listed, and say so if something isn't there. Dates are YYYY-MM-DD.
 
 ${context || "(no LifeHub data yet)"}`,
@@ -252,8 +329,8 @@ ${context || "(no LifeHub data yet)"}`,
     for (const refresh of [false, true]) {
       try {
         const model = await pickGroqModel(prefs, refresh);
-        const text = await chatCall("https://api.groq.com/openai/v1", GROQ_KEY, model, messages);
-        return json({ text: text || "Sorry, I didn't get a reply — try again.", provider: "groq", model });
+        const { text, actions } = splitActions(await chatCall("https://api.groq.com/openai/v1", GROQ_KEY, model, messages));
+        return json({ text: text || (actions.length ? "Done." : "Sorry, I didn't get a reply — try again."), actions, provider: "groq", model });
       } catch (e) {
         const err = e as ApiError;
         if (err.status === 401) return json({ error: "The Groq key isn't valid — re-copy it into Supabase secrets." }, 502);
@@ -265,8 +342,8 @@ ${context || "(no LifeHub data yet)"}`,
   }
   if (GEMINI_KEY) {
     try {
-      const text = await chatCall("https://generativelanguage.googleapis.com/v1beta/openai", GEMINI_KEY, GEMINI_MODEL, messages);
-      return json({ text: text || "Sorry, I didn't get a reply — try again.", provider: "gemini", model: GEMINI_MODEL });
+      const { text, actions } = splitActions(await chatCall("https://generativelanguage.googleapis.com/v1beta/openai", GEMINI_KEY, GEMINI_MODEL, messages));
+      return json({ text: text || (actions.length ? "Done." : "Sorry, I didn't get a reply — try again."), actions, provider: "gemini", model: GEMINI_MODEL });
     } catch (e) {
       errors.push((e as Error).message);
     }

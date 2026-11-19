@@ -83,10 +83,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         href={s.href}
                         aria-current={active ? "page" : undefined}
                         className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-[0.95rem] font-medium transition-all duration-300 active:scale-[0.97] ${
-                          active ? "bg-accent text-white" : "text-ink hover:bg-surface-2"
+                          active ? "nav-active bg-accent text-white" : "text-ink hover:bg-surface-2"
                         }`}
                       >
-                        <span className="grid size-7 place-items-center rounded-lg text-white" style={{ background: s.color }}>
+                        <span className="grid size-7 place-items-center rounded-lg" style={{ color: s.color, background: `color-mix(in srgb, ${s.color} 16%, transparent)`, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${s.color} 35%, transparent), 0 0 14px -5px ${s.color}` }}>
                           <Icon size={16} strokeWidth={2.2} />
                         </span>
                         {s.label}
@@ -179,6 +179,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function Logo() {
   return (
-    <span aria-hidden className="grid size-8 place-items-center rounded-[0.6rem] text-[0.95rem] font-extrabold text-white shadow-[0_6px_16px_-6px_#0a84ff]" style={{ background: "linear-gradient(160deg, #0a84ff, #5e5ce6)" }}>L</span>
+    <span aria-hidden className="brand-logo grid size-8 place-items-center rounded-[0.6rem] text-[0.95rem] font-extrabold text-white shadow-[0_6px_16px_-6px_#0a84ff]" style={{ background: "linear-gradient(160deg, #0a84ff, #5e5ce6)" }}>L</span>
   );
 }

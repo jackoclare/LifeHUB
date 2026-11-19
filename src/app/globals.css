@@ -1320,7 +1320,7 @@ h3,
   }
 }
 
-/* ---------- John the mascot ---------- */
+/* ---------- Stick man mascot ---------- */
 .mascot {
   overflow: visible;
 }
@@ -1415,7 +1415,7 @@ h3,
   }
 }
 
-/* John's spot in the Home header */
+/* Mascot's spot in the Home header */
 .john-ring {
   background: radial-gradient(circle at 35% 30%, rgb(143 195 234 / 0.35), rgb(123 30 62 / 0.35));
   box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.18), 0 8px 24px -10px rgb(123 30 62 / 0.8);
@@ -1457,4 +1457,240 @@ h3,
   z-index: 80;
   pointer-events: none;
   border-radius: 2px;
+}
+
+/* =====================================================================
+   BLACK + NEON (19 Nov) — pure black, clean hairline cards, bright features.
+   Sits last and unlayered so it wins over the older styles above.
+   ===================================================================== */
+[data-theme="dark"] {
+  --bg: #000000;
+  --bg-elevated: #0a0a0c;
+  --surface: #0b0b0e;
+  --surface-2: #16161b;
+  --border: rgb(255 255 255 / 0.08);
+  --text: #ffffff;
+  --text-muted: rgb(255 255 255 / 0.62);
+  --text-faint: rgb(255 255 255 / 0.36);
+  --accent: #00e5ff;
+  --accent-soft: rgb(0 229 255 / 0.12);
+  --ring: rgb(0 229 255 / 0.55);
+  --neon: linear-gradient(120deg, #00e5ff 0%, #3d7bff 50%, #a855ff 100%);
+
+  /* brighter section colours (no pink) */
+  --c-money: #00f5a0;
+  --c-travel: #2f9bff;
+  --c-sport: #b15cff;
+  --c-health: #ff4545;
+  --c-shop: #ffb020;
+  --c-discover: #00e5ff;
+  --c-tv: #7c6cff;
+  --c-news: #a1a1aa;
+}
+
+/* Background: true black. The weather sky stays, but only as a faint hint at the very top. */
+[data-theme="dark"] .living-sky {
+  opacity: 0.16;
+}
+[data-theme="dark"] .living-bg {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 38%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 38%);
+}
+[data-theme="dark"] .living-cloud {
+  opacity: 0.4;
+}
+[data-theme="dark"] .dot-grid {
+  background-image: radial-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px);
+}
+[data-theme="dark"] .aurora {
+  display: none;
+}
+
+/* Cards: solid near-black, crisp hairline, no muddy blur */
+[data-theme="dark"] .card,
+[data-theme="dark"] .dash-card {
+  background: linear-gradient(180deg, #0f0f13 0%, #09090b 100%) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    inset 0 0 0 1px rgb(255 255 255 / 0.07),
+    0 20px 40px -24px rgb(0 0 0 / 0.9);
+}
+@media (hover: hover) {
+  [data-theme="dark"] .dash-card:hover,
+  [data-theme="dark"] .card-interactive:hover {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      inset 0 0 0 1px color-mix(in srgb, var(--tile, var(--accent)) 45%, transparent),
+      0 0 34px -10px color-mix(in srgb, var(--tile, var(--accent)) 55%, transparent);
+  }
+}
+/* each card keeps a soft glow of its own colour in the corner */
+[data-theme="dark"] .dash-card::after {
+  opacity: 0.14;
+}
+
+/* Icon tiles glow in their colour */
+[data-theme="dark"] .icon-tile {
+  background: color-mix(in srgb, var(--tile) 15%, transparent);
+  color: var(--tile);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tile) 38%, transparent), 0 0 18px -6px var(--tile);
+}
+[data-theme="dark"] .icon-tile svg {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--tile) 70%, transparent));
+}
+
+/* Bars: glass is now just black */
+[data-theme="dark"] .glass,
+[data-theme="dark"] .liquid {
+  background: rgb(0 0 0 / 0.78);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+}
+[data-theme="dark"] .liquid.tabbar {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    0 18px 40px -12px rgb(0 0 0 / 0.9),
+    0 0 40px -18px rgb(0 229 255 / 0.5);
+}
+
+/* Buttons: neon gradient with a glow, black text for punch */
+[data-theme="dark"] .btn-primary {
+  background: var(--neon);
+  color: #000;
+  font-weight: 700;
+  box-shadow: 0 0 24px -6px rgb(0 229 255 / 0.7);
+}
+[data-theme="dark"] .btn-ghost {
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+[data-theme="dark"] .chip {
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+/* Big page titles get the neon gradient */
+[data-theme="dark"] .large-title {
+  background: linear-gradient(180deg, #ffffff 30%, rgb(255 255 255 / 0.55));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Home hero: black with an animated neon edge ---------- */
+.hero-dark {
+  background: #030305 !important;
+  box-shadow: 0 30px 70px -30px rgb(0 229 255 / 0.35) !important;
+}
+.hero-dark::before {
+  /* the glowing animated border */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--edge, 0deg), #00e5ff, #3d7bff, #a855ff, #00f5a0, #00e5ff);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: edge-spin 8s linear infinite;
+  pointer-events: none;
+}
+@property --edge {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes edge-spin {
+  to {
+    --edge: 360deg;
+  }
+}
+.hero-dark .hero-grid {
+  background-image:
+    linear-gradient(rgb(0 229 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 229 255 / 0.05) 1px, transparent 1px);
+}
+.hero-glow-a {
+  background: rgb(0 229 255 / 0.28);
+}
+.hero-glow-b {
+  background: rgb(168 85 255 / 0.22);
+}
+.hero-clock {
+  font-weight: 200;
+  background: linear-gradient(180deg, #ffffff 35%, #7fefff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 18px rgb(0 229 255 / 0.45));
+}
+.hero-dark .hero-glass {
+  background: rgb(255 255 255 / 0.035);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+.hero-chip-label {
+  color: #00e5ff;
+  opacity: 0.85;
+}
+
+/* Mascot ring: a neon circle around the stick man */
+.john-ring {
+  background: radial-gradient(circle at 50% 40%, #0d1a24, #000) !important;
+  box-shadow: 0 0 0 1.5px rgb(0 229 255 / 0.7), 0 0 22px -2px rgb(0 229 255 / 0.6) !important;
+}
+[data-theme="dark"] .assistant-fab {
+  background: #000 !important;
+  box-shadow: 0 0 0 1.5px rgb(0 229 255 / 0.75), 0 0 28px -4px rgb(0 229 255 / 0.7) !important;
+}
+
+/* Quick tiles: black squares whose icon glows */
+[data-theme="dark"] .quick-tile {
+  background: #0b0b0e;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+[data-theme="dark"] .quick-tile svg {
+  filter: drop-shadow(0 0 6px currentColor);
+}
+[data-theme="dark"] .quick-action:hover .quick-tile,
+[data-theme="dark"] .quick-action:active .quick-tile {
+  box-shadow: inset 0 0 0 1.5px currentColor, 0 0 26px -4px currentColor;
+}
+
+/* Sidebar + tab bar: active item lights up in neon */
+[data-theme="dark"] .nav-active {
+  background: rgb(0 229 255 / 0.1) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 1px rgb(0 229 255 / 0.35), 0 0 20px -8px rgb(0 229 255 / 0.8);
+}
+.brand-logo {
+  background: var(--neon) !important;
+  color: #000 !important;
+  box-shadow: 0 0 18px -2px rgb(0 229 255 / 0.75) !important;
+}
+
+/* Sport keeps its scoreboard feel, on pure black */
+.theme-sport {
+  --bg: #000;
+  --surface: #0b0b0e;
+  --bg-elevated: #0b0b0e;
+  --surface-2: #16161b;
+  background: #000;
+}
+
+/* Skeletons shimmer in dark grey, not blue-grey */
+[data-theme="dark"] .animate-pulse {
+  background: linear-gradient(100deg, #111114 30%, #1c1c22 50%, #111114 70%) !important;
+  background-size: 200% 100% !important;
+}
+
+[data-theme="dark"] ::selection {
+  background: rgb(0 229 255 / 0.35);
 }

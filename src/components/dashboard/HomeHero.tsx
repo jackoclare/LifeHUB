@@ -287,14 +287,14 @@ export const FILTER_CARDS: Record<Exclude<HomeFilter, "all">, string[]> = {
   health: ["activity", "nutrition"],
 };
 
-/* ---------- John the mascot (tap him to ask LifeHub anything) + his line for right now ---------- */
+/* ---------- Stick man mascot (tap him to ask LifeHub anything) + his line for right now ---------- */
 
 function JohnButton() {
   const { mood } = useVibe();
   const [hop, setHop] = useState(0);
   return (
     <button
-      aria-label="John — tap to ask LifeHub anything"
+      aria-label="Tap to ask LifeHub anything"
       className="john-ring relative grid size-14 shrink-0 place-items-center rounded-full transition-transform active:scale-90"
       onClick={(e) => {
         setHop((h) => h + 1);

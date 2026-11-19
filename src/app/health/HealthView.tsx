@@ -489,7 +489,7 @@ function AddFood({ meal, date, onClose, onAdded }: { meal: Meal | null; date: st
         </div>
       ) : (
         <div className="space-y-4">
-          <label className={`btn w-full cursor-pointer text-white ${busy ? "opacity-80" : ""}`} style={{ background: "linear-gradient(135deg,#ff9500,#ff2d55)" }}>
+          <label className={`btn w-full cursor-pointer text-white ${busy ? "opacity-80" : ""}`} style={{ background: "linear-gradient(135deg,#ff9500,#ff3b30)" }}>
             {busy ? <Loader2 size={16} className="animate-spin" /> : <Camera size={17} />} {busy ? "Looking at your food…" : "Snap your food — AI counts the calories"}
             <input type="file" accept="image/*" capture="environment" className="hidden" disabled={busy} onChange={(e) => snap(e.target.files?.[0] ?? undefined)} />
           </label>

@@ -65,9 +65,9 @@ export function MoneyView() {
   return (
     <div className="space-y-4">
       {/* Headline: bills this month + payday */}
-      <section className="overflow-hidden rounded-[1.9rem] p-5 text-white shadow-[0_18px_40px_-20px_rgb(201_31_75/0.7)]" style={{ background: "linear-gradient(150deg, #d7264f 0%, #a3123a 100%)" }}>
+      <section className="neon-panel overflow-hidden rounded-[1.9rem] p-5 text-white" style={{ "--tile": "#00f5a0" } as React.CSSProperties}>
         <p className="text-sm text-white/80">Going out this month</p>
-        <p className="num-in mt-1 font-display text-[2.6rem] font-bold leading-none tabular-nums">{gbp(monthlyBills, 2)}</p>
+        <p className="neon-number num-in mt-1 font-display text-[2.6rem] font-bold leading-none tabular-nums">{gbp(monthlyBills, 2)}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           {payday && (
             <span className="rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold">

@@ -235,9 +235,9 @@ const ACTIONS: { label: string; href?: string; assistant?: boolean; icon: Lucide
   { label: "Ask AI", assistant: true, icon: Sparkles, from: "#c084fc", to: "#7c3aed" },
   { label: "Fuel", href: "/fuel", icon: Fuel, from: "#34d3c8", to: "#0e9f9a" },
   { label: "Map", href: "/map", icon: MapIcon, from: "#60a5fa", to: "#0ea5e9" },
-  { label: "Eat out", href: "/explore", icon: Utensils, from: "#fb7185", to: "#e11d48" },
+  { label: "Eat out", href: "/explore", icon: Utensils, from: "#ff9a3d", to: "#ff5a1f" },
   { label: "TV", href: "/tv", icon: Tv, from: "#818cf8", to: "#4f46e5" },
-  { label: "Health", href: "/health", icon: HeartPulse, from: "#ff6b8b", to: "#ff2d55" },
+  { label: "Health", href: "/health", icon: HeartPulse, from: "#ff6a5a", to: "#ff2a2a" },
 ];
 
 export function QuickActions() {

@@ -1694,3 +1694,20 @@ h3,
 [data-theme="dark"] ::selection {
   background: rgb(0 229 255 / 0.35);
 }
+
+/* Headline panels (e.g. Money): black with a glowing edge in the section colour */
+.neon-panel {
+  position: relative;
+  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--tile) 14%, #050507) 0%, #050507 60%);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--tile) 55%, transparent),
+    0 0 40px -14px var(--tile);
+}
+.neon-panel .neon-number {
+  color: var(--tile);
+  text-shadow: 0 0 24px color-mix(in srgb, var(--tile) 60%, transparent);
+}
+.neon-panel .bg-white\/15 {
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}

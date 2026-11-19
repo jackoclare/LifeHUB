@@ -48,7 +48,7 @@ export const sections: Section[] = [
   { href: "/weather", label: "Weather", icon: CloudSun, color: "var(--c-travel)", phase: 3, group: "Out & about", blurb: "Live forecast for where you are." },
   { href: "/deals", label: "Deals", icon: Tag, color: "var(--c-shop)", phase: 3, group: "Money", blurb: "Verified deals from the retailers you care about." },
   { href: "/travel", label: "Travel", icon: Plane, color: "var(--c-travel)", phase: 3, group: "Out & about", blurb: "Destinations map, weather and one-tap flight, hotel and holiday searches." },
-  { href: "/ai", label: "AI chat", short: "AI", icon: SparklesIcon, color: "var(--accent)", phase: 3, group: "App", blurb: "Free AI: ask anything, or send a photo and ask about it." },
+  { href: "/ai", label: "AI assistant", short: "AI", icon: SparklesIcon, color: "var(--accent)", phase: 3, group: "App", blurb: "Talk to it like a mate — it adds things to your calendar, shopping, meals and more, or answers anything." },
   { href: "/map", label: "Map", icon: MapIcon, color: "var(--c-discover)", phase: 3, group: "Car", blurb: "One big map: fuel prices, holidays abroad, saved places and sat-nav follow-me." },
   { href: "/car", label: "Car", icon: Car, color: "var(--c-travel)", phase: 3, group: "Car", blurb: "Your vehicles, MOT, tax, insurance and running costs." },
   { href: "/fuel", label: "Fuel", icon: Fuel, color: "var(--c-discover)", phase: 3, group: "Car", blurb: "Cheapest and nearest UK fuel prices." },

@@ -139,14 +139,14 @@ export function AiChat() {
   const empty = msgs.length === 0;
 
   return (
-    <div className="ai-page mx-auto flex h-[calc(100dvh-13rem)] max-w-2xl flex-col lg:h-[calc(100dvh-10rem)]">
+    <div className="ai-page mx-auto flex min-h-[calc(100dvh-20rem)] max-w-2xl flex-col">
       {status && !status.configured && (
         <p className="mb-3 rounded-2xl bg-amber-500/10 px-4 py-3 text-sm text-amber-400">The free AI isn&apos;t connected yet — it needs a free Groq key adding in Supabase secrets.</p>
       )}
 
-      <div className="flex-1 space-y-3 overflow-y-auto pb-4">
+      <div className="flex-1 space-y-3 pb-4">
         {empty && (
-          <div className="flex flex-col items-center pt-4 text-center">
+          <div className="flex flex-col items-center pt-8 text-center">
             <button
               onClick={voice.toggle}
               disabled={voice.state === "working" || busy}
@@ -217,7 +217,7 @@ export function AiChat() {
         <div ref={endRef} />
       </div>
 
-      <div className="ai-dock space-y-2 rounded-[1.6rem] p-2">
+      <div className="ai-dock sticky bottom-[calc(env(safe-area-inset-bottom)+6rem)] z-20 space-y-2 rounded-[1.6rem] p-2 lg:bottom-6">
         {photo && (
           <div className="relative ml-1 w-fit">
             {/* eslint-disable-next-line @next/next/no-img-element */}

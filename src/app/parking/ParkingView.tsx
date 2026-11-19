@@ -80,7 +80,7 @@ export function ParkingView() {
           </div>
           <div className="mt-3 flex items-center justify-center gap-2 text-sm text-muted">
             or
-            <input type="number" min={5} max={1440} value={mins} onChange={(e) => setMins(Math.max(5, Math.min(1440, Number(e.target.value) || 5)))} className={`${inputClass} mt-0! w-24 text-center`} aria-label="Minutes" /> minutes
+            <input type="number" min={5} max={1440} value={mins} onChange={(e) => setMins(Math.max(5, Math.min(1440, Number(e.target.value) || 5)))} className={`${inputClass} mt-0! w-24! text-center`} aria-label="Minutes" /> minutes
           </div>
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional) — e.g. Level 3, near the lifts" className={`${inputClass} mt-3`} />
           <button className="btn btn-primary mt-4 w-full" onClick={() => start(false)} disabled={busy}>

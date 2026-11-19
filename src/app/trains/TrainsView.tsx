@@ -244,7 +244,7 @@ function UsualTrainCard({ usual, from, to }: { usual: UsualTrain | null | undefi
         <p className="mt-1 text-sm text-muted">Pick a destination above, then the time of the train you usually catch — I&apos;ll warn you if it&apos;s late or cancelled.</p>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={`${inputClass} mt-0! w-32`} aria-label="Departure time" />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={`${inputClass} mt-0! w-32!`} aria-label="Departure time" />
         {DAYS.map((d, i) => (
           <button key={d} onClick={() => setDays((x) => (x.includes(i) ? x.filter((y) => y !== i) : [...x, i].sort()))} className={`chip min-h-9 px-2.5! ${days.includes(i) ? "ai-chip" : ""}`}>
             {d}

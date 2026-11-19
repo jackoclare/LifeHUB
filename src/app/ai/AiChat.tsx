@@ -55,7 +55,7 @@ export async function askAi(body: Record<string, unknown>): Promise<{ text?: str
 
 const transcribe = (audio: string) => askAi({ mode: "transcribe", audio });
 
-const DO_EXAMPLES = ["Dentist Tuesday at 3pm", "Add milk, eggs and 2 loaves to the shopping", "Spag bol for dinner tomorrow", "Remind me to renew the car tax on Friday"];
+const DO_EXAMPLES = ["Dentist Tuesday at 3pm", "Add milk, eggs and 2 loaves to the shopping", "Mum's birthday is 4 March", "I've parked for 2 hours", "I'm going to Málaga for 4 days", "I'm going for a run"];
 const ASK_EXAMPLES = ["What have I got on this week?", "Plan a cheap weekend in Lisbon", "What should I cook with chicken, rice and peppers?"];
 
 function Receipt({ r }: { r: ActionResult }) {
@@ -66,7 +66,7 @@ function Receipt({ r }: { r: ActionResult }) {
       <Link href={r.href} className="min-w-0 flex-1 truncate font-medium">
         {undone ? <s>{r.label}</s> : r.label}
       </Link>
-      {r.ok && !undone && (
+      {r.ok && !undone && (r.table || r.pref) && (
         <button
           className="grid size-8 shrink-0 place-items-center rounded-full text-faint hover:text-ink"
           aria-label="Undo"
@@ -127,6 +127,8 @@ export function AiChat() {
     if (!r.error && r.actions?.length) done = await runActions(r.actions);
     setMsgs((m) => [...m, r.error ? { role: "assistant", text: r.error, error: true } : { role: "assistant", text: r.text ?? "", done }]);
     if (done?.some((d) => d.ok)) navigator.vibrate?.([10, 40, 10]);
+    const go = done?.find((d) => d.go)?.go;
+    if (go) setTimeout(() => (window.location.href = go), 900);
     setBusy(false);
   }, []);
 

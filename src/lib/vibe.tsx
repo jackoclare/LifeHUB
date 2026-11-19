@@ -5,6 +5,7 @@ import { describe, usePlace, useWeather } from "@/lib/weather";
 import { outcome, useTeams } from "@/lib/football";
 import { useFavTeams } from "@/lib/prefs";
 import { margin, useLiveMatch, type LiveState } from "@/lib/live";
+import { isXmas } from "@/components/Mascot";
 
 /**
  * The app's "mood": what the sky behind everything looks like, how the mascot feels,
@@ -126,7 +127,11 @@ export function VibeProvider({ children }: { children: React.ReactNode }) {
     else if (days === 1) b = `${short} tomorrow — get ready`;
     else if (days != null && days > 1 && days <= 7) b = `${short} in ${days} days`;
 
-    const line = live && b ? b : b ? `${a}. ${b}` : `${a}.`;
+    let line = live && b ? b : b ? `${a}. ${b}` : `${a}.`;
+    if (!live && isXmas(now)) {
+      const sleeps = now.getMonth() === 11 ? 25 - now.getDate() : Math.ceil((new Date(now.getFullYear(), 11, 25).getTime() - now.getTime()) / 86400e3);
+      line = sleeps > 1 ? `🎄 ${sleeps} sleeps till Christmas. ${line}` : sleeps === 1 ? `🎄 Christmas Eve! ${line}` : sleeps === 0 ? "🎄 Merry Christmas, Jack! 🎅" : `🎄 Boxing Day — leftovers time. ${line}`;
+    }
     return { scene, sky, temp, rainSoon, mood, line, ready: true, live };
   }, [now, wx, teams, main, live]);
 

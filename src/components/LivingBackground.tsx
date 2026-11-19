@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useVibe } from "@/lib/vibe";
+import { isXmas } from "@/components/Mascot";
 
 /**
  * The sky behind the whole app: follows the time of day (dawn → day → dusk → night)
@@ -40,7 +41,7 @@ export function LivingBackground() {
       {wet &&
         drops.map((d, i) => <span key={i} className="living-drop" style={{ left: `${d.x}%`, animationDuration: `${d.d}s`, animationDelay: `${d.delay}s` }} />)}
       {sky === "storm" && <div className="living-flash" />}
-      {sky === "snow" &&
+      {(sky === "snow" || isXmas()) &&
         flakes.map((f, i) => (
           <span key={i} className="living-flake" style={{ left: `${f.x}%`, width: f.s, height: f.s, animationDuration: `${f.d}s`, animationDelay: `${f.delay}s` }} />
         ))}

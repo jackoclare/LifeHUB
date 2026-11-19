@@ -270,6 +270,17 @@ type LifePrefs = {
   train?: { from: string; to: string; time: string; days: number[] } | null;
   parcels?: { delivered?: boolean }[];
   teams?: { id: string }[];
+  birthdays?: { id: string; name: string; date: string; year?: number | null; gift?: string }[];
+  bins?: { remind?: boolean; bins: { id: string; name: string; every: number; anchor: string }[] } | null;
+  warranties?: { id: string; item: string; returnBy?: string | null; warrantyUntil?: string | null }[];
+};
+
+const dayMs = 86400e3;
+const isoUtc = (iso: string) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+/** Is `date` one of this bin's collection days? */
+const binOn = (b: { every: number; anchor: string }, date: string) => {
+  const diff = Math.round((isoUtc(date) - isoUtc(b.anchor)) / dayMs);
+  return diff % (b.every * 7) === 0;
 };
 
 function ukClock(d = new Date()) {
@@ -321,6 +332,45 @@ async function lifeAlerts(byUser: Map<string, Sub[]>, settings: { user_id: strin
           }
         } catch {
           /* trains feed not set up / busy — try next run */
+        }
+      }
+    }
+
+    // Birthdays: a week before and on the day (from 9am)
+    if (hour >= 9 && hour < 21) {
+      for (const b of p.birthdays ?? []) {
+        const yr = Number(today.slice(0, 4));
+        let next = `${yr}-${b.date}`;
+        if (next < today) next = `${yr + 1}-${b.date}`;
+        const days = Math.round((isoUtc(next) - isoUtc(today)) / dayMs);
+        const age = b.year ? Number(next.slice(0, 4)) - b.year : null;
+        if (days === 7 && (await once(userId, `bday7-${b.id}-${next}`)))
+          sent += await sendTo(subs, { title: `🎂 ${b.name}'s birthday is next week`, body: `${age ? `Turning ${age} · ` : ""}${b.gift ? `Gift idea: ${b.gift}` : "Time to sort a card and present."}`, url: "/birthdays", tag: `bday-${b.id}` });
+        if (days === 0 && (await once(userId, `bday0-${b.id}-${next}`)))
+          sent += await sendTo(subs, { title: `🎉 It's ${b.name}'s birthday today!`, body: age ? `They're ${age} — send them a message.` : "Don't forget to message them.", url: "/birthdays", tag: `bday-${b.id}` });
+      }
+    }
+
+    // Bins: the night before, from 7pm
+    if (p.bins?.bins?.length && p.bins.remind !== false && hour >= 19 && hour < 22) {
+      const tomorrowIso = addDays(today, 1);
+      const out = p.bins.bins.filter((b) => binOn(b, tomorrowIso));
+      if (out.length && (await once(userId, `bins-${tomorrowIso}`)))
+        sent += await sendTo(subs, { title: `🗑️ Bins out tonight`, body: `${out.map((b) => b.name).join(" + ")} — collected tomorrow.`, url: "/bins", tag: "bins" });
+    }
+
+    // Warranties & returns: 3 days before the return window closes, 2 weeks before a warranty ends
+    if (hour >= 9 && hour < 21) {
+      for (const w of p.warranties ?? []) {
+        if (w.returnBy) {
+          const d = Math.round((isoUtc(w.returnBy) - isoUtc(today)) / dayMs);
+          if (d >= 0 && d <= 3 && (await once(userId, `ret-${w.id}`)))
+            sent += await sendTo(subs, { title: `↩️ Last chance to return ${w.item}`, body: d === 0 ? "The return window closes today." : `The return window closes in ${d} day${d > 1 ? "s" : ""}.`, url: "/warranties", tag: `w-${w.id}` });
+        }
+        if (w.warrantyUntil) {
+          const d = Math.round((isoUtc(w.warrantyUntil) - isoUtc(today)) / dayMs);
+          if (d >= 0 && d <= 14 && (await once(userId, `war-${w.id}`)))
+            sent += await sendTo(subs, { title: `🛡️ ${w.item}: warranty ends soon`, body: `It runs out in ${d} day${d === 1 ? "" : "s"} — anything to claim for?`, url: "/warranties", tag: `w-${w.id}` });
         }
       }
     }

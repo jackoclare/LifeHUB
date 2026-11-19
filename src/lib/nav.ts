@@ -17,6 +17,13 @@ import {
   Trophy,
   Tv,
   Package,
+  Cake,
+  Trash2 as BinIcon,
+  Flame,
+  ReceiptText,
+  Luggage,
+  Brain,
+  Footprints,
   TrainFront,
   CircleParking,
   Ticket,
@@ -45,6 +52,9 @@ export const sections: Section[] = [
   { href: "/meals", label: "Meal planner", short: "Meals", icon: ChefHat, color: "var(--c-shop)", phase: 3, group: "Food & shopping", blurb: "Plan the week's meals and send the ingredients to your shopping list." },
   { href: "/home", label: "Household", icon: HomeIcon, color: "var(--c-money)", phase: 3, group: "Home & life", blurb: "Cleaning rota, maintenance and garden jobs that come back round." },
   { href: "/mail", label: "Email", icon: Mail, color: "#6001d2", phase: 3, group: "Home & life", blurb: "Your Yahoo inbox, rental alerts and important mail at a glance." },
+  { href: "/bins", label: "Bin day", short: "Bins", icon: BinIcon, color: "var(--c-money)", phase: 3, group: "Home & life", blurb: "Which bins go out this week — and a nudge the night before." },
+  { href: "/birthdays", label: "Birthdays", icon: Cake, color: "var(--c-shop)", phase: 3, group: "Home & life", blurb: "Never miss one: countdowns, ages, gift ideas and reminders." },
+  { href: "/warranties", label: "Warranties & returns", short: "Warranties", icon: ReceiptText, color: "var(--c-tv)", phase: 3, group: "Home & life", blurb: "Return windows and warranties, with a reminder before they run out." },
   { href: "/parcels", label: "Parcels", icon: Package, color: "var(--c-shop)", phase: 3, group: "Home & life", blurb: "Every tracking number in one list — tap to see where it is." },
   { href: "/rent", label: "Homes to rent", short: "Renting", icon: KeyRound, color: "var(--c-travel)", phase: 3, group: "Home & life", blurb: "Search Rightmove, Zoopla and OpenRent in one tap, instant alerts, and social housing." },
   { href: "/documents", label: "Documents", icon: FolderLock, color: "var(--c-tv)", phase: 2, group: "Home & life", blurb: "Private wallet for insurance, warranties, receipts and bookings." },
@@ -52,6 +62,7 @@ export const sections: Section[] = [
 
   { href: "/weather", label: "Weather", icon: CloudSun, color: "var(--c-travel)", phase: 3, group: "Out & about", blurb: "Live forecast for where you are." },
   { href: "/deals", label: "Deals", icon: Tag, color: "var(--c-shop)", phase: 3, group: "Money", blurb: "Verified deals from the retailers you care about." },
+  { href: "/packing", label: "Packing lists", short: "Packing", icon: Luggage, color: "var(--c-travel)", phase: 3, group: "Out & about", blurb: "Tell it where and how long — it builds a checklist from the weather there." },
   { href: "/travel", label: "Travel", icon: Plane, color: "var(--c-travel)", phase: 3, group: "Out & about", blurb: "Destinations map, weather and one-tap flight, hotel and holiday searches." },
   { href: "/ai", label: "AI assistant", short: "AI", icon: SparklesIcon, color: "var(--accent)", phase: 3, group: "App", blurb: "Talk to it like a mate — it adds things to your calendar, shopping, meals and more, or answers anything." },
   { href: "/map", label: "Map", icon: MapIcon, color: "var(--c-discover)", phase: 3, group: "Car", blurb: "One big map: fuel prices, holidays abroad, saved places and sat-nav follow-me." },
@@ -66,6 +77,9 @@ export const sections: Section[] = [
   { href: "/sport", label: "Sport", icon: Trophy, color: "var(--c-sport)", phase: 4, group: "Sport & TV", blurb: "Live scores, fixtures, tables and football news." },
   { href: "/tv", label: "TV guide", short: "TV", icon: Tv, color: "var(--c-tv)", phase: 4, group: "Sport & TV", blurb: "What's on now and tonight across UK Freeview channels." },
 
+  { href: "/move", label: "Walk & run", short: "Move", icon: Footprints, color: "var(--c-health)", phase: 5, group: "Health", blurb: "Track a walk or run with GPS — route, distance, pace and steps." },
+  { href: "/habits", label: "Habits", icon: Flame, color: "var(--c-health)", phase: 5, group: "Health", blurb: "Tick off your daily habits and keep the streaks going." },
+  { href: "/quiz", label: "Daily quiz", short: "Quiz", icon: Brain, color: "var(--c-sport)", phase: 4, group: "Sport & TV", blurb: "Five questions a day — football, Villa and general knowledge. Keep your streak!" },
   { href: "/health", label: "Health", icon: Dumbbell, color: "var(--c-health)", phase: 5, group: "Health", blurb: "Apple Watch activity, food diary and nutrition." },
 
   { href: "/settings", label: "Settings", icon: Settings, color: "var(--c-news)", phase: 1, group: "App", blurb: "Theme, dashboard and notification preferences." },
@@ -93,7 +107,7 @@ export const hubs: { id: Hub; icon: LucideIcon; color: string }[] = [
   { id: "Sport & TV", icon: Trophy, color: "var(--c-sport)" },
   { id: "Health", icon: Dumbbell, color: "var(--c-health)" },
 ];
-const HUB_ORDER = ["/money", "/bills", "/wishlist", "/deals", "/meals", "/shopping", "/calendar", "/mail", "/home", "/parcels", "/rent", "/documents", "/car", "/parking", "/fuel", "/map", "/explore", "/whatson", "/trains", "/travel", "/weather", "/sport", "/tv", "/news", "/health"];
+const HUB_ORDER = ["/money", "/bills", "/wishlist", "/deals", "/meals", "/shopping", "/calendar", "/mail", "/home", "/bins", "/birthdays", "/parcels", "/warranties", "/rent", "/documents", "/car", "/parking", "/fuel", "/map", "/explore", "/whatson", "/trains", "/travel", "/packing", "/weather", "/sport", "/quiz", "/tv", "/news", "/health", "/move", "/habits"];
 export const hubSections = (hub: Hub) => sections.filter((s) => s.group === hub).sort((a, b) => HUB_ORDER.indexOf(a.href) - HUB_ORDER.indexOf(b.href));
 
 export function findSection(href: string) {

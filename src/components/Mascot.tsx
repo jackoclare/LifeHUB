@@ -12,6 +12,19 @@ const GLOW = "#22d3ee";
 const ACCENT = "#a3ff12";
 const WARM = "#ffb020";
 
+/** 1–26 December */
+export function isXmas(d = new Date()) {
+  if (typeof window !== "undefined") {
+    try {
+      const q = new URLSearchParams(window.location.search).get("xmas");
+      if (q === "demo") sessionStorage.setItem("mlh.xmas", "1");
+      if (q === "off") sessionStorage.removeItem("mlh.xmas");
+      if (sessionStorage.getItem("mlh.xmas")) return true;
+    } catch {}
+  }
+  return d.getMonth() === 11 && d.getDate() <= 26;
+}
+
 export function Mascot({ mood = "happy", size = 56, className = "", title }: { mood?: Mood; size?: number; className?: string; title?: string }) {
   const sad = mood === "gutted";
   const closed = mood === "sleepy";
@@ -85,6 +98,15 @@ export function Mascot({ mood = "happy", size = 56, className = "", title }: { m
           <path key={d} d={d} />
         ))}
       </g>
+
+      {/* Santa hat in December */}
+      {isXmas() && mood !== "rain" && (
+        <g className="xmas-hat">
+          <path d="M37 15 Q48 -8 68 6 L63 15 Z" fill="#ff2d2d" style={{ filter: "drop-shadow(0 0 4px #ff2d2d)" }} />
+          <rect x="35" y="12.5" width="30" height="5.5" rx="2.75" fill="#fff" />
+          <circle cx="68.5" cy="6" r="3.6" fill="#fff" />
+        </g>
+      )}
 
       {/* face */}
       <g stroke={LINE} strokeWidth="2.4" strokeLinecap="round" fill="none">

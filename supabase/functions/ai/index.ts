@@ -145,6 +145,13 @@ Allowed objects (use only these):
 {"type":"wishlist","name":"PS5 Pro","target_price":number or null}   — things he wants to buy one day / gift ideas
 {"type":"meal","day":"YYYY-MM-DD","slot":"breakfast"|"lunch"|"dinner","title":"Spag bol","ingredients":["mince","spaghetti"]}   — meals for a day
 {"type":"homejob","name":"Clean the oven","next_due":"YYYY-MM-DD" or null,"every_days":number or null}   — chores around the house
+{"type":"birthday","name":"Mum","date":"MM-DD","year":number or null}   — someone's birthday
+{"type":"parcel","number":"tracking number exactly as said, no spaces","label":"what it is"}   — track a parcel
+{"type":"warranty","item":"Air fryer","shop":"Argos" or null,"return_days":30 or null,"warranty_years":1 or null}   — something he bought, to remember returns/warranty
+{"type":"habit","name":"Gym"}   — he did a habit today ("I went to the gym", "done my 10k steps")
+{"type":"parking","minutes":120 or null}   — he's just parked (null = no time limit)
+{"type":"packing","place":"Málaga","start":"YYYY-MM-DD" or null,"days":4}   — he's going away and wants a packing list
+{"type":"activity","kind":"walk"|"run"}   — he's starting a walk or run now (opens the tracker)
 Today is ${iso}. Coming days: ${nextDays(iso)}. Work out real dates from that list ("Tuesday" = the next Tuesday, "tomorrow", "next Friday"). Split one sentence into several objects if he mentions several things, each in the right place. Capitalise names nicely. In the visible reply just confirm in a few friendly words what you've added (no JSON, no dates in YYYY-MM-DD). Never add actions for questions, and never invent things he didn't ask for.`;
 
 const nextDays = (from: string) =>
@@ -178,6 +185,13 @@ function splitActions(raw: string): { text: string; actions: Record<string, unkn
     } else if (a.type === "wishlist" && str(a.name, 120)) out.push({ type: "wishlist", name: str(a.name, 120), target_price: Number(a.target_price) > 0 ? Math.round(Number(a.target_price) * 100) / 100 : null });
     else if (a.type === "meal" && iso(a.day) && ["breakfast", "lunch", "dinner"].includes(String(a.slot)) && str(a.title, 120))
       out.push({ type: "meal", day: iso(a.day), slot: a.slot, title: str(a.title, 120), ingredients: (Array.isArray(a.ingredients) ? a.ingredients : []).map((x) => str(x, 50)).filter(Boolean).slice(0, 15) });
+    else if (a.type === "birthday" && str(a.name, 80) && /^\d{2}-\d{2}$/.test(String(a.date))) out.push({ type: "birthday", name: str(a.name, 80), date: a.date, year: Number(a.year) > 1900 && Number(a.year) < 2100 ? Math.round(Number(a.year)) : null });
+    else if (a.type === "parcel" && /^[A-Z0-9]{6,40}$/i.test(String(a.number ?? "").replace(/[\s-]/g, ""))) out.push({ type: "parcel", number: String(a.number).replace(/[\s-]/g, "").toUpperCase(), label: str(a.label, 60) || "Parcel" });
+    else if (a.type === "warranty" && str(a.item, 120)) out.push({ type: "warranty", item: str(a.item, 120), shop: str(a.shop, 60) || null, return_days: Number(a.return_days) > 0 ? Math.min(730, Math.round(Number(a.return_days))) : null, warranty_years: Number(a.warranty_years) > 0 ? Math.min(25, Math.round(Number(a.warranty_years))) : null });
+    else if (a.type === "habit" && str(a.name, 60)) out.push({ type: "habit", name: str(a.name, 60) });
+    else if (a.type === "parking") out.push({ type: "parking", minutes: Number(a.minutes) > 0 ? Math.min(1440, Math.round(Number(a.minutes))) : null });
+    else if (a.type === "packing" && str(a.place, 80)) out.push({ type: "packing", place: str(a.place, 80), start: iso(a.start), days: Math.min(30, Math.max(1, Math.round(Number(a.days) || 3))) });
+    else if (a.type === "activity" && ["walk", "run"].includes(String(a.kind))) out.push({ type: "activity", kind: a.kind });
     else if (a.type === "homejob" && str(a.name, 120)) out.push({ type: "homejob", name: str(a.name, 120), next_due: iso(a.next_due), every_days: Number(a.every_days) > 0 ? Math.min(3650, Math.round(Number(a.every_days))) : null });
   }
   return { text, actions: out };
@@ -201,6 +215,87 @@ Deno.serve(async (req) => {
     return json({ error: "Bad request" }, 400);
   }
   if (body.mode === "image") return json({ error: "Creating and editing pictures isn't available on the free AI. You can still send a photo and ask about it." }, 400);
+
+  // ---- Packing list: checks the forecast at the destination, then builds a checklist (JSON out)
+  if (body.mode === "packing") {
+    const b = body as { place?: string; start?: string; days?: number; notes?: string };
+    const place = String(b.place ?? "").trim().slice(0, 80);
+    const days = Math.min(30, Math.max(1, Math.round(Number(b.days) || 3)));
+    const start = typeof b.start === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.start) ? b.start : null;
+    if (!place) return json({ error: "Where are you going?" }, 400);
+    if (!(await bump(user.id))) return json({ error: `Daily AI limit reached (${MAX_CHATS}). Try again tomorrow.` }, 429);
+    let weather = "";
+    try {
+      const g = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=en`, { signal: AbortSignal.timeout(6000) })).json();
+      const loc = g?.results?.[0];
+      if (loc) {
+        const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=16`, { signal: AbortSignal.timeout(6000) })).json();
+        const dates = (w?.daily?.time ?? []) as string[];
+        const from = start ?? dates[0];
+        const idx = dates.map((d, i) => (d >= from ? i : -1)).filter((i) => i >= 0).slice(0, days);
+        if (idx.length) {
+          const hi = Math.round(Math.max(...idx.map((i) => w.daily.temperature_2m_max[i])));
+          const lo = Math.round(Math.min(...idx.map((i) => w.daily.temperature_2m_min[i])));
+          const wet = idx.filter((i) => w.daily.precipitation_probability_max[i] >= 50).length;
+          weather = `Forecast for ${loc.name}${loc.country ? `, ${loc.country}` : ""}: ${lo}–${hi}°C, ${wet ? `rain likely on ${wet} of ${idx.length} days` : "mostly dry"}${idx.length < days ? " (forecast only covers part of the trip)" : ""}.`;
+        } else weather = `${loc.name}${loc.country ? `, ${loc.country}` : ""} — too far ahead for a forecast; use typical weather for the time of year.`;
+      }
+    } catch {
+      /* no forecast — the AI uses typical weather */
+    }
+    const prompt = `Make a practical packing list for Jack (from Shrewsbury, UK) going to ${place} for ${days} day${days > 1 ? "s" : ""}${start ? ` from ${start}` : ""}. ${weather || "No forecast available — use the typical weather for that time of year."}${b.notes ? ` Notes: ${String(b.notes).slice(0, 200)}.` : ""}
+Group into sections like Documents & money, Clothes, Toiletries, Tech, Health, Extras. Give clothing quantities for the trip length (e.g. "4 × T-shirts"). Include a UK→destination plug adapter if needed, passport/EHIC-GHIC if abroad. 25–45 items total.
+Reply with JSON only: {"weather":"one friendly line about the weather to expect","sections":[{"title":"Clothes","items":["..."]}]}`;
+    const msgsP = [{ role: "system", content: "You are a practical travel packing assistant. Output valid JSON only." }, { role: "user", content: prompt }];
+    try {
+      const t = GROQ_KEY
+        ? await chatCall("https://api.groq.com/openai/v1", GROQ_KEY, await pickGroqModel(CHAT_PREFS), msgsP, { json: true, maxTokens: 2000 })
+        : await chatCall("https://generativelanguage.googleapis.com/v1beta/openai", GEMINI_KEY, GEMINI_MODEL, msgsP, { json: true, maxTokens: 2000 });
+      const m = t.match(/\{[\s\S]*\}/);
+      const j = JSON.parse(m ? m[0] : t);
+      const sections = ((j.sections ?? []) as { title?: string; items?: unknown[] }[])
+        .map((x) => ({ title: String(x.title ?? "Extras").slice(0, 40), items: (Array.isArray(x.items) ? x.items : []).map((i) => String(i).trim().slice(0, 80)).filter(Boolean).slice(0, 20) }))
+        .filter((x) => x.items.length)
+        .slice(0, 8);
+      return json({ weather: String(j.weather ?? weather).slice(0, 200) || weather, sections });
+    } catch (e) {
+      return json({ error: `Couldn't build the list (${(e as Error).message.slice(0, 100)}).` }, 502);
+    }
+  }
+
+  // ---- Daily pub quiz: 5 multiple-choice questions (JSON out)
+  if (body.mode === "quiz") {
+    if (!(await bump(user.id))) return json({ error: `Daily AI limit reached (${MAX_CHATS}). Try again tomorrow.` }, 429);
+    const date = String((body as { date?: string }).date ?? "").slice(0, 10);
+    const prompt = `Write today's (${date}) 5-question pub quiz for Jack, a UK football fan who supports Aston Villa.
+Exactly 5 questions: 1) Aston Villa history or famous players, 2) English football / Premier League history, 3) world football or another sport, 4) UK general knowledge or geography, 5) film, TV or music.
+Rules: only well-established facts you are certain of (nothing from the last 12 months, no current squads, managers or league positions); 4 options each, one clearly correct; medium difficulty; vary the questions (use the date as inspiration so each day is different).
+Reply with JSON only: {"questions":[{"topic":"Villa","q":"...","options":["A","B","C","D"],"answer":0,"explain":"one short sentence"}]} — answer is the index 0–3 of the correct option.`;
+    const msgsQ = [{ role: "system", content: "You write accurate, fun pub-quiz questions. Output valid JSON only." }, { role: "user", content: prompt }];
+    try {
+      const t = GROQ_KEY
+        ? await chatCall("https://api.groq.com/openai/v1", GROQ_KEY, await pickGroqModel(CHAT_PREFS), msgsQ, { json: true, maxTokens: 1800 })
+        : await chatCall("https://generativelanguage.googleapis.com/v1beta/openai", GEMINI_KEY, GEMINI_MODEL, msgsQ, { json: true, maxTokens: 1800 });
+      const m = t.match(/\{[\s\S]*\}/);
+      const j = JSON.parse(m ? m[0] : t);
+      const questions = ((j.questions ?? []) as Record<string, unknown>[])
+        .filter((x) => typeof x.q === "string" && Array.isArray(x.options) && (x.options as unknown[]).length === 4 && Number.isInteger(Number(x.answer)) && Number(x.answer) >= 0 && Number(x.answer) <= 3)
+        .slice(0, 5)
+        .map((x) => {
+          // shuffle the options so the right answer isn't always in the same place
+          const opts = (x.options as unknown[]).map((o, i) => ({ o: String(o).slice(0, 100), right: i === Number(x.answer) }));
+          for (let i = opts.length - 1; i > 0; i--) {
+            const k = Math.floor(Math.random() * (i + 1));
+            [opts[i], opts[k]] = [opts[k], opts[i]];
+          }
+          return { topic: String(x.topic ?? "General").slice(0, 30), q: String(x.q).slice(0, 300), options: opts.map((y) => y.o), answer: opts.findIndex((y) => y.right), explain: String(x.explain ?? "").slice(0, 200) };
+        });
+      if (questions.length < 3) return json({ error: "The quiz came out wrong — try again." }, 502);
+      return json({ questions });
+    } catch (e) {
+      return json({ error: `Couldn't write the quiz (${(e as Error).message.slice(0, 100)}).` }, 502);
+    }
+  }
 
   // ---- Voice notes → text (Groq Whisper, free). Works in the iPhone Home Screen app, unlike the browser's speech recognition.
   if (body.mode === "transcribe") {

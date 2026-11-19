@@ -177,6 +177,92 @@ async function checkWishPrices(today: string, hour: number) {
   return { checked, sent };
 }
 
+/* ---------- Matchday goal alerts ---------- */
+
+const APP_URL = (Deno.env.get("APP_URL") ?? "https://life-hub-nine-rouge.vercel.app").replace(/\/$/, "");
+type LiveEv = { minute: number; extra: number | null; side: "home" | "away"; player: string; kind: "goal" | "pen" | "own" | "red" };
+type Live = { status?: string; fixtureId?: number; home?: { name: string; goals: number | null }; away?: { name: string; goals: number | null }; events?: LiveEv[] };
+const ukDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(d);
+const shortName = (n: string) => (/aston villa/i.test(n) ? "Villa" : n);
+
+async function goalAlerts(
+  allTeams: string[],
+  byUser: Map<string, Sub[]>,
+  teamsByUser: Map<string, string[]>,
+  prefs: Map<string, { matches: boolean }>,
+  now: number,
+) {
+  let sent = 0;
+  const done = new Set<string>();
+  for (const team of allTeams) {
+    const lists = await Promise.all(
+      ["eventsnext", "eventslast"].map((ep) =>
+        fetch(`https://www.thesportsdb.com/api/v1/json/123/${ep}.php?id=${team}`)
+          .then((r) => r.json())
+          .then((j) => ((j?.events ?? j?.results ?? []) as Record<string, string>[]))
+          .catch(() => [] as Record<string, string>[]),
+      ),
+    );
+    for (const e of lists.flat()) {
+      if (done.has(e.idEvent)) continue;
+      const ts = e.strTimestamp ? new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(e.strTimestamp) ? e.strTimestamp : `${e.strTimestamp}Z`) : null;
+      if (!ts) continue;
+      const mins = (now - ts.getTime()) / 60000;
+      if (mins < -2 || mins > 165) continue; // only from kick-off to ~2h45 after
+      done.add(e.idEvent);
+      const url = `${APP_URL}/api/live?date=${ukDay(ts)}&home=${encodeURIComponent(e.strHomeTeam)}&away=${encodeURIComponent(e.strAwayTeam)}&ko=${encodeURIComponent(ts.toISOString())}`;
+      let live: Live;
+      try {
+        live = await (await fetch(url, { signal: AbortSignal.timeout(15000) })).json();
+      } catch {
+        continue;
+      }
+      if (!live?.home || !live.away) continue;
+      const home = live.home.name;
+      const away = live.away.name;
+      // Running score after each goal
+      let h = 0;
+      let a = 0;
+      const goals = (live.events ?? []).filter((x) => x.kind !== "red").map((g) => {
+        if (g.side === "home") h++;
+        else a++;
+        return { ...g, h, a };
+      });
+      for (const [userId, userSubs] of byUser) {
+        if (prefs.get(userId)?.matches === false) continue;
+        const mine = teamsByUser.get(userId) ?? TEAMS;
+        if (!mine.includes(team) && !mine.includes(String(e.idHomeTeam)) && !mine.includes(String(e.idAwayTeam))) continue;
+        const oursSide: "home" | "away" = mine.includes(String(e.idAwayTeam)) && !mine.includes(String(e.idHomeTeam)) ? "away" : "home";
+        for (const g of goals) {
+          const key = `goal-${e.idEvent}-${g.h}-${g.a}`; // one alert per score change, even if the scorer name is corrected later
+          if (!(await once(userId, key))) continue;
+          const ours = g.side === oursSide;
+          const tag = g.kind === "pen" ? " (pen)" : g.kind === "own" ? " (OG)" : "";
+          sent += await sendTo(userSubs, {
+            title: ours ? `⚽ GOAL! ${shortName(home)} ${g.h}–${g.a} ${shortName(away)}` : `😬 Goal for ${shortName(g.side === "home" ? home : away)}. ${shortName(home)} ${g.h}–${g.a} ${shortName(away)}`,
+            body: `${g.player}${tag} ${g.minute}${g.extra ? `+${g.extra}` : ""}'`,
+            url: `/sport/match/${e.idEvent}`,
+            tag: `live-${e.idEvent}`,
+          });
+        }
+        if (["FT", "AET", "PEN"].includes(live.status ?? "") && (await once(userId, `ft-${e.idEvent}`))) {
+          const hs = live.home.goals ?? h;
+          const as = live.away.goals ?? a;
+          const us = oursSide === "home" ? hs : as;
+          const them = oursSide === "home" ? as : hs;
+          sent += await sendTo(userSubs, {
+            title: `${us > them ? "🦁 Full time — WIN!" : us < them ? "Full time — gutted" : "Full time — a point"} ${shortName(home)} ${hs}–${as} ${shortName(away)}`,
+            body: us > them ? "Get in! Tap for the stats." : "Tap for the stats.",
+            url: `/sport/match/${e.idEvent}`,
+            tag: `live-${e.idEvent}`,
+          });
+        }
+      }
+    }
+  }
+  return sent;
+}
+
 async function runScheduled() {
   // Price tracking runs even for people without notifications switched on
   let prices = { checked: 0, sent: 0 };
@@ -298,6 +384,14 @@ async function runScheduled() {
       console.error("fixtures failed", team, (err as Error).message);
     }
   }
+  // ---- Matchday: goal + full-time alerts for favourite teams' live matches (score from the app's /api/live,
+  //      which shares one cached API-Football call between the app and this job)
+  try {
+    sent += await goalAlerts(allTeams, byUser, teamsByUser, prefs, now);
+  } catch (err) {
+    console.error("goal alerts failed", (err as Error).message);
+  }
+
   // ---- Met Office weather warnings for each person's region (7am–10pm)
   if (hour >= 7 && hour < 22) {
     const feeds = new Map<string, { title: string; desc: string; link: string }[]>();

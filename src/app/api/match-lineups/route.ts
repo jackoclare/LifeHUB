@@ -49,7 +49,7 @@ export async function GET(req: Request) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !home || !away) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
   try {
-    const day = await api<ApiFixture[]>(`/fixtures?date=${date}&timezone=Europe/London`, key, 900);
+    const day = await api<ApiFixture[]>(`/fixtures?date=${date}&timezone=Europe/London`, key, 10800);
     const errs = day.errors && (Array.isArray(day.errors) ? day.errors.length : Object.keys(day.errors as object).length);
     if (errs) return NextResponse.json({ configured: true, lineups: [], error: `API-Football: ${JSON.stringify(day.errors)}` });
     // Pick the right game: youth/women's/reserve sides share names (England U21 v Croatia U21), so prefer exact

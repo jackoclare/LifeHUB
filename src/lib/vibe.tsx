@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { describe, usePlace, useWeather } from "@/lib/weather";
 import { outcome, useTeams } from "@/lib/football";
 import { useFavTeams } from "@/lib/prefs";
+import { margin, useLiveMatch, type LiveState } from "@/lib/live";
 
 /**
  * The app's "mood": what the sky behind everything looks like, how the mascot feels,
@@ -23,9 +24,10 @@ export type Vibe = {
   mood: Mood;
   line: string;
   ready: boolean;
+  live: LiveState | null;
 };
 
-const DEFAULT: Vibe = { scene: "day", sky: "clear", temp: null, rainSoon: false, mood: "happy", line: "", ready: false };
+const DEFAULT: Vibe = { scene: "day", sky: "clear", temp: null, rainSoon: false, mood: "happy", line: "", ready: false, live: null };
 const VibeCtx = createContext<Vibe>(DEFAULT);
 export const useVibe = () => useContext(VibeCtx);
 
@@ -53,6 +55,7 @@ export function VibeProvider({ children }: { children: React.ReactNode }) {
   const fav = useFavTeams();
   const main = fav[0];
   const { data: teams } = useTeams(main ? [main] : []);
+  const live = useLiveMatch(fav);
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -83,7 +86,11 @@ export function VibeProvider({ children }: { children: React.ReactNode }) {
 
     // Mascot mood (most important first)
     let mood: Mood = "happy";
-    if (recent === "W") mood = "party";
+    const liveMargin = live && live.phase !== "soon" ? margin(live) : null;
+    if (liveMargin === 1) mood = "party";
+    else if (liveMargin === -1) mood = "gutted";
+    else if (liveMargin === 0) mood = "happy";
+    else if (recent === "W") mood = "party";
     else if (recent === "L") mood = "gutted";
     else if (h >= 23 || h < 5) mood = "sleepy";
     else if (rainSoon) mood = "rain";
@@ -107,15 +114,21 @@ export function VibeProvider({ children }: { children: React.ReactNode }) {
     else a = pick(["Steady as she goes", "All ticking along nicely", "Nothing on fire. Lovely"], seed);
 
     let b = "";
-    if (recent === "W") b = `${short} won! Up the ${short} 🦁`;
+    const liveShort = live ? (/aston villa/i.test(live.ours === "home" ? live.match.home : live.match.away) ? "Villa" : live.ours === "home" ? live.match.home : live.match.away) : short;
+    const us = live ? (live.ours === "home" ? live.score[0] : live.score[1]) : 0;
+    const them = live ? (live.ours === "home" ? live.score[1] : live.score[0]) : 0;
+    if (live?.phase === "soon") b = `${liveShort} kick off at ${live.minuteLabel} — matchday! ⚽`;
+    else if (live?.phase === "ft") b = us > them ? `FULL TIME: ${liveShort} win ${us}–${them}! 🦁` : us < them ? `Full time. ${liveShort} lost ${us}–${them}` : `Full time: ${us}–${them}`;
+    else if (live) b = us > them ? `${liveShort} ${us}–${them} up! ${live.minuteLabel}` : us < them ? `${liveShort} ${us}–${them} down. Come on! ${live.minuteLabel}` : `${us}–${them}, ${live.minuteLabel}. Come on ${liveShort}!`;
+    else if (recent === "W") b = `${short} won! Up the ${short} 🦁`;
     else if (recent === "L") b = `${short} lost. We go again`;
     else if (days === 0) b = `${short} play TODAY ⚽`;
     else if (days === 1) b = `${short} tomorrow — get ready`;
     else if (days != null && days > 1 && days <= 7) b = `${short} in ${days} days`;
 
-    const line = b ? `${a}. ${b}` : `${a}.`;
-    return { scene, sky, temp, rainSoon, mood, line, ready: true };
-  }, [now, wx, teams, main]);
+    const line = live && b ? b : b ? `${a}. ${b}` : `${a}.`;
+    return { scene, sky, temp, rainSoon, mood, line, ready: true, live };
+  }, [now, wx, teams, main, live]);
 
   return <VibeCtx.Provider value={vibe}>{children}</VibeCtx.Provider>;
 }

@@ -26,6 +26,8 @@ import { describe, usePlace, useWeather } from "@/lib/weather";
 import { useVibe } from "@/lib/vibe";
 import { Mascot } from "@/components/Mascot";
 import { celebrate } from "@/lib/celebrate";
+import { Scoreboard } from "@/components/dashboard/Scoreboard";
+import { ShareDayButton } from "@/components/dashboard/ShareDay";
 
 /* ---------- helpers ---------- */
 
@@ -97,6 +99,7 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
   const alerts = useAlerts().filter((a) => a.href !== "/bills");
   const soon = alerts.filter((a) => a.days <= 3).length;
   const next = upcoming(events, 60).filter((e) => e.kind !== "bill")[0];
+  const { live } = useVibe();
   return (
     <section className="animate-rise mb-5">
       <div className="hero-card hero-dark relative overflow-hidden rounded-[2rem] p-5 sm:p-6">
@@ -115,13 +118,17 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
             <h1 className="truncate text-[1.45rem] font-bold leading-tight tracking-tight">Jack</h1>
             <JohnLine />
           </div>
+          <ShareDayButton now={now} next={next ? { title: next.title, when: now ? whenLabel(next, now) : "" } : null} />
           <Link href="/alerts" aria-label={`Alerts${soon ? ` (${soon})` : ""}`} className="hero-glass relative grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-90">
             <Bell size={19} className={soon ? "bell-ring" : ""} />
             {soon > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-[#ff3b30] px-1 text-[11px] font-bold ring-2 ring-surface text-white">{soon}</span>}
           </Link>
         </div>
 
-        {/* time · weather */}
+        {/* matchday: live scoreboard instead of the clock */}
+        {live ? (
+          <Scoreboard live={live} />
+        ) : (
         <div className="relative mt-6 flex items-end justify-between gap-3">
           <div>
             <p className="hero-clock font-display text-[3.8rem] font-extralight leading-none tracking-tight tabular-nums" suppressHydrationWarning>
@@ -141,6 +148,7 @@ export function HomeHero({ now, events, editing, onToggleEdit }: { now: Date | n
           </div>
           <HeroWeather />
         </div>
+        )}
 
         {/* glass stat chips */}
         <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
